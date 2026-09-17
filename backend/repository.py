@@ -53,6 +53,7 @@ def get_active_session(user_id: int) -> Optional[dict[str, Any]]:
             "session_id": session.session_id,
             "last_query": session.last_query,
             "last_products_shown": session.last_products_shown,
+            "selected_product": session.selected_product,
             "status": session.status,
         }
 
@@ -76,9 +77,28 @@ def record_turn(
 
         session.last_query = query
         session.last_products_shown = products_shown
+        # A new list of results invalidates whatever was picked from the old one
+        session.selected_product = None
         session.updated_at = utcnow()
         db.flush()
         return session.session_id
+
+
+def record_selection(user_id: int, product: dict[str, Any]) -> None:
+    """Remember which item the customer picked, for a later BUY or Pay Now."""
+    with session_scope() as db:
+        session = db.exec(
+            select(Session)
+            .where(Session.user_id == user_id, Session.status == "active")
+            .order_by(Session.updated_at.desc())
+        ).first()
+
+        if session is None:
+            session = Session(user_id=user_id)
+            db.add(session)
+
+        session.selected_product = product
+        session.updated_at = utcnow()
 
 
 def close_session(session_id: int, status: str = "closed") -> None:

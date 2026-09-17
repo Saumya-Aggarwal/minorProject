@@ -60,7 +60,8 @@ class ProductMatch(BaseModel):
 - [x] Storefront (product grid, auth, account page) + JSON API under /api
 - [x] WhatsApp account linking via single-use token + wa.me deep link
 - [x] Bot personalizes replies for linked users (order history in prompt)
-- [ ] Multi-turn follow-ups ("the second one") resolved from session context
+- [x] Multi-turn follow-ups ("2", "the second one") resolved from session context
+- [x] BUY places an order from the selected item (placeholder until Razorpay)
 - [ ] Razorpay order creation + Pay Now interactive message
 - [ ] Razorpay payment.captured webhook
 
@@ -101,6 +102,16 @@ Retrieval quality: single-concept queries work well ("wedding sherwani",
 kurta" returns kurtas, because "kurta" dominates the sentence. Cleaning the
 embedded document text does not fix it (tested). Options: raise top_k, or filter
 by metadata category when the query names one. Dev B's retrieval-tuning task.
+
+## Follow-up handling
+backend/selection.py parses a reply against last_products_shown. It requires the
+WHOLE message to match a selector pattern, never a substring: "2 piece kurta set"
+and "under 3000" contain digits but are searches. Out-of-range numbers are
+treated as searches too.
+
+sessions.selected_product holds the chosen item so a later BUY knows what it
+means; starting a new search clears it. Razorpay's Pay Now button will read the
+same field.
 
 ## Known gaps
 - RAG code lives in backend/bot/chat.py, not /rag as this doc states.

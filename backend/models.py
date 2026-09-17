@@ -67,6 +67,11 @@ class Session(SQLModel, table=True):
     last_products_shown: Optional[list[dict[str, Any]]] = Field(
         default=None, sa_column=Column(JSONB)
     )
+    # The item the customer picked from the last list, kept so a follow-up
+    # "BUY" knows what it refers to. Razorpay will read this to build the order.
+    selected_product: Optional[dict[str, Any]] = Field(
+        default=None, sa_column=Column(JSONB)
+    )
     # active | checkout | closed
     status: str = Field(default="active", max_length=20)
     updated_at: datetime = Field(default_factory=utcnow, sa_column=_tstz(nullable=False))

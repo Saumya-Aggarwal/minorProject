@@ -8,7 +8,10 @@ import repository as repo
 from bot.chat import get_product_recommendations
 from common.schemas import ProductMatch
 from repository import LINK_PREFIX
+from selection import describe_choice, parse_selection
 from whatsapp import send_whatsapp_message
+
+BUY_WORDS = {"buy", "buy it", "order", "order it", "place order", "confirm", "yes buy"}
 
 router = APIRouter()
 
@@ -102,6 +105,62 @@ async def _handle_link_code(sender: str, text: str) -> str:
     )
 
 
+async def _handle_follow_up(
+    user_id: int, text: str, previous: dict | None
+) -> str | None:
+    """Resolve "2" or "BUY" against the previous turn. None means it was neither.
+
+    Checked before the RAG call: the assistant invites "reply with an item
+    number", so a bare "2" is an answer to that, not a new product search.
+    """
+    if not previous:
+        return None
+
+    shown = previous.get("last_products_shown") or []
+    index = parse_selection(text, len(shown))
+    if index is not None:
+        product = shown[index]
+        print(f"[webhook] selection: item {index + 1} ({product.get('name')})")
+        await asyncio.to_thread(repo.record_selection, user_id, product)
+        return describe_choice(product, index)
+
+    if text.strip().lower().rstrip(".!") in BUY_WORDS:
+        chosen = previous.get("selected_product")
+        if not chosen:
+            return (
+                "Tell me which item you would like first — reply with its number, "
+                "or describe what you are looking for."
+            )
+        return await _place_order(user_id, chosen)
+
+    return None
+
+
+async def _place_order(user_id: int, product: dict) -> str:
+    """Placeholder checkout until Razorpay lands: records the order, no payment."""
+    name = product.get("name", "your item")
+    price = product.get("price_inr", product.get("price", 0))
+    try:
+        order_id = await asyncio.to_thread(
+            repo.create_order,
+            user_id,
+            product.get("product_id") or product.get("id") or "",
+            name,
+            price,
+            None,
+            "bot",
+        )
+    except Exception as exc:
+        print(f"[webhook] order creation failed: {exc!r}")
+        return "Sorry, I could not place that order just now. Please try again in a moment."
+
+    print(f"[webhook] order {order_id} created for user {user_id}")
+    return (
+        f"Order #{order_id} placed — {name} for Rs. {price:,.0f}.\n"
+        "You will get a payment link here shortly. Anything else I can help you find?"
+    )
+
+
 def _build_user_context(user: dict | None, history: list[dict]) -> str | None:
     """Condense who the customer is and what they own into prompt-ready text."""
     if not user or not user.get("is_linked"):
@@ -138,6 +197,10 @@ async def _handle_text(sender: str, text: str, display_name: str | None) -> str:
         previous = await asyncio.to_thread(repo.get_active_session, user_id)
         if previous and previous.get("last_query"):
             print(f"[webhook] prior turn for {sender}: {previous['last_query']!r}")
+
+        follow_up = await _handle_follow_up(user_id, text, previous)
+        if follow_up is not None:
+            return follow_up
     except Exception as exc:
         print(f"[webhook] user lookup failed, continuing stateless: {exc!r}")
 
