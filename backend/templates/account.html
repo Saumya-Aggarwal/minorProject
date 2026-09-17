@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Your account{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-semibold mb-6">Your account</h1>
+
+<div class="grid gap-6 md:grid-cols-2">
+  <section class="bg-white border border-stone-200 rounded-lg p-5">
+    <h2 class="font-medium mb-3">WhatsApp assistant</h2>
+
+    {% if user.whatsapp_number %}
+      <p class="text-sm text-stone-600">
+        Connected to <span class="font-mono">+{{ user.whatsapp_number }}</span>.
+      </p>
+      <p class="text-sm text-stone-500 mt-2">
+        Message us any time &mdash; the assistant already knows your order history.
+      </p>
+    {% else %}
+      <p class="text-sm text-stone-600 mb-4">
+        Connect WhatsApp so the shopping assistant can see your orders and make
+        recommendations that fit what you already own.
+      </p>
+      <a href="{{ link.url }}" target="_blank" rel="noopener"
+         class="inline-block bg-emerald-600 text-white px-4 py-2.5 rounded-md hover:bg-emerald-700">
+        Connect WhatsApp
+      </a>
+      <p class="text-xs text-stone-400 mt-3">
+        Opens WhatsApp with a one-time code. Send it as-is; it expires in
+        {{ link.ttl }} minutes.
+      </p>
+      <p class="text-xs text-stone-400 mt-1">
+        Not opening? Message us <span class="font-mono">{{ link.code }}</span> manually.
+      </p>
+    {% endif %}
+  </section>
+
+  <section class="bg-white border border-stone-200 rounded-lg p-5">
+    <h2 class="font-medium mb-3">Order history</h2>
+    {% if orders %}
+      <ul class="divide-y divide-stone-100 text-sm">
+        {% for order in orders %}
+        <li class="py-2.5 flex items-baseline gap-2">
+          <span class="flex-1">{{ order.product_name }}</span>
+          <span class="text-xs text-stone-400">{{ order.channel }}</span>
+          <span class="font-medium">&#8377;{{ '{:,.0f}'.format(order.price_inr) }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-sm text-stone-500">
+        Nothing yet. <a href="/" class="underline">Browse the collection</a>.
+      </p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

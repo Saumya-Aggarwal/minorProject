@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }}{% endblock %}
+{% block content %}
+<a href="/" class="text-sm text-stone-500 hover:underline">&larr; All products</a>
+
+<div class="bg-white border border-stone-200 rounded-lg p-6 mt-4 max-w-2xl">
+  <div class="text-xs uppercase tracking-wide text-stone-400">{{ product.category }}</div>
+  <h1 class="text-2xl font-semibold mt-1">{{ product.name }}</h1>
+  <div class="text-xl font-semibold mt-2">&#8377;{{ '{:,.0f}'.format(product.price) }}</div>
+
+  <p class="text-stone-600 mt-4">{{ product.description }}</p>
+
+  <dl class="grid grid-cols-2 gap-2 text-sm mt-6 text-stone-600">
+    <dt class="text-stone-400">Fabric</dt><dd>{{ product.fabric }}</dd>
+    <dt class="text-stone-400">Sizes</dt><dd>{{ product.sizes_available|join(', ') }}</dd>
+  </dl>
+
+  <form method="post" action="/buy/{{ product.id }}" class="mt-6">
+    <button type="submit"
+            class="bg-stone-900 text-white px-5 py-2.5 rounded-md hover:bg-stone-700">
+      Buy now
+    </button>
+    {% if not user %}
+    <span class="text-xs text-stone-500 ml-3">You'll be asked to sign in first.</span>
+    {% endif %}
+  </form>
+</div>
+{% endblock %}

@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import os
 
 from fastapi import APIRouter, HTTPException, Request, Response
@@ -6,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 import repository as repo
 from bot.chat import get_product_recommendations
 from common.schemas import ProductMatch
+from repository import LINK_PREFIX
 from whatsapp import send_whatsapp_message
 
 router = APIRouter()
@@ -28,6 +30,20 @@ async def verify_webhook(request: Request):
     raise HTTPException(status_code=403, detail="Verification failed")
 
 
+def _recommend(query: str, user_context: str | None):
+    """Call the RAG contract, passing user_context only if it accepts one.
+
+    The shared contract is get_product_recommendations(query, top_k). Adding
+    user_context is agreed but not yet implemented on the RAG side, so this
+    checks the signature instead of assuming — the bot keeps working either way.
+    """
+    if user_context and "user_context" in inspect.signature(
+        get_product_recommendations
+    ).parameters:
+        return get_product_recommendations(query, user_context=user_context)
+    return get_product_recommendations(query)
+
+
 def _profile_names(value: dict) -> dict[str, str]:
     """Map wa_id -> profile name from the contacts block, when Meta sends one."""
     names = {}
@@ -39,23 +55,89 @@ def _profile_names(value: dict) -> dict[str, str]:
     return names
 
 
+async def _handle_link_code(sender: str, text: str) -> str:
+    """Bind this number to the website account that minted the code.
+
+    A browser session can never reach us, so this one-time code is the only
+    proof of who the sender is. After it succeeds, the number itself is enough.
+    """
+    token = text[len(LINK_PREFIX):].strip()
+    try:
+        user = await asyncio.to_thread(repo.consume_link_token, token, sender)
+    except Exception as exc:
+        print(f"[webhook] link failed: {exc!r}")
+        return "Something went wrong linking your account. Please try again from the website."
+
+    if user is None:
+        return (
+            "That link code is invalid or has expired. "
+            "Open your account page on our website and tap Connect WhatsApp for a fresh one."
+        )
+
+    name = user.get("display_name") or "there"
+    history = await asyncio.to_thread(repo.get_order_history, user["user_id"], 3)
+
+    if history:
+        recent = ", ".join(order["product_name"] for order in history)
+        return (
+            f"Welcome back, {name}! Your account is connected. "
+            f"I can see your recent orders: {recent}. What are you shopping for today?"
+        )
+    return (
+        f"Welcome back, {name}! Your account is connected. "
+        "Tell me what you are looking for and I will suggest something from our collection."
+    )
+
+
+def _build_user_context(user: dict | None, history: list[dict]) -> str | None:
+    """Condense who the customer is and what they own into prompt-ready text."""
+    if not user or not user.get("is_linked"):
+        return None
+
+    lines = [f"Customer name: {user.get('display_name') or 'unknown'}"]
+    if history:
+        lines.append("Previously purchased:")
+        lines.extend(
+            f"- {order['product_name']} (Rs. {order['price_inr']:.0f})" for order in history
+        )
+    else:
+        lines.append("No previous purchases.")
+    return "\n".join(lines)
+
+
 async def _handle_text(sender: str, text: str, display_name: str | None) -> str:
     """Persist the contact, answer the query, and record the turn.
 
     Database problems must never stop a reply going out — a dead Postgres
     costs us conversation memory, not the conversation.
     """
+    if text.strip().upper().startswith(LINK_PREFIX):
+        return await _handle_link_code(sender, text.strip())
+
     user_id = None
+    user = None
+    history: list[dict] = []
     try:
         user_id = await asyncio.to_thread(repo.get_or_create_user, sender, display_name)
+        user = await asyncio.to_thread(repo.get_user_by_whatsapp, sender)
+        if user and user.get("is_linked"):
+            history = await asyncio.to_thread(repo.get_order_history, user_id, 5)
         previous = await asyncio.to_thread(repo.get_active_session, user_id)
         if previous and previous.get("last_query"):
             print(f"[webhook] prior turn for {sender}: {previous['last_query']!r}")
     except Exception as exc:
         print(f"[webhook] user lookup failed, continuing stateless: {exc!r}")
 
-    # get_product_recommendations is synchronous and does network I/O
-    reply, raw_matches = await asyncio.to_thread(get_product_recommendations, text)
+    user_context = _build_user_context(user, history)
+    if user_context:
+        print(f"[webhook] personalizing for linked user {user_id}")
+
+    # get_product_recommendations is synchronous and does network I/O.
+    # user_context is passed only when the RAG side supports it, so Dev B's
+    # current two-argument signature keeps working untouched.
+    reply, raw_matches = await asyncio.to_thread(
+        _recommend, text, user_context
+    )
 
     # Chroma metadata is unvalidated, so normalize before anything stores it
     matches = [ProductMatch.from_raw(match) for match in raw_matches]

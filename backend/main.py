@@ -14,9 +14,11 @@ from contextlib import asynccontextmanager  # noqa: E402
 import httpx  # noqa: E402
 from fastapi import FastAPI, HTTPException  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
+from starlette.middleware.sessions import SessionMiddleware  # noqa: E402
 
+from auth import session_secret  # noqa: E402
 from db import init_db  # noqa: E402
-from routers import webhook  # noqa: E402
+from routers import api, store, webhook  # noqa: E402
 from whatsapp import send_whatsapp_message  # noqa: E402
 
 
@@ -32,10 +34,23 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="WhatsApp Shopping Assistant", lifespan=lifespan)
+
+# Signed cookie session for the storefront. The bot has no session of its own —
+# link_tokens are what bridge a browser login to a WhatsApp number.
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=session_secret(),
+    same_site="lax",
+    https_only=False,  # ngrok serves https, but local dev is plain http
+)
+
 app.include_router(webhook.router)
+app.include_router(api.router)
+# Last: its "/" route would otherwise shadow the API and webhook paths
+app.include_router(store.router)
 
 
-@app.get("/")
+@app.get("/health")
 async def health():
     return {"status": "ok"}
 

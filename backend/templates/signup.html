@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Sign up{% endblock %}
+{% block content %}
+<div class="max-w-sm mx-auto bg-white border border-stone-200 rounded-lg p-6">
+  <h1 class="text-xl font-semibold mb-4">Create an account</h1>
+
+  {% if error %}
+  <p class="bg-red-50 text-red-700 text-sm rounded px-3 py-2 mb-4">{{ error }}</p>
+  {% endif %}
+
+  <form method="post" action="/signup" class="space-y-4">
+    <div>
+      <label class="block text-sm text-stone-600 mb-1" for="display_name">Name</label>
+      <input id="display_name" name="display_name" type="text"
+             class="w-full border border-stone-300 rounded-md px-3 py-2">
+    </div>
+    <div>
+      <label class="block text-sm text-stone-600 mb-1" for="email">Email</label>
+      <input id="email" name="email" type="email" required value="{{ email or '' }}"
+             class="w-full border border-stone-300 rounded-md px-3 py-2">
+    </div>
+    <div>
+      <label class="block text-sm text-stone-600 mb-1" for="password">Password</label>
+      <input id="password" name="password" type="password" required minlength="8"
+             class="w-full border border-stone-300 rounded-md px-3 py-2">
+      <p class="text-xs text-stone-400 mt-1">At least 8 characters.</p>
+    </div>
+    <button type="submit" class="w-full bg-stone-900 text-white py-2.5 rounded-md hover:bg-stone-700">
+      Sign up
+    </button>
+  </form>
+
+  <p class="text-sm text-stone-500 mt-4">
+    Already registered? <a href="/login" class="underline">Sign in</a>
+  </p>
+</div>
+{% endblock %}

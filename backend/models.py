@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any, Optional
 
-from sqlalchemy import Column, DateTime, Index, Numeric, text
+from sqlalchemy import CheckConstraint, Column, DateTime, Index, Numeric, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
@@ -22,13 +22,31 @@ def _tstz(**kwargs: Any) -> Column:
 
 
 class User(SQLModel, table=True):
-    """One row per WhatsApp contact, keyed by their phone number."""
+    """One identity per customer, across both the website and WhatsApp.
+
+    A single table rather than separate web/bot customer tables: the whole point
+    of account linking is that the two channels resolve to the same person.
+
+    Website signups start with an email and no whatsapp_number; bot contacts start
+    with a whatsapp_number and no email. Linking fills in the missing half.
+    """
 
     __tablename__ = "users"
+    __table_args__ = (
+        CheckConstraint(
+            "email IS NOT NULL OR whatsapp_number IS NOT NULL",
+            name="ck_users_has_identity",
+        ),
+    )
 
     user_id: Optional[int] = Field(default=None, primary_key=True)
     # Digits only, no '+' — matches the "from" field in Meta's webhook payload
-    whatsapp_number: str = Field(max_length=20, unique=True, index=True)
+    whatsapp_number: Optional[str] = Field(
+        default=None, max_length=20, unique=True, index=True
+    )
+    email: Optional[str] = Field(default=None, max_length=255, unique=True, index=True)
+    # bcrypt hash; None for contacts who only ever used WhatsApp
+    password_hash: Optional[str] = Field(default=None, max_length=255)
     display_name: Optional[str] = Field(default=None, max_length=100)
     created_at: datetime = Field(default_factory=utcnow, sa_column=_tstz(nullable=False))
     last_active_at: datetime = Field(default_factory=utcnow, sa_column=_tstz(nullable=False))
@@ -61,6 +79,8 @@ class Order(SQLModel, table=True):
 
     order_id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.user_id", index=True)
+    # Where the order came from: bot | web
+    channel: str = Field(default="bot", max_length=10)
     # Matches the product id in the Chroma metadata, e.g. "EW001"
     product_id: str = Field(max_length=20)
     product_name: str = Field(max_length=200)
@@ -72,6 +92,29 @@ class Order(SQLModel, table=True):
     status: str = Field(default="created", max_length=20)
     created_at: datetime = Field(default_factory=utcnow, sa_column=_tstz(nullable=False))
     captured_at: Optional[datetime] = Field(default=None, sa_column=_tstz(nullable=True))
+
+
+class LinkToken(SQLModel, table=True):
+    """Single-use code that binds a WhatsApp number to a website account.
+
+    A browser session cannot reach the bot — Meta's webhook carries only a phone
+    number and a message. So the site mints a short code, the user sends it through
+    a wa.me deep link, and the webhook uses it to prove which account is theirs.
+
+    Short-lived and single-use: once consumed, the phone number itself is the
+    credential for that account.
+    """
+
+    __tablename__ = "link_tokens"
+
+    token_id: Optional[int] = Field(default=None, primary_key=True)
+    # Short enough to retype by hand if the deep link misbehaves on desktop
+    token: str = Field(max_length=32, unique=True, index=True)
+    user_id: int = Field(foreign_key="users.user_id", index=True)
+    created_at: datetime = Field(default_factory=utcnow, sa_column=_tstz(nullable=False))
+    expires_at: datetime = Field(sa_column=_tstz(nullable=False))
+    # Set on first successful use; a second attempt must be refused
+    used_at: Optional[datetime] = Field(default=None, sa_column=_tstz(nullable=True))
 
 
 # Lookups go by razorpay_order_id rather than our own primary key; the unique
