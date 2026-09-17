@@ -51,14 +51,27 @@ class ProductMatch(BaseModel):
       BLOCKED: embedding provider undecided (OpenAI key vs free local MiniLM)
 - [x] get_product_recommendations() implemented
 - [x] Postgres models + CRUD (models.py, db.py, repository.py)
-- [ ] Webhook wired to persistence (users/sessions not written on message)
+- [x] Webhook wired to persistence (user upsert + session turn recording)
+- [ ] Multi-turn follow-ups ("the second one") resolved from session context
 - [ ] Razorpay order creation + Pay Now interactive message
 - [ ] Razorpay payment.captured webhook
 
+## Schema layers (three different things)
+1. Postgres tables  - backend/models.py, real types and constraints
+2. Pydantic contract - common/schemas.py, ProductMatch, validated in memory
+3. Chroma metadata   - untyped dicts in scripts/ingest_catalog.py, NOT validated
+
+ProductMatch.from_raw() accepts both the Chroma key style (id/price/description)
+and the contract style (product_id/price_inr/rich_description). The webhook
+normalizes through it before storing, so neither side has to change first.
+
+Products are deliberately NOT in Postgres. orders copies product_name and
+price_inr at purchase time so an order records what was actually paid.
+
 ## Known gaps
-- Contract drift: CLAUDE.md specifies List[ProductMatch] with product_id/price_inr;
-  bot/chat.py returns dicts with id/price. /common package does not exist yet.
 - RAG code lives in backend/bot/chat.py, not /rag as this doc states.
+- ingest_catalog.py and bot/chat.py still use the Chroma key style directly;
+  adopting ProductMatch there would remove the last of the drift.
 
 ## Project history
 - Meta WhatsApp Cloud API webhook handshake, subscription, inbound message handling,
