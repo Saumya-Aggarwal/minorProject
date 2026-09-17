@@ -1,6 +1,10 @@
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
+
+# Repo root on sys.path so `common` (a sibling of backend/) is importable
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 # Load backend/.env before anything reads os.environ
 load_dotenv(Path(__file__).parent / ".env")
