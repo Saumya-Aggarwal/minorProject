@@ -13,6 +13,7 @@ from contextlib import asynccontextmanager  # noqa: E402
 
 import httpx  # noqa: E402
 from fastapi import FastAPI, HTTPException  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 from starlette.middleware.sessions import SessionMiddleware  # noqa: E402
 
@@ -42,6 +43,12 @@ app.add_middleware(
     secret_key=session_secret(),
     same_site="lax",
     https_only=False,  # ngrok serves https, but local dev is plain http
+)
+
+app.mount(
+    "/static",
+    StaticFiles(directory=str(Path(__file__).parent / "static")),
+    name="static",
 )
 
 app.include_router(webhook.router)

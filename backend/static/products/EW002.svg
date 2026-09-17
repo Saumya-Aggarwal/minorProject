@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500" width="400" height="500" role="img" aria-label="Handloom Cotton Kurta">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3d5490"/>
+      <stop offset="100%" stop-color="#2a3c66"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="500" fill="url(#g)"/>
+  <rect x="24" y="24" width="352" height="452" fill="none" stroke="#ffffff" stroke-opacity="0.28"/>
+  <text x="200" y="120" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="13" letter-spacing="4" fill="#ffffff" opacity="0.75">MITTI AND CO.</text>
+  <text x="200" y="194" text-anchor="middle" font-family="Georgia, serif" font-size="25" fill="#ffffff" opacity="0.95">Handloom Cotton</text><text x="200" y="226" text-anchor="middle" font-family="Georgia, serif" font-size="25" fill="#ffffff" opacity="0.95">Kurta</text>
+  <text x="200" y="400" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="14" letter-spacing="2" fill="#ffffff" opacity="0.7">KURTA</text>
+  <text x="200" y="430" text-anchor="middle" font-family="Helvetica, Arial, sans-serif"
+        font-size="13" fill="#ffffff" opacity="0.6">Indigo</text>
+</svg>

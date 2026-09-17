@@ -1,11 +1,47 @@
 import os
-from typing import Any
+import re
+from typing import Any, Optional
 
 import chromadb
 
 from common import embeddings
 
 COLLECTION_NAME = "products"
+
+# Embeddings alone leak across gender: "groom outfit" scored a women's kurta set
+# above the sherwani, because the surrounding wedding vocabulary overwhelmed the
+# one word that mattered. Metadata filtering is the reliable fix — the model is
+# asked to rank within the right half of the catalogue rather than to infer it.
+MENS_HINTS = {
+    "men", "mens", "man", "male", "groom", "husband", "brother", "father",
+    "dad", "papa", "boy", "boys", "gents", "sherwani", "jodhpuri", "pathani",
+    "bandhgala", "dhoti", "churidar", "himself",
+}
+WOMENS_HINTS = {
+    "women", "womens", "woman", "female", "bride", "wife", "sister", "mother",
+    "mom", "mum", "girl", "girls", "ladies", "saree", "sari", "lehenga",
+    "kurti", "anarkali", "sharara", "choli", "dupatta", "palazzo", "gown",
+    "herself",
+}
+
+
+def _gender_filter(query: str) -> Optional[dict[str, str]]:
+    """Narrow to one gender when the query names hints from exactly one set.
+
+    Known limitation: only explicit words count, so "something for me and my
+    wife" filters to Women — "wife" is a hint and "me" is not. Shopping for two
+    people at once needs intent parsing rather than keywords; the fallback of
+    showing one side is wrong but not confusing, and the customer can ask again.
+    """
+    words = set(re.findall(r"[a-z]+", query.lower()))
+    mens = bool(words & MENS_HINTS)
+    womens = bool(words & WOMENS_HINTS)
+
+    if mens and not womens:
+        return {"gender": "Men"}
+    if womens and not mens:
+        return {"gender": "Women"}
+    return None
 
 
 def _get_collection() -> Any:
@@ -75,7 +111,12 @@ def get_product_recommendations(query: str, top_k: int = 3) -> tuple[str, list[d
     try:
         collection = _get_collection()
         embedding = embeddings.embed_one(query)
-        result = collection.query(query_embeddings=[embedding], n_results=top_k)
+        where = _gender_filter(query)
+        if where:
+            print(f"[bot] filtering to {where['gender']}")
+        result = collection.query(
+            query_embeddings=[embedding], n_results=top_k, where=where
+        )
     except Exception as exc:
         print(f"[bot] catalog lookup failed: {exc!r}")
         if "dimension" in str(exc).lower():

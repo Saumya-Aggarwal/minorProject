@@ -3,26 +3,70 @@
 {% block content %}
 <a href="/" class="text-sm text-stone-500 hover:underline">&larr; All products</a>
 
-<div class="bg-white border border-stone-200 rounded-lg p-6 mt-4 max-w-2xl">
-  <div class="text-xs uppercase tracking-wide text-stone-400">{{ product.category }}</div>
-  <h1 class="text-2xl font-semibold mt-1">{{ product.name }}</h1>
-  <div class="text-xl font-semibold mt-2">&#8377;{{ '{:,.0f}'.format(product.price) }}</div>
+<div class="grid md:grid-cols-2 gap-8 mt-4">
+  <div class="bg-white border border-stone-200 rounded-lg overflow-hidden">
+    <img src="{{ product.image_url }}" alt="{{ product.name }}" class="w-full object-cover">
+  </div>
 
-  <p class="text-stone-600 mt-4">{{ product.description }}</p>
+  <div>
+    <div class="text-xs uppercase tracking-wide text-stone-400">{{ product.brand }}</div>
+    <h1 class="text-xl font-semibold mt-1 leading-snug">{{ product.title }}</h1>
 
-  <dl class="grid grid-cols-2 gap-2 text-sm mt-6 text-stone-600">
-    <dt class="text-stone-400">Fabric</dt><dd>{{ product.fabric }}</dd>
-    <dt class="text-stone-400">Sizes</dt><dd>{{ product.sizes_available|join(', ') }}</dd>
-  </dl>
+    <div class="flex items-center gap-2 mt-3 text-sm">
+      <span class="bg-green-700 text-white px-2 py-0.5 rounded font-medium">{{ product.rating }} &#9733;</span>
+      <span class="text-stone-500">{{ '{:,}'.format(product.rating_count) }} ratings</span>
+    </div>
 
-  <form method="post" action="/buy/{{ product.id }}" class="mt-6">
-    <button type="submit"
-            class="bg-stone-900 text-white px-5 py-2.5 rounded-md hover:bg-stone-700">
-      Buy now
-    </button>
-    {% if not user %}
-    <span class="text-xs text-stone-500 ml-3">You'll be asked to sign in first.</span>
-    {% endif %}
-  </form>
+    <div class="flex items-baseline gap-3 mt-4 flex-wrap">
+      <span class="text-2xl font-semibold">&#8377;{{ '{:,.0f}'.format(product.price) }}</span>
+      <span class="text-stone-400 line-through">&#8377;{{ '{:,.0f}'.format(product.mrp) }}</span>
+      <span class="text-green-700 font-medium">{{ product.discount_percent }}% off</span>
+    </div>
+    <p class="text-xs text-stone-500 mt-1">Inclusive of all taxes</p>
+
+    <div class="mt-5">
+      <div class="text-sm text-stone-600 mb-1.5">Sizes</div>
+      <div class="flex gap-2 flex-wrap">
+        {% for size in product.sizes_available %}
+        <span class="border border-stone-300 rounded px-3 py-1 text-sm
+                     {% if product.stock.get(size, 0) == 0 %}text-stone-300 line-through{% endif %}">
+          {{ size }}
+        </span>
+        {% endfor %}
+      </div>
+    </div>
+
+    <form method="post" action="/buy/{{ product.id }}" class="mt-6">
+      <button type="submit"
+              class="bg-stone-900 text-white px-6 py-3 rounded-md hover:bg-stone-700 font-medium">
+        Buy now
+      </button>
+      {% if not user %}
+      <span class="text-xs text-stone-500 ml-3">You'll be asked to sign in first.</span>
+      {% endif %}
+    </form>
+
+    <div class="mt-6 text-sm">
+      <h2 class="font-medium mb-2">About this item</h2>
+      <ul class="list-disc pl-5 space-y-1 text-stone-600">
+        {% for point in product.highlights %}<li>{{ point }}</li>{% endfor %}
+      </ul>
+    </div>
+
+    <p class="text-sm text-stone-600 mt-5">{{ product.description }}</p>
+
+    <dl class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm mt-6 text-stone-600 border-t border-stone-200 pt-5">
+      <dt class="text-stone-400">Fabric</dt><dd>{{ product.fabric }}</dd>
+      <dt class="text-stone-400">Colour</dt><dd>{{ product.color }}</dd>
+      <dt class="text-stone-400">Pattern</dt><dd>{{ product.pattern }}</dd>
+      <dt class="text-stone-400">Fit</dt><dd>{{ product.fit }}</dd>
+      <dt class="text-stone-400">Occasion</dt><dd>{{ product.occasion|join(', ') }}</dd>
+      <dt class="text-stone-400">Care</dt><dd>{{ product.care }}</dd>
+      <dt class="text-stone-400">Sold by</dt><dd>{{ product.seller }}</dd>
+      <dt class="text-stone-400">Delivery</dt><dd>{{ product.delivery_days }} days</dd>
+      <dt class="text-stone-400">Returns</dt><dd>{{ product.return_days }} days</dd>
+      <dt class="text-stone-400">Origin</dt><dd>{{ product.country_of_origin }}</dd>
+    </dl>
+  </div>
 </div>
 {% endblock %}
