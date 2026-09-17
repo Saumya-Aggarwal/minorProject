@@ -2,7 +2,7 @@
 
 ## Context
 2-person team, 7-day sprint. Dev A owns FastAPI/webhooks/WhatsApp/Razorpay.
-Dev B owns Postgres/ChromaDB/OpenAI RAG pipeline. Deadline: [your date].
+Dev B owns Postgres/ChromaDB/OpenAI RAG pipeline. Deadline: 23 September 2026.
 
 ## Stack
 - FastAPI (Python, async), SQLAlchemy + PostgreSQL
@@ -20,6 +20,12 @@ Env is loaded from backend/.env by main.py (python-dotenv).
 
 ## Shared contract (do not change without syncing both devs)
 get_product_recommendations(query: str, top_k: int = 3) -> tuple[str, List[ProductMatch]]
+
+AGREED ADDITION (Dev B to implement, backward compatible):
+    get_product_recommendations(query, top_k=3, user_context: str | None = None)
+user_context carries the linked customer's name and purchase history for the
+prompt. Until it exists, webhook.py's _recommend() inspects the signature and
+omits the argument, so the current two-parameter version keeps working.
 
 class ProductMatch(BaseModel):
     product_id: str
@@ -52,9 +58,25 @@ class ProductMatch(BaseModel):
 - [x] get_product_recommendations() implemented
 - [x] Postgres models + CRUD (models.py, db.py, repository.py)
 - [x] Webhook wired to persistence (user upsert + session turn recording)
+- [x] Storefront (product grid, auth, account page) + JSON API under /api
+- [x] WhatsApp account linking via single-use token + wa.me deep link
+- [x] Bot personalizes replies for linked users (order history in prompt)
 - [ ] Multi-turn follow-ups ("the second one") resolved from session context
 - [ ] Razorpay order creation + Pay Now interactive message
 - [ ] Razorpay payment.captured webhook
+
+## Account linking
+A browser session cannot reach the bot: Meta's webhook delivers only a phone
+number and a message body. So /account mints a single-use code, the wa.me deep
+link pre-fills it, and the webhook binds wa_id to the account on receipt.
+
+The merge matters: a customer who messaged the bot first already has a
+bot-created users row holding that number. consume_link_token() re-points its
+orders and sessions to the website account and deletes it, in one transaction.
+Deleting (not blanking the number) is required — a row with neither email nor
+whatsapp_number violates ck_users_has_identity.
+
+Verify with: backend/.venv/Scripts/python scripts/test_linking.py  (18 checks)
 
 ## Schema layers (three different things)
 1. Postgres tables  - backend/models.py, real types and constraints
@@ -70,6 +92,9 @@ price_inr at purchase time so an order records what was actually paid.
 
 ## Known gaps
 - RAG code lives in backend/bot/chat.py, not /rag as this doc states.
+- No Alembic. Schema changes mean dropping and recreating tables. Fine while
+  the data is disposable; add migrations before this holds anything real.
+- /buy is a placeholder that writes an order row directly. Razorpay replaces it.
 - ingest_catalog.py and bot/chat.py still use the Chroma key style directly;
   adopting ProductMatch there would remove the last of the drift.
 
