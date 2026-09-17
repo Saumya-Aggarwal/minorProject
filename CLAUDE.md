@@ -53,8 +53,7 @@ class ProductMatch(BaseModel):
 - [x] POST /webhook receiving and processing incoming messages
 - [x] send_whatsapp_message() confirmed delivering to a real phone
 - [x] Docker Compose (Postgres + ChromaDB)
-- [ ] ChromaDB populated with catalog (run `python scripts/ingest_catalog.py`)
-      BLOCKED: embedding provider undecided (OpenAI key vs free local MiniLM)
+- [x] ChromaDB populated with catalog (12 products, 384 dims, local MiniLM)
 - [x] get_product_recommendations() implemented
 - [x] Postgres models + CRUD (models.py, db.py, repository.py)
 - [x] Webhook wired to persistence (user upsert + session turn recording)
@@ -89,6 +88,19 @@ normalizes through it before storing, so neither side has to change first.
 
 Products are deliberately NOT in Postgres. orders copies product_name and
 price_inr at purchase time so an order records what was actually paid.
+
+## Embeddings
+EMBEDDING_PROVIDER in backend/.env selects the model, used by both ingestion and
+retrieval through common/embeddings.py:
+  local  (default) all-MiniLM-L6-v2, 384 dims, CPU, no API key, cannot rate-limit
+  openai           text-embedding-3-small, 1536 dims, needs OPENAI_API_KEY
+Switching provider changes vector width — re-run scripts/ingest_catalog.py after.
+
+Retrieval quality: single-concept queries work well ("wedding sherwani",
+"light summer kurta"). Compositional ones are weaker — "jacket to wear over my
+kurta" returns kurtas, because "kurta" dominates the sentence. Cleaning the
+embedded document text does not fix it (tested). Options: raise top_k, or filter
+by metadata category when the query names one. Dev B's retrieval-tuning task.
 
 ## Known gaps
 - RAG code lives in backend/bot/chat.py, not /rag as this doc states.
