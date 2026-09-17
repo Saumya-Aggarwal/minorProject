@@ -29,6 +29,17 @@ async def send_whatsapp_message(to: str, body: str) -> dict:
     data = response.json()
     if response.is_error:
         print(f"[whatsapp] send failed ({response.status_code}): {data}")
+        code = (data.get("error") or {}).get("code")
+        if code == 190:
+            print(
+                "[whatsapp] token expired — generate a new one in the App Dashboard "
+                "(WhatsApp > API Setup) and update WHATSAPP_ACCESS_TOKEN in backend/.env"
+            )
+        elif code == 131030:
+            print(
+                "[whatsapp] recipient not on the allow list — add the number under "
+                "WhatsApp > API Setup > To and confirm the code it sends"
+            )
         response.raise_for_status()
     print(f"[whatsapp] sent to {to}: {data}")
     return data

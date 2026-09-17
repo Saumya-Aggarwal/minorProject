@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(backend/.venv/Scripts/python -c ' *)",
+      "Bash(sed -i 's/^WHATSAPP_DISPLAY_NUMBER=.*/WHATSAPP_DISPLAY_NUMBER=15551735724/' backend/.env)",
+      "Bash(backend/.venv/Scripts/python scripts/ingest_catalog.py)",
+      "Bash(.venv/Scripts/python -c ' *)",
+      "Bash(grep -vE \"^\\\\s*$\")"
+    ]
+  }
+}

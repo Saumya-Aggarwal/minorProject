@@ -44,6 +44,19 @@ def _recommend(query: str, user_context: str | None):
     return get_product_recommendations(query)
 
 
+async def _safe_send(to: str, body: str) -> None:
+    """Send without letting a failure escape into the webhook response.
+
+    A failed send must not 500: Meta would treat the delivery as failed and
+    redeliver the same inbound message, which fails identically. One lost reply
+    beats an infinite retry loop.
+    """
+    try:
+        await send_whatsapp_message(to, body)
+    except Exception as exc:
+        print(f"[webhook] reply to {to} not delivered: {exc!r}")
+
+
 def _profile_names(value: dict) -> dict[str, str]:
     """Map wa_id -> profile name from the contacts block, when Meta sends one."""
     names = {}
@@ -183,11 +196,13 @@ async def receive_message(request: Request):
                         reply = await _handle_text(sender, text, names.get(sender))
                         responses.append({"to": sender, "body": reply})
                         if not local_test:
-                            await send_whatsapp_message(sender, reply)
+                            await _safe_send(sender, reply)
                     else:
                         print(f"[webhook] unhandled {message['type']!r} message from {sender}")
-    except (KeyError, TypeError, ValueError) as e:
-        # Always ack with 200, otherwise Meta keeps retrying the same payload
-        print(f"[webhook] parse error: {e!r} payload={payload}")
+    except Exception as e:
+        # Deliberately broad: any uncaught error here becomes a 500, which Meta
+        # reads as failed delivery and retries — the same message arrives again
+        # and fails again. Acking 200 is always the right answer.
+        print(f"[webhook] handler error: {e!r} payload={payload}")
 
     return {"status": "received", "responses": responses}

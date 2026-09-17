@@ -2,7 +2,8 @@ import os
 from typing import Any
 
 import chromadb
-from openai import OpenAI
+
+from common import embeddings
 
 COLLECTION_NAME = "products"
 
@@ -35,7 +36,11 @@ def _format_matches(matches: list[dict[str, Any]]) -> str:
 def _polish_response(query: str, matches: list[dict[str, Any]], fallback: str) -> str:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key or not matches:
+        # No key: the formatted catalog list is the reply. Retrieval still works,
+        # only the conversational phrasing is missing.
         return fallback
+
+    from openai import OpenAI
 
     prompt = "\n".join(
         f"- {item['name']} (Rs. {item['price']:.0f}): {item['description']}"
@@ -69,16 +74,16 @@ def get_product_recommendations(query: str, top_k: int = 3) -> tuple[str, list[d
     """Retrieve catalog matches and turn them into a customer-facing response."""
     try:
         collection = _get_collection()
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise RuntimeError("OPENAI_API_KEY is not configured")
-        embedding = OpenAI(api_key=api_key).embeddings.create(
-            model="text-embedding-3-small",
-            input=[query],
-        ).data[0].embedding
+        embedding = embeddings.embed_one(query)
         result = collection.query(query_embeddings=[embedding], n_results=top_k)
     except Exception as exc:
         print(f"[bot] catalog lookup failed: {exc!r}")
+        if "dimension" in str(exc).lower():
+            # Vectors were written by a different model than the one querying
+            print(
+                f"[bot] embedding mismatch: querying with {embeddings.model_name()}. "
+                "Re-run scripts/ingest_catalog.py after changing EMBEDDING_PROVIDER."
+            )
         return (
             "Our catalog search is temporarily unavailable. Please try again in a moment.",
             [],
