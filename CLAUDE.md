@@ -48,7 +48,17 @@ class ProductMatch(BaseModel):
 - [x] send_whatsapp_message() confirmed delivering to a real phone
 - [x] Docker Compose (Postgres + ChromaDB)
 - [ ] ChromaDB populated with catalog (run `python scripts/ingest_catalog.py`)
+      BLOCKED: embedding provider undecided (OpenAI key vs free local MiniLM)
 - [x] get_product_recommendations() implemented
+- [x] Postgres models + CRUD (models.py, db.py, repository.py)
+- [ ] Webhook wired to persistence (users/sessions not written on message)
+- [ ] Razorpay order creation + Pay Now interactive message
+- [ ] Razorpay payment.captured webhook
+
+## Known gaps
+- Contract drift: CLAUDE.md specifies List[ProductMatch] with product_id/price_inr;
+  bot/chat.py returns dicts with id/price. /common package does not exist yet.
+- RAG code lives in backend/bot/chat.py, not /rag as this doc states.
 
 ## Project history
 - Meta WhatsApp Cloud API webhook handshake, subscription, inbound message handling,
