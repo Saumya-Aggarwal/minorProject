@@ -1,0 +1,8 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+httpx==0.28.1
+python-dotenv==1.0.1
+chromadb>=1.0.0,<2.0.0
+openai>=1.60.0,<2.0.0
+psycopg2-binary>=2.9.9,<3.0.0
+sqlmodel>=0.0.22,<1.0.0

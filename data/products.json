@@ -1,0 +1,110 @@
+[
+  {
+    "id": "EW001",
+    "name": "Brocade Silk Kurta",
+    "category": "Kurta",
+    "fabric": "Brocade silk",
+    "price": 2499,
+    "sizes_available": ["S", "M", "L", "XL", "XXL"],
+    "description": "A festive maroon brocade silk kurta with a subtle woven pattern, mandarin collar, and comfortable straight fit. Ideal for weddings and Diwali celebrations."
+  },
+  {
+    "id": "EW002",
+    "name": "Handloom Cotton Kurta",
+    "category": "Kurta",
+    "fabric": "Handloom cotton",
+    "price": 1299,
+    "sizes_available": ["S", "M", "L", "XL"],
+    "description": "A breathable indigo handloom cotton kurta with block-print detailing. Lightweight and easy to wear for daytime events and casual festive gatherings."
+  },
+  {
+    "id": "EW003",
+    "name": "Pastel Chikankari Kurta",
+    "category": "Kurta",
+    "fabric": "Cotton voile",
+    "price": 1899,
+    "sizes_available": ["S", "M", "L", "XL"],
+    "description": "An elegant ivory pastel kurta with delicate chikankari embroidery and a relaxed fit. A refined choice for summer celebrations, pujas, and daytime functions."
+  },
+  {
+    "id": "EW004",
+    "name": "Classic Ivory Nehru Jacket",
+    "category": "Nehru Jacket",
+    "fabric": "Silk blend",
+    "price": 2199,
+    "sizes_available": ["M", "L", "XL", "XXL"],
+    "description": "An ivory silk-blend Nehru jacket with a clean band collar and front buttons. Pairs well with kurtas for weddings, receptions, and formal festive looks."
+  },
+  {
+    "id": "EW005",
+    "name": "Teal Printed Nehru Jacket",
+    "category": "Nehru Jacket",
+    "fabric": "Art silk",
+    "price": 1599,
+    "sizes_available": ["S", "M", "L", "XL"],
+    "description": "A teal art silk Nehru jacket featuring a geometric printed motif and a tailored silhouette. Adds color to a plain kurta for parties and family occasions."
+  },
+  {
+    "id": "EW006",
+    "name": "Royal Blue Wedding Sherwani",
+    "category": "Sherwani",
+    "fabric": "Jacquard silk",
+    "price": 8999,
+    "sizes_available": ["M", "L", "XL", "XXL"],
+    "description": "A royal blue jacquard silk sherwani with antique gold embroidery and a structured fit. Designed for grooms and grand wedding ceremonies."
+  },
+  {
+    "id": "EW007",
+    "name": "Ivory Embroidered Sherwani",
+    "category": "Sherwani",
+    "fabric": "Raw silk",
+    "price": 10999,
+    "sizes_available": ["M", "L", "XL", "XXL"],
+    "description": "A classic ivory raw silk sherwani with refined threadwork embroidery and matching buttons. A statement choice for wedding day and reception styling."
+  },
+  {
+    "id": "EW008",
+    "name": "Mustard Bandhani Kurta Set",
+    "category": "Kurta Set",
+    "fabric": "Cotton silk",
+    "price": 2799,
+    "sizes_available": ["S", "M", "L", "XL"],
+    "description": "A mustard cotton-silk kurta set with Bandhani-inspired print and matching trousers. Bright, comfortable festive wear for Navratri and family celebrations."
+  },
+  {
+    "id": "EW009",
+    "name": "Black Velvet Jodhpuri Suit",
+    "category": "Jodhpuri Suit",
+    "fabric": "Velvet",
+    "price": 6999,
+    "sizes_available": ["M", "L", "XL", "XXL"],
+    "description": "A sharp black velvet Jodhpuri suit with a satin lapel and fitted trousers. Suitable for evening receptions, cocktail events, and formal celebrations."
+  },
+  {
+    "id": "EW010",
+    "name": "Peach Organza Dupatta",
+    "category": "Dupatta",
+    "fabric": "Organza",
+    "price": 999,
+    "sizes_available": ["Free Size"],
+    "description": "A lightweight peach organza dupatta with delicate zari edging. An easy way to elevate a plain kurta or Anarkali for festive occasions."
+  },
+  {
+    "id": "EW011",
+    "name": "Wine Velvet Waistcoat",
+    "category": "Waistcoat",
+    "fabric": "Velvet",
+    "price": 2399,
+    "sizes_available": ["M", "L", "XL"],
+    "description": "A rich wine velvet waistcoat with a textured finish and classic front buttons. Works over a kurta for winter weddings and evening celebrations."
+  },
+  {
+    "id": "EW012",
+    "name": "Linen Blend Pathani Suit",
+    "category": "Pathani Suit",
+    "fabric": "Linen blend",
+    "price": 3299,
+    "sizes_available": ["M", "L", "XL", "XXL"],
+    "description": "A sand-colored linen-blend Pathani suit with a relaxed fit and practical side pockets. Comfortable traditional wear for Eid, family events, and daytime occasions."
+  }
+]
