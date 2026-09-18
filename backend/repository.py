@@ -9,13 +9,23 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any, Optional
 
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlmodel import select
 
+import catalog
 from db import session_scope
-from models import LinkToken, Order, Session, User, utcnow
+from models import CartItem, LinkToken, Order, OrderItem, Session, User, utcnow
 
 LINK_TOKEN_TTL_MINUTES = 10
 LINK_PREFIX = "LINK-"
+
+# Orders that represent a real purchase. "failed" is excluded wherever history
+# is used: a declined payment is not something the customer owns.
+ACTIVE_ORDER_STATUSES = ("created", "captured")
+
+
+def _money(value: Decimal | float | int | str) -> Decimal:
+    return Decimal(str(value)).quantize(Decimal("0.01"))
 
 
 def get_or_create_user(whatsapp_number: str, display_name: Optional[str] = None) -> int:
@@ -109,26 +119,89 @@ def close_session(session_id: int, status: str = "closed") -> None:
             session.updated_at = utcnow()
 
 
-def create_order(
-    user_id: int,
-    product_id: str,
-    product_name: str,
-    price_inr: Decimal | float | int,
-    razorpay_order_id: Optional[str] = None,
-    channel: str = "bot",
+def create_order_from_items(
+    user_id: int, items: list[dict[str, Any]], channel: str = "bot"
 ) -> int:
+    """Create an order header plus one line per item. Returns order_id.
+
+    Each item: product_id, product_name, price_inr, size, quantity. The total is
+    computed once, here, from the same values written to the lines.
+    """
+    if not items:
+        raise ValueError("an order needs at least one item")
+
+    total = sum(_money(item["price_inr"]) * int(item["quantity"]) for item in items)
     with session_scope() as db:
-        order = Order(
-            user_id=user_id,
-            product_id=product_id,
-            product_name=product_name,
-            price_inr=Decimal(str(price_inr)),
-            razorpay_order_id=razorpay_order_id,
-            channel=channel,
-        )
+        order = Order(user_id=user_id, channel=channel, total_inr=total)
         db.add(order)
         db.flush()
+        for item in items:
+            db.add(
+                OrderItem(
+                    order_id=order.order_id,
+                    product_id=item["product_id"],
+                    product_name=item["product_name"],
+                    price_inr=_money(item["price_inr"]),
+                    size=item.get("size") or "",
+                    quantity=int(item["quantity"]),
+                )
+            )
         return order.order_id
+
+
+def create_order_for_product(
+    user_id: int, product_id: str, size: str = "", quantity: int = 1, channel: str = "bot"
+) -> int:
+    """Single-item "Buy now", priced from the catalogue rather than by the caller."""
+    product = catalog.get_by_id(product_id)
+    if product is None:
+        raise ValueError(f"unknown product {product_id!r}")
+    size = _resolve_size(product, size)
+    return create_order_from_items(
+        user_id,
+        [
+            {
+                "product_id": product["id"],
+                "product_name": product["name"],
+                "price_inr": product["price"],
+                "size": size,
+                "quantity": quantity,
+            }
+        ],
+        channel,
+    )
+
+
+def create_order_from_cart(user_id: int, channel: str) -> Optional[dict[str, Any]]:
+    """Turn the cart into an order. Returns None when the cart is empty.
+
+    The cart is NOT cleared here. It is cleared when payment is captured, so a
+    customer who abandons or fails the payment still has their cart.
+    """
+    cart = get_cart(user_id)
+    lines = [item for item in cart["items"] if item["available"]]
+    if not lines:
+        return None
+
+    order_id = create_order_from_items(
+        user_id,
+        [
+            {
+                "product_id": item["product_id"],
+                "product_name": item["name"],
+                "price_inr": item["price_inr"],
+                "size": item["size"],
+                "quantity": item["quantity"],
+            }
+            for item in lines
+        ],
+        channel,
+    )
+    return {
+        "order_id": order_id,
+        "total_inr": sum(item["line_total"] for item in lines),
+        "item_count": sum(item["quantity"] for item in lines),
+    }
 
 
 def mark_order_captured(razorpay_order_id: str, razorpay_payment_id: str) -> bool:
@@ -154,26 +227,231 @@ def mark_order_captured(razorpay_order_id: str, razorpay_payment_id: str) -> boo
 
 
 def get_order_history(user_id: int, limit: int = 5) -> list[dict[str, Any]]:
-    """Recent orders, newest first — the raw material for personalization."""
+    """Recent orders, newest first, each with its lines."""
     with session_scope() as db:
         orders = db.exec(
             select(Order)
             .where(Order.user_id == user_id)
-            .order_by(Order.created_at.desc())
+            .order_by(Order.created_at.desc(), Order.order_id.desc())
             .limit(limit)
         ).all()
+        if not orders:
+            return []
+
+        lines = db.exec(
+            select(OrderItem)
+            .where(OrderItem.order_id.in_([order.order_id for order in orders]))
+            .order_by(OrderItem.order_item_id)
+        ).all()
+        by_order: dict[int, list[dict[str, Any]]] = {}
+        for line in lines:
+            by_order.setdefault(line.order_id, []).append(
+                {
+                    "product_id": line.product_id,
+                    "product_name": line.product_name,
+                    "price_inr": float(line.price_inr),
+                    "size": line.size,
+                    "quantity": line.quantity,
+                }
+            )
 
         return [
             {
-                "product_id": order.product_id,
-                "product_name": order.product_name,
-                "price_inr": float(order.price_inr),
-                "status": order.status,
+                "order_id": order.order_id,
                 "channel": order.channel,
+                "status": order.status,
+                "total_inr": float(order.total_inr),
                 "created_at": order.created_at.isoformat(),
+                "items": by_order.get(order.order_id, []),
             }
             for order in orders
         ]
+
+
+def get_purchased_items(user_id: int, limit: int = 5) -> list[dict[str, Any]]:
+    """Recently purchased lines, newest first — for greetings and user_context."""
+    with session_scope() as db:
+        rows = db.exec(
+            select(OrderItem, Order)
+            .join(Order, Order.order_id == OrderItem.order_id)
+            .where(Order.user_id == user_id, Order.status.in_(ACTIVE_ORDER_STATUSES))
+            .order_by(Order.created_at.desc(), OrderItem.order_item_id.desc())
+            .limit(limit)
+        ).all()
+        return [
+            {
+                "product_id": line.product_id,
+                "product_name": line.product_name,
+                "price_inr": float(line.price_inr),
+                "channel": order.channel,
+            }
+            for line, order in rows
+        ]
+
+
+def get_purchased_product_ids(user_id: int) -> list[str]:
+    """Contract C2 (WORK_SPLIT.md): distinct product ids, most recent first.
+
+    Deliberately narrow, so the retrieval side never depends on order tables.
+    """
+    with session_scope() as db:
+        rows = db.exec(
+            select(OrderItem.product_id)
+            .join(Order, Order.order_id == OrderItem.order_id)
+            .where(Order.user_id == user_id, Order.status.in_(ACTIVE_ORDER_STATUSES))
+            .order_by(Order.created_at.desc(), OrderItem.order_item_id.desc())
+        ).all()
+    distinct: list[str] = []
+    for product_id in rows:
+        if product_id not in distinct:
+            distinct.append(product_id)
+    return distinct
+
+
+# --- cart ---------------------------------------------------------------------
+
+
+def _resolve_size(product: dict[str, Any], size: str) -> str:
+    """Validate a chosen size; auto-pick when the product has only one."""
+    sizes = product.get("sizes_available") or []
+    size = (size or "").strip()
+    if not size:
+        return sizes[0] if len(sizes) == 1 else ""
+    if sizes and size not in sizes:
+        raise ValueError(f"size {size!r} not available for {product['id']}")
+    return size
+
+
+def add_to_cart(
+    user_id: int, product_id: str, size: str = "", quantity: int = 1
+) -> dict[str, Any]:
+    """Add an item, or increase its quantity if already there. Returns the cart.
+
+    An atomic upsert rather than read-then-write: a double-tapped button, or two
+    messages arriving together, must not race into a unique-constraint error.
+    """
+    if quantity <= 0:
+        raise ValueError("quantity must be positive")
+    product = catalog.get_by_id(product_id)
+    if product is None:
+        raise ValueError(f"unknown product {product_id!r}")
+    size = _resolve_size(product, size)
+
+    table = CartItem.__table__
+    statement = pg_insert(table).values(
+        user_id=user_id,
+        product_id=product_id,
+        size=size,
+        quantity=quantity,
+        added_at=utcnow(),
+    )
+    statement = statement.on_conflict_do_update(
+        constraint="uq_cart_user_product_size",
+        set_={"quantity": table.c.quantity + statement.excluded.quantity},
+    )
+    with session_scope() as db:
+        db.exec(statement)
+    return get_cart(user_id)
+
+
+def get_cart(user_id: int) -> dict[str, Any]:
+    """The cart at current catalogue prices, in the order items were added.
+
+    Items whose product has left the catalogue stay listed with available=False
+    and are excluded from the total, rather than vanishing without explanation.
+    """
+    with session_scope() as db:
+        rows = db.exec(
+            select(CartItem)
+            .where(CartItem.user_id == user_id)
+            .order_by(CartItem.added_at, CartItem.cart_item_id)
+        ).all()
+        raw = [(row.cart_item_id, row.product_id, row.size, row.quantity) for row in rows]
+
+    items = []
+    for cart_item_id, product_id, size, quantity in raw:
+        product = catalog.get_by_id(product_id)
+        price = float(product["price"]) if product else 0.0
+        items.append(
+            {
+                "cart_item_id": cart_item_id,
+                "product_id": product_id,
+                "name": product["name"] if product else product_id,
+                "price_inr": price,
+                "size": size,
+                "sizes_available": product.get("sizes_available", []) if product else [],
+                "image_url": product.get("image_url") if product else None,
+                "quantity": quantity,
+                "line_total": price * quantity,
+                "available": product is not None,
+            }
+        )
+
+    available = [item for item in items if item["available"]]
+    return {
+        "items": items,
+        "total_inr": sum(item["line_total"] for item in available),
+        "count": sum(item["quantity"] for item in available),
+    }
+
+
+def update_cart_item(user_id: int, cart_item_id: int, quantity: int) -> bool:
+    """Set a quantity; zero or less removes the line. Scoped to the owner."""
+    with session_scope() as db:
+        row = db.get(CartItem, cart_item_id)
+        if row is None or row.user_id != user_id:
+            return False
+        if quantity <= 0:
+            db.delete(row)
+        else:
+            row.quantity = quantity
+        return True
+
+
+def update_cart_item_size(user_id: int, cart_item_id: int, size: str) -> bool:
+    """Change a line's size, merging into an existing line with that size.
+
+    Items added in chat usually have no size yet; the website is where it gets
+    chosen. Without the merge, picking a size already in the cart would hit
+    uq_cart_user_product_size.
+    """
+    with session_scope() as db:
+        row = db.get(CartItem, cart_item_id)
+        if row is None or row.user_id != user_id:
+            return False
+        product = catalog.get_by_id(row.product_id)
+        if product is None:
+            return False
+        size = _resolve_size(product, size)
+        if size == row.size:
+            return True
+
+        twin = db.exec(
+            select(CartItem).where(
+                CartItem.user_id == user_id,
+                CartItem.product_id == row.product_id,
+                CartItem.size == size,
+            )
+        ).first()
+        if twin is not None:
+            twin.quantity += row.quantity
+            db.delete(row)
+        else:
+            row.size = size
+        return True
+
+
+def remove_from_cart(user_id: int, cart_item_id: int) -> bool:
+    return update_cart_item(user_id, cart_item_id, 0)
+
+
+def clear_cart(user_id: int) -> int:
+    """Empty the cart, after a captured payment. Returns the lines removed."""
+    with session_scope() as db:
+        rows = db.exec(select(CartItem).where(CartItem.user_id == user_id)).all()
+        for row in rows:
+            db.delete(row)
+        return len(rows)
 
 
 def create_link_token(user_id: int) -> str:
@@ -246,14 +524,44 @@ def consume_link_token(token: str, whatsapp_number: str) -> Optional[dict[str, A
                 select(Order).where(Order.user_id == existing.user_id)
             ).all():
                 order.user_id = target.user_id
+            # idx_sessions_user_active allows one active session per user: if
+            # the target already has one, the orphan's is closed, not moved in
+            target_has_active = db.exec(
+                select(Session).where(
+                    Session.user_id == target.user_id, Session.status == "active"
+                )
+            ).first() is not None
             for session in db.exec(
                 select(Session).where(Session.user_id == existing.user_id)
             ).all():
+                if target_has_active and session.status == "active":
+                    session.status = "closed"
                 session.user_id = target.user_id
             for old_token in db.exec(
                 select(LinkToken).where(LinkToken.user_id == existing.user_id)
             ).all():
                 old_token.user_id = target.user_id
+
+            # The cart follows the customer. Where both carts hold the same
+            # item and size, quantities are added: re-pointing that row instead
+            # would violate uq_cart_user_product_size.
+            target_cart = {
+                (item.product_id, item.size): item
+                for item in db.exec(
+                    select(CartItem).where(CartItem.user_id == target.user_id)
+                ).all()
+            }
+            for item in db.exec(
+                select(CartItem).where(CartItem.user_id == existing.user_id)
+            ).all():
+                twin = target_cart.get((item.product_id, item.size))
+                if twin is not None:
+                    twin.quantity += item.quantity
+                    db.delete(item)
+                else:
+                    item.user_id = target.user_id
+            # Land the re-pointed rows before the user they referenced is deleted
+            db.flush()
 
             if not target.display_name and existing.display_name:
                 target.display_name = existing.display_name

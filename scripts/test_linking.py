@@ -23,7 +23,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 import repository as repo  # noqa: E402
 from db import session_scope  # noqa: E402
 from main import app  # noqa: E402
-from models import LinkToken, Order, Session, User  # noqa: E402
+from models import CartItem, LinkToken, Order, OrderItem, Session, User  # noqa: E402
 
 PHONE = "919876543210"
 EMAIL = "demo@example.com"
@@ -44,7 +44,8 @@ def check(label: str, condition: bool, detail: str = "") -> None:
 
 def wipe() -> None:
     with session_scope() as db:
-        for model in (LinkToken, Order, Session, User):
+        # Children before parents: order_items -> orders -> users
+        for model in (LinkToken, OrderItem, Order, CartItem, Session, User):
             for row in db.exec(__import__("sqlmodel").select(model)).all():
                 db.delete(row)
 

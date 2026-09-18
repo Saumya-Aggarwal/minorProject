@@ -38,10 +38,17 @@
     {% if orders %}
       <ul class="divide-y divide-stone-100 text-sm">
         {% for order in orders %}
-        <li class="py-2.5 flex items-baseline gap-2">
-          <span class="flex-1">{{ order.product_name }}</span>
-          <span class="text-xs text-stone-400">{{ order.channel }}</span>
-          <span class="font-medium">&#8377;{{ '{:,.0f}'.format(order.price_inr) }}</span>
+        <li class="py-3">
+          <div class="flex items-baseline gap-2">
+            <span class="font-medium flex-1">Order #{{ order.order_id }}</span>
+            <span class="text-xs text-stone-400">{{ order.channel }} &middot; {{ order.status }}</span>
+            <span class="font-medium">&#8377;{{ '{:,.0f}'.format(order.total_inr) }}</span>
+          </div>
+          <ul class="mt-1 text-stone-500 text-xs space-y-0.5">
+            {% for item in order["items"] %}
+            <li>{{ item.quantity }} &times; {{ item.product_name }}{% if item.size %} ({{ item.size }}){% endif %}</li>
+            {% endfor %}
+          </ul>
         </li>
         {% endfor %}
       </ul>

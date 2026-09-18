@@ -117,8 +117,8 @@ async def account(request: Request):
 
 
 @router.post("/buy/{product_id}")
-async def buy(request: Request, product_id: str):
-    """Placeholder checkout so order history has something in it before Razorpay."""
+async def buy(request: Request, product_id: str, size: str = Form("")):
+    """Single-item Buy now. Placeholder until Razorpay: records the order, no payment."""
     user = current_user(request)
     if user is None:
         return RedirectResponse("/login", status_code=303)
@@ -127,13 +127,11 @@ async def buy(request: Request, product_id: str):
     if product is None:
         return RedirectResponse("/", status_code=303)
 
-    await asyncio.to_thread(
-        repo.create_order,
-        user["user_id"],
-        product["id"],
-        product["name"],
-        product["price"],
-        None,
-        "web",
-    )
+    try:
+        await asyncio.to_thread(
+            repo.create_order_for_product, user["user_id"], product["id"], size, 1, "web"
+        )
+    except ValueError:
+        # An invalid size from a tampered form: back to the product page
+        return RedirectResponse(f"/product/{product_id}", status_code=303)
     return RedirectResponse("/account", status_code=303)

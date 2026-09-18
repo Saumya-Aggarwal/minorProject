@@ -91,10 +91,10 @@ async def _handle_link_code(sender: str, text: str) -> str:
         )
 
     name = user.get("display_name") or "there"
-    history = await asyncio.to_thread(repo.get_order_history, user["user_id"], 3)
+    history = await asyncio.to_thread(repo.get_purchased_items, user["user_id"], 3)
 
     if history:
-        recent = ", ".join(order["product_name"] for order in history)
+        recent = ", ".join(item["product_name"] for item in history)
         return (
             f"Welcome back, {name}! Your account is connected. "
             f"I can see your recent orders: {recent}. What are you shopping for today?"
@@ -142,12 +142,11 @@ async def _place_order(user_id: int, product: dict) -> str:
     price = product.get("price_inr", product.get("price", 0))
     try:
         order_id = await asyncio.to_thread(
-            repo.create_order,
+            repo.create_order_for_product,
             user_id,
             product.get("product_id") or product.get("id") or "",
-            name,
-            price,
-            None,
+            "",
+            1,
             "bot",
         )
     except Exception as exc:
@@ -193,7 +192,7 @@ async def _handle_text(sender: str, text: str, display_name: str | None) -> str:
         user_id = await asyncio.to_thread(repo.get_or_create_user, sender, display_name)
         user = await asyncio.to_thread(repo.get_user_by_whatsapp, sender)
         if user and user.get("is_linked"):
-            history = await asyncio.to_thread(repo.get_order_history, user_id, 5)
+            history = await asyncio.to_thread(repo.get_purchased_items, user_id, 5)
         previous = await asyncio.to_thread(repo.get_active_session, user_id)
         if previous and previous.get("last_query"):
             print(f"[webhook] prior turn for {sender}: {previous['last_query']!r}")

@@ -8,7 +8,15 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any, Optional
 
-from sqlalchemy import CheckConstraint, Column, DateTime, Index, Numeric, text
+from sqlalchemy import (
+    CheckConstraint,
+    Column,
+    DateTime,
+    Index,
+    Numeric,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
@@ -78,7 +86,12 @@ class Session(SQLModel, table=True):
 
 
 class Order(SQLModel, table=True):
-    """Created when a Pay Now button is tapped, updated by the Razorpay webhook."""
+    """Order header: one per checkout, one Razorpay order, one payment.
+
+    The products live in order_items. A cart checkout is one payment covering
+    several products, which a one-row-per-product design cannot express:
+    razorpay_order_id is unique, and a single payment spans every line.
+    """
 
     __tablename__ = "orders"
 
@@ -86,17 +99,66 @@ class Order(SQLModel, table=True):
     user_id: int = Field(foreign_key="users.user_id", index=True)
     # Where the order came from: bot | web
     channel: str = Field(default="bot", max_length=10)
-    # Matches the product id in the Chroma metadata, e.g. "EW001"
-    product_id: str = Field(max_length=20)
-    product_name: str = Field(max_length=200)
-    # Numeric, not float — money must not accumulate binary rounding error
-    price_inr: Decimal = Field(sa_column=Column(Numeric(10, 2), nullable=False))
+    # Sum of the lines at checkout. Stored rather than recomputed, so the amount
+    # sent to Razorpay is exactly the amount recorded here.
+    # Numeric, not float — money must not accumulate binary rounding error.
+    total_inr: Decimal = Field(sa_column=Column(Numeric(10, 2), nullable=False))
     razorpay_order_id: Optional[str] = Field(default=None, max_length=100, unique=True)
     razorpay_payment_id: Optional[str] = Field(default=None, max_length=100)
     # created | captured | failed
     status: str = Field(default="created", max_length=20)
     created_at: datetime = Field(default_factory=utcnow, sa_column=_tstz(nullable=False))
     captured_at: Optional[datetime] = Field(default=None, sa_column=_tstz(nullable=True))
+
+
+class OrderItem(SQLModel, table=True):
+    """One product line in an order, with name and price snapshotted.
+
+    Snapshotted, not looked up from the catalogue: an order must record what
+    the customer actually paid, not follow later price edits.
+    """
+
+    __tablename__ = "order_items"
+    __table_args__ = (CheckConstraint("quantity > 0", name="ck_order_items_quantity"),)
+
+    order_item_id: Optional[int] = Field(default=None, primary_key=True)
+    order_id: int = Field(foreign_key="orders.order_id", index=True)
+    # Matches the product id in the catalogue and Chroma metadata, e.g. "EW001"
+    product_id: str = Field(max_length=20)
+    product_name: str = Field(max_length=200)
+    price_inr: Decimal = Field(sa_column=Column(Numeric(10, 2), nullable=False))
+    # "" when no size was chosen — see CartItem.size
+    size: str = Field(default="", max_length=20)
+    quantity: int = Field(default=1)
+
+
+class CartItem(SQLModel, table=True):
+    """The shared cart.
+
+    Keyed by user_id, which is what makes it shared: users is one row per person
+    across WhatsApp and the website, so the bot and the site read the same rows.
+
+    Stores only what the customer chose. Name and price are read from the
+    catalogue when the cart is shown or checked out, so a cart never displays a
+    stale price. The price is frozen later, in order_items, at checkout.
+    """
+
+    __tablename__ = "cart_items"
+    __table_args__ = (
+        # Adding the same item twice increments quantity instead of duplicating
+        UniqueConstraint("user_id", "product_id", "size", name="uq_cart_user_product_size"),
+        CheckConstraint("quantity > 0", name="ck_cart_items_quantity"),
+    )
+
+    cart_item_id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.user_id", index=True)
+    product_id: str = Field(max_length=20)
+    # NOT NULL, with "" meaning "not chosen yet". A NULL would silently defeat
+    # the unique constraint above: Postgres treats NULLs as distinct, so the
+    # same item could be added twice as two separate rows.
+    size: str = Field(default="", max_length=20, nullable=False)
+    quantity: int = Field(default=1)
+    added_at: datetime = Field(default_factory=utcnow, sa_column=_tstz(nullable=False))
 
 
 class LinkToken(SQLModel, table=True):
