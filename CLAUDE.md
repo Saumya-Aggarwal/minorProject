@@ -1,8 +1,15 @@
 # WhatsApp Shopping Assistant — Phase 1 (College Minor Project)
 
 ## Context
-2-person team, 7-day sprint. Dev A owns FastAPI/webhooks/WhatsApp/Razorpay.
-Dev B owns Postgres/ChromaDB/OpenAI RAG pipeline. Deadline: 23 September 2026.
+2-person team, 7-day sprint. Deadline: 23 September 2026.
+Dev A owns BUYING: FastAPI routers, WhatsApp, Razorpay, and the Postgres schema
+(models.py, db.py, repository.py). Dev B owns FINDING: ChromaDB, embeddings, the
+RAG/LLM pipeline (bot/chat.py), catalog.py, and the browse/search pages.
+
+WORK_SPLIT.md holds the file-ownership table and the contracts (C1-C5) between
+the two halves. Do not edit a file the other dev owns without asking them, and
+never change a contract without syncing both devs. plan.md has the architecture
+for the remaining work.
 
 ## Stack
 - FastAPI (Python, async), SQLAlchemy + PostgreSQL
