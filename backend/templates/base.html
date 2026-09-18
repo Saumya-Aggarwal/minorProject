@@ -12,6 +12,7 @@
       <a href="/" class="font-semibold text-lg tracking-tight">Kurta&nbsp;&amp;&nbsp;Co.</a>
       <span class="text-xs text-stone-400 hidden sm:inline">Ethnic wear</span>
       <div class="ml-auto flex items-center gap-4 text-sm">
+        <a href="/cart" class="hover:underline">Cart</a>
         {% if user %}
           <a href="/account" class="hover:underline">{{ user.display_name or user.email }}</a>
           <a href="/logout" class="text-stone-500 hover:underline">Sign out</a>

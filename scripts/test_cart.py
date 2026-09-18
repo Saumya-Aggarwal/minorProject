@@ -206,6 +206,9 @@ def main() -> int:
     print("\n7. Cart by WhatsApp, through the real webhook")
     bot_conversation_checks()
 
+    print("\n8. Cart on the website, and the same cart across both channels")
+    web_cart_checks()
+
     print(f"\n{passed} passed, {failed} failed")
     cleanup()
     return 1 if failed else 0
@@ -288,6 +291,90 @@ def bot_conversation_checks() -> None:
 
         check("a normal search is not mistaken for a command",
               "CART to see your cart" in say(client, "add a red dupatta"))
+
+
+def web_cart_checks() -> None:
+    from fastapi.testclient import TestClient
+
+    from main import app
+
+    cleanup()
+    phone, email = TEST_PHONES[1], TEST_EMAILS[1]
+
+    with TestClient(app) as anonymous:
+        check("cart page needs sign-in",
+              anonymous.get("/cart", follow_redirects=False).headers.get("location") == "/login")
+        check("cart API needs sign-in", anonymous.get("/api/cart").status_code == 401)
+
+    # Something added in chat BEFORE the customer ever signs up on the website
+    bot_user = repo.get_or_create_user(phone, "Two Channel")
+    repo.add_to_cart(bot_user, SINGLE_SIZE)
+
+    with TestClient(app) as web:
+        web.post("/signup", data={"email": email, "password": "test-password-123",
+                                  "display_name": "Two Channel"}, follow_redirects=False)
+        web_user = web.get("/api/me").json()["user_id"]
+
+        page = web.get(f"/product/{MULTI_SIZE}")
+        check("product page shows the size selector", 'name="size"' in page.text and "Add to cart" in page.text)
+
+        unsized = web.post(f"/cart/add/{MULTI_SIZE}", data={"quantity": "1"}, follow_redirects=False)
+        check("web add without a size is sent back to choose",
+              unsized.headers.get("location") == f"/product/{MULTI_SIZE}")
+        check("...and adds nothing", not repo.get_cart(web_user)["items"])
+
+        web.post(f"/cart/add/{MULTI_SIZE}", data={"size": "L", "quantity": "2"}, follow_redirects=False)
+        page = web.get("/cart")
+        check("cart page lists the item", page.status_code == 200 and "Brocade Silk Kurta" in page.text)
+        check("cart page total", "4,998" in page.text)
+
+        line = repo.get_cart(web_user)["items"][0]
+        web.post("/cart/update", data={"cart_item_id": line["cart_item_id"], "quantity": "3",
+                                       "size": "XL"}, follow_redirects=False)
+        updated = repo.get_cart(web_user)["items"][0]
+        check("update changes quantity and size", (updated["quantity"], updated["size"]) == (3, "XL"),
+              f"got {(updated['quantity'], updated['size'])}")
+        check("quantity is capped at 10", web.post("/cart/update", data={
+            "cart_item_id": updated["cart_item_id"], "quantity": "999"}, follow_redirects=False)
+              and repo.get_cart(web_user)["items"][0]["quantity"] == 10)
+
+        api_added = web.post("/api/cart/items", json={"product_id": OTHER, "size": "S"})
+        check("API add returns the cart", api_added.status_code == 201 and len(api_added.json()["items"]) == 2)
+        check("API rejects an invalid size",
+              web.post("/api/cart/items", json={"product_id": OTHER, "size": "XXXL"}).status_code == 422)
+        other_id = [i for i in repo.get_cart(web_user)["items"] if i["product_id"] == OTHER][0]["cart_item_id"]
+        check("API delete", web.delete(f"/api/cart/items/{other_id}").status_code == 200
+              and len(repo.get_cart(web_user)["items"]) == 1)
+
+        # Link WhatsApp: the stole added in chat should appear in the web cart
+        token = web.post("/api/link/start").json()["token"]
+        repo.consume_link_token(token, phone)
+        page = web.get("/cart")
+        check("HEADLINE: item added in chat appears in the website cart",
+              "Cream Silk Stole" in page.text and "Brocade Silk Kurta" in page.text)
+
+        done = web.post("/checkout", follow_redirects=False)
+        location = done.headers.get("location", "")
+        check("web checkout redirects to the new order", location.startswith("/account?order="), location)
+        order = repo.get_order_history(web_user)[0]
+        check("web order has both channels' items",
+              {i["product_id"] for i in order["items"]} == {MULTI_SIZE, SINGLE_SIZE}, f"got {order['items']}")
+        check("web order is tagged web", order["channel"] == "web")
+        check("account page shows the confirmation", f"Order #{order['order_id']} created"
+              in web.get(location).text)
+
+        repo.clear_cart(web_user)
+        check("checkout of an empty cart is refused",
+              web.post("/checkout", follow_redirects=False).headers.get("location") == "/cart?error=empty")
+        check("API checkout of an empty cart is 422", web.post("/api/checkout").status_code == 422)
+
+        buy = web.post(f"/buy/{MULTI_SIZE}", data={"size": "M", "quantity": "2"}, follow_redirects=False)
+        latest = repo.get_order_history(web_user)[0]
+        check("Buy now with quantity", buy.headers.get("location", "").startswith("/account?order=")
+              and latest["items"][0]["quantity"] == 2)
+        check("unsized Buy now is refused",
+              web.post(f"/buy/{MULTI_SIZE}", follow_redirects=False).headers.get("location")
+              == f"/product/{MULTI_SIZE}")
 
 
 if __name__ == "__main__":

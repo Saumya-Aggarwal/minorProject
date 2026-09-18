@@ -157,6 +157,7 @@ def create_order_for_product(
     if product is None:
         raise ValueError(f"unknown product {product_id!r}")
     size = _resolve_size(product, size)
+    _require_size(product["name"], size, product.get("sizes_available") or [])
     return create_order_from_items(
         user_id,
         [
@@ -182,6 +183,8 @@ def create_order_from_cart(user_id: int, channel: str) -> Optional[dict[str, Any
     lines = [item for item in cart["items"] if item["available"]]
     if not lines:
         return None
+    for item in lines:
+        _require_size(item["name"], item["size"], item["sizes_available"])
 
     order_id = create_order_from_items(
         user_id,
@@ -309,6 +312,16 @@ def get_purchased_product_ids(user_id: int) -> list[str]:
 
 
 # --- cart ---------------------------------------------------------------------
+
+
+def _require_size(name: str, size: str, sizes_available: list[str]) -> None:
+    """No order without a size for a product sold in several.
+
+    Enforced here rather than in each channel, so the bot, the website and the
+    JSON API cannot disagree about it. Channels still check first, to ask nicely.
+    """
+    if not size and len(sizes_available) > 1:
+        raise ValueError(f"choose a size for {name}")
 
 
 def _resolve_size(product: dict[str, Any], size: str) -> str:

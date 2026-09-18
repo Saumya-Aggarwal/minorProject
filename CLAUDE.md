@@ -69,6 +69,9 @@ class ProductMatch(BaseModel):
 - [x] Bot personalizes replies for linked users (order history in prompt)
 - [x] Multi-turn follow-ups ("2", "the second one") resolved from session context
 - [x] BUY places an order from the selected item (placeholder until Razorpay)
+- [x] A1: orders split into header + order_items; shared cart_items; C2 get_purchased_product_ids
+- [x] A2: cart on WhatsApp (ADD, CART, REMOVE n, SIZE n x, CHECKOUT) and on the web (/cart, /api/cart)
+- [ ] A3: Razorpay (checkout currently creates the order without taking payment)
 - [ ] Razorpay order creation + Pay Now interactive message
 - [ ] Razorpay payment.captured webhook
 

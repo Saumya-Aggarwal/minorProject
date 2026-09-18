@@ -3,6 +3,12 @@
 {% block content %}
 <h1 class="text-2xl font-semibold mb-6">Your account</h1>
 
+{% if just_ordered %}
+<p class="bg-emerald-50 text-emerald-800 text-sm rounded px-3 py-2 mb-6">
+  Order #{{ just_ordered }} created. Payment is coming soon — for now it is recorded below.
+</p>
+{% endif %}
+
 <div class="grid gap-6 md:grid-cols-2">
   <section class="bg-white border border-stone-200 rounded-lg p-5">
     <h2 class="font-medium mb-3">WhatsApp assistant</h2>

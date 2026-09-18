@@ -86,7 +86,7 @@ def main() -> int:
         check("website account is a separate row", web_id != orphan_id,
               f"(web={web_id} bot={orphan_id})")
 
-        client.post("/buy/EW001", follow_redirects=False)
+        client.post("/buy/EW001", data={"size": "M"}, follow_redirects=False)
         check("web order recorded", len(repo.get_order_history(web_id)) == 1)
 
         print("\n3. Password storage")

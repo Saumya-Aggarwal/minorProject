@@ -10,6 +10,7 @@ import os
 from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel, Field
 
 import catalog
 import repository as repo
@@ -72,3 +73,80 @@ async def me(request: Request):
     if user is None:
         raise HTTPException(status_code=401, detail="Not signed in")
     return user
+
+
+# --- cart ---------------------------------------------------------------------
+
+
+class CartAdd(BaseModel):
+    product_id: str
+    size: str = ""
+    quantity: int = Field(default=1, ge=1, le=10)
+
+
+class CartChange(BaseModel):
+    quantity: int | None = Field(default=None, ge=0, le=10)
+    size: str | None = None
+
+
+def _signed_in(request: Request) -> dict:
+    user = current_user(request)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not signed in")
+    return user
+
+
+@router.get("/cart")
+async def get_cart(request: Request):
+    user = _signed_in(request)
+    return await asyncio.to_thread(repo.get_cart, user["user_id"])
+
+
+@router.post("/cart/items", status_code=201)
+async def add_cart_item(request: Request, body: CartAdd):
+    user = _signed_in(request)
+    try:
+        return await asyncio.to_thread(
+            repo.add_to_cart, user["user_id"], body.product_id, body.size, body.quantity
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.patch("/cart/items/{cart_item_id}")
+async def change_cart_item(request: Request, cart_item_id: int, body: CartChange):
+    user = _signed_in(request)
+    if body.quantity is not None:
+        if not await asyncio.to_thread(
+            repo.update_cart_item, user["user_id"], cart_item_id, body.quantity
+        ):
+            raise HTTPException(status_code=404, detail="Cart item not found")
+    if body.size:
+        try:
+            if not await asyncio.to_thread(
+                repo.update_cart_item_size, user["user_id"], cart_item_id, body.size
+            ):
+                raise HTTPException(status_code=404, detail="Cart item not found")
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return await asyncio.to_thread(repo.get_cart, user["user_id"])
+
+
+@router.delete("/cart/items/{cart_item_id}")
+async def delete_cart_item(request: Request, cart_item_id: int):
+    user = _signed_in(request)
+    if not await asyncio.to_thread(repo.remove_from_cart, user["user_id"], cart_item_id):
+        raise HTTPException(status_code=404, detail="Cart item not found")
+    return await asyncio.to_thread(repo.get_cart, user["user_id"])
+
+
+@router.post("/checkout", status_code=201)
+async def checkout(request: Request):
+    user = _signed_in(request)
+    try:
+        placed = await asyncio.to_thread(repo.create_order_from_cart, user["user_id"], "web")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if placed is None:
+        raise HTTPException(status_code=422, detail="Cart is empty")
+    return placed

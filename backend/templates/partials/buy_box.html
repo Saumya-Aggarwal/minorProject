@@ -1,11 +1,41 @@
 {# Buy controls for the product page. Owned by Dev A; included by Dev B's product.html.
-   Expects `product` and `user` in the context. #}
-<form method="post" action="/buy/{{ product.id }}" class="mt-6">
-  <button type="submit"
-          class="bg-stone-900 text-white px-6 py-3 rounded-md hover:bg-stone-700 font-medium">
-    Buy now
-  </button>
+   Expects `product` and `user` in the context. Posts to /cart/add (contract C5),
+   or to /buy for a single-item order via the second button's formaction. #}
+{% set sizes = product.sizes_available %}
+<form method="post" action="/cart/add/{{ product.id }}" class="mt-6 space-y-4">
+  {% if sizes|length > 1 %}
+  <div>
+    <label for="size" class="block text-sm text-stone-600 mb-1.5">Size</label>
+    <select id="size" name="size" required
+            class="border border-stone-300 rounded-md px-3 py-2 text-sm bg-white">
+      <option value="" disabled selected>Select a size</option>
+      {% for size in sizes %}
+      {% set sold_out = product.stock.get(size, 0) == 0 %}
+      <option value="{{ size }}" {% if sold_out %}disabled{% endif %}>
+        {{ size }}{% if sold_out %} — sold out{% endif %}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  {% else %}
+  <input type="hidden" name="size" value="{{ sizes[0] if sizes else '' }}">
+  {% endif %}
+
+  <div class="flex items-center gap-3 flex-wrap">
+    <label for="quantity" class="text-sm text-stone-600">Qty</label>
+    <input id="quantity" name="quantity" type="number" min="1" max="10" value="1"
+           class="w-16 border border-stone-300 rounded-md px-2 py-2 text-sm">
+    <button type="submit"
+            class="bg-stone-900 text-white px-5 py-2.5 rounded-md hover:bg-stone-700 font-medium">
+      Add to cart
+    </button>
+    <button type="submit" formaction="/buy/{{ product.id }}"
+            class="border border-stone-900 px-5 py-2.5 rounded-md hover:bg-stone-100 font-medium">
+      Buy now
+    </button>
+  </div>
+
   {% if not user %}
-  <span class="text-xs text-stone-500 ml-3">You'll be asked to sign in first.</span>
+  <p class="text-xs text-stone-500">You'll be asked to sign in first.</p>
   {% endif %}
 </form>

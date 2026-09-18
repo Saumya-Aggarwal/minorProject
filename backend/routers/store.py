@@ -94,7 +94,7 @@ async def logout(request: Request):
 
 
 @router.get("/account", response_class=HTMLResponse)
-async def account(request: Request):
+async def account(request: Request, order: int | None = None):
     user = current_user(request)
     if user is None:
         return RedirectResponse("/login", status_code=303)
@@ -112,12 +112,14 @@ async def account(request: Request):
     return templates.TemplateResponse(
         request,
         "account.html",
-        {"user": user, "orders": orders, "link": link},
+        {"user": user, "orders": orders, "link": link, "just_ordered": order},
     )
 
 
 @router.post("/buy/{product_id}")
-async def buy(request: Request, product_id: str, size: str = Form("")):
+async def buy(
+    request: Request, product_id: str, size: str = Form(""), quantity: int = Form(1)
+):
     """Single-item Buy now. Placeholder until Razorpay: records the order, no payment."""
     user = current_user(request)
     if user is None:
@@ -128,10 +130,117 @@ async def buy(request: Request, product_id: str, size: str = Form("")):
         return RedirectResponse("/", status_code=303)
 
     try:
-        await asyncio.to_thread(
-            repo.create_order_for_product, user["user_id"], product["id"], size, 1, "web"
+        order_id = await asyncio.to_thread(
+            repo.create_order_for_product,
+            user["user_id"],
+            product["id"],
+            size,
+            _clamp_quantity(quantity),
+            "web",
         )
     except ValueError:
-        # An invalid size from a tampered form: back to the product page
+        # Missing or invalid size. The form requires one, so this is a tampered
+        # request: send them back to choose.
         return RedirectResponse(f"/product/{product_id}", status_code=303)
-    return RedirectResponse("/account", status_code=303)
+    return RedirectResponse(f"/account?order={order_id}", status_code=303)
+
+
+# --- cart -----------------------------------------------------------------------
+# The same cart_items rows the WhatsApp bot reads: add in chat, see it here.
+
+MAX_QUANTITY = 10
+
+CART_ERRORS = {
+    "size": "Choose a size for every item before checking out.",
+    "invalid": "That size is not available.",
+    "empty": "Your cart is empty.",
+}
+
+
+def _clamp_quantity(quantity: int) -> int:
+    return max(1, min(int(quantity), MAX_QUANTITY))
+
+
+@router.get("/cart", response_class=HTMLResponse)
+async def cart_page(request: Request, error: str = ""):
+    user = current_user(request)
+    if user is None:
+        return RedirectResponse("/login", status_code=303)
+    cart = await asyncio.to_thread(repo.get_cart, user["user_id"])
+    return templates.TemplateResponse(
+        request,
+        "cart.html",
+        {"user": user, "cart": cart, "error": CART_ERRORS.get(error, "")},
+    )
+
+
+@router.post("/cart/add/{product_id}")
+async def cart_add(
+    request: Request, product_id: str, size: str = Form(""), quantity: int = Form(1)
+):
+    user = current_user(request)
+    if user is None:
+        return RedirectResponse("/login", status_code=303)
+
+    product = catalog.get_by_id(product_id)
+    if product is None:
+        return RedirectResponse("/", status_code=303)
+    # The website has a size dropdown, so unlike chat it always requires one
+    if not size and len(product.get("sizes_available") or []) > 1:
+        return RedirectResponse(f"/product/{product_id}", status_code=303)
+
+    try:
+        await asyncio.to_thread(
+            repo.add_to_cart, user["user_id"], product_id, size, _clamp_quantity(quantity)
+        )
+    except ValueError:
+        return RedirectResponse(f"/product/{product_id}", status_code=303)
+    return RedirectResponse("/cart", status_code=303)
+
+
+@router.post("/cart/update")
+async def cart_update(
+    request: Request,
+    cart_item_id: int = Form(...),
+    quantity: int = Form(1),
+    size: str = Form(""),
+):
+    user = current_user(request)
+    if user is None:
+        return RedirectResponse("/login", status_code=303)
+
+    # Quantity first, then size: a size change can merge this line into
+    # another, and the merge should carry the new quantity with it
+    await asyncio.to_thread(
+        repo.update_cart_item, user["user_id"], cart_item_id, _clamp_quantity(quantity)
+    )
+    if size:
+        try:
+            await asyncio.to_thread(repo.update_cart_item_size, user["user_id"], cart_item_id, size)
+        except ValueError:
+            return RedirectResponse("/cart?error=invalid", status_code=303)
+    return RedirectResponse("/cart", status_code=303)
+
+
+@router.post("/cart/remove")
+async def cart_remove(request: Request, cart_item_id: int = Form(...)):
+    user = current_user(request)
+    if user is None:
+        return RedirectResponse("/login", status_code=303)
+    await asyncio.to_thread(repo.remove_from_cart, user["user_id"], cart_item_id)
+    return RedirectResponse("/cart", status_code=303)
+
+
+@router.post("/checkout")
+async def checkout(request: Request):
+    """Placeholder until Razorpay: creates the order; payment comes in A3."""
+    user = current_user(request)
+    if user is None:
+        return RedirectResponse("/login", status_code=303)
+    try:
+        placed = await asyncio.to_thread(repo.create_order_from_cart, user["user_id"], "web")
+    except ValueError:
+        return RedirectResponse("/cart?error=size", status_code=303)
+    if placed is None:
+        return RedirectResponse("/cart?error=empty", status_code=303)
+    return RedirectResponse(f"/account?order={placed['order_id']}", status_code=303)
