@@ -36,15 +36,8 @@
       </div>
     </div>
 
-    <form method="post" action="/buy/{{ product.id }}" class="mt-6">
-      <button type="submit"
-              class="bg-stone-900 text-white px-6 py-3 rounded-md hover:bg-stone-700 font-medium">
-        Buy now
-      </button>
-      {% if not user %}
-      <span class="text-xs text-stone-500 ml-3">You'll be asked to sign in first.</span>
-      {% endif %}
-    </form>
+    {# Buying controls are owned by Dev A — see WORK_SPLIT.md #}
+    {% include "partials/buy_box.html" %}
 
     <div class="mt-6 text-sm">
       <h2 class="font-medium mb-2">About this item</h2>

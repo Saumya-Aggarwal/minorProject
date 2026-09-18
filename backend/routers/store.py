@@ -1,4 +1,6 @@
-"""Storefront pages.
+"""Account and transaction pages: auth, account, cart, checkout, orders.
+
+Owned by Dev A ("buying"). Browsing pages live in browse.py (Dev B).
 
 Thin handlers: parse the form, call into auth/catalog/repository, render. Anything
 worth reusing belongs in those modules, not here — that is what keeps a future
@@ -27,27 +29,6 @@ from routers.api import whatsapp_deep_link
 
 router = APIRouter(tags=["store"])
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
-
-
-@router.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    return templates.TemplateResponse(
-        request,
-        "index.html",
-        {"products": catalog.get_all(), "user": current_user(request)},
-    )
-
-
-@router.get("/product/{product_id}", response_class=HTMLResponse)
-async def product_page(request: Request, product_id: str):
-    product = catalog.get_by_id(product_id)
-    if product is None:
-        return RedirectResponse("/", status_code=303)
-    return templates.TemplateResponse(
-        request,
-        "product.html",
-        {"product": product, "user": current_user(request)},
-    )
 
 
 @router.get("/signup", response_class=HTMLResponse)

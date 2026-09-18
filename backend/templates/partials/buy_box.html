@@ -1,0 +1,11 @@
+{# Buy controls for the product page. Owned by Dev A; included by Dev B's product.html.
+   Expects `product` and `user` in the context. #}
+<form method="post" action="/buy/{{ product.id }}" class="mt-6">
+  <button type="submit"
+          class="bg-stone-900 text-white px-6 py-3 rounded-md hover:bg-stone-700 font-medium">
+    Buy now
+  </button>
+  {% if not user %}
+  <span class="text-xs text-stone-500 ml-3">You'll be asked to sign in first.</span>
+  {% endif %}
+</form>

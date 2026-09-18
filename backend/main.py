@@ -19,7 +19,7 @@ from starlette.middleware.sessions import SessionMiddleware  # noqa: E402
 
 from auth import session_secret  # noqa: E402
 from db import init_db  # noqa: E402
-from routers import api, store, webhook  # noqa: E402
+from routers import api, browse, store, webhook  # noqa: E402
 from whatsapp import send_whatsapp_message  # noqa: E402
 
 
@@ -53,8 +53,8 @@ app.mount(
 
 app.include_router(webhook.router)
 app.include_router(api.router)
-# Last: its "/" route would otherwise shadow the API and webhook paths
 app.include_router(store.router)
+app.include_router(browse.router)
 
 
 @app.get("/health")
