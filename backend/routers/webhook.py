@@ -4,14 +4,20 @@ import os
 
 from fastapi import APIRouter, HTTPException, Request, Response
 
+import catalog
 import repository as repo
 from bot.chat import get_product_recommendations
 from common.schemas import ProductMatch
 from repository import LINK_PREFIX
-from selection import describe_choice, parse_selection
+from selection import (
+    describe_choice,
+    match_size,
+    parse_buy,
+    parse_command,
+    parse_selection,
+    results_footer,
+)
 from whatsapp import send_whatsapp_message
-
-BUY_WORDS = {"buy", "buy it", "order", "order it", "place order", "confirm", "yes buy"}
 
 router = APIRouter()
 
@@ -105,14 +111,32 @@ async def _handle_link_code(sender: str, text: str) -> str:
     )
 
 
+def _sizes_for(product_id: str) -> list[str]:
+    product = catalog.get_by_id(product_id)
+    return (product or {}).get("sizes_available") or []
+
+
+def _product_id(product: dict) -> str:
+    return product.get("product_id") or product.get("id") or ""
+
+
 async def _handle_follow_up(
     user_id: int, text: str, previous: dict | None
 ) -> str | None:
-    """Resolve "2" or "BUY" against the previous turn. None means it was neither.
+    """Handle cart commands, "2", and BUY. None means "treat it as a search".
 
-    Checked before the RAG call: the assistant invites "reply with an item
-    number", so a bare "2" is an answer to that, not a new product search.
+    Cart commands come first and need no previous turn: "CART" works even as the
+    very first message. Selection and BUY refer back to the last list shown.
     """
+    command = parse_command(text)
+    if command is not None:
+        name, args = command
+        try:
+            return await _handle_cart_command(user_id, name, args, previous)
+        except Exception as exc:
+            print(f"[webhook] cart command {name!r} failed: {exc!r}")
+            return "Sorry, I could not reach your cart just now. Please try again in a moment."
+
     if not previous:
         return None
 
@@ -122,40 +146,188 @@ async def _handle_follow_up(
         product = shown[index]
         print(f"[webhook] selection: item {index + 1} ({product.get('name')})")
         await asyncio.to_thread(repo.record_selection, user_id, product)
-        return describe_choice(product, index)
+        return describe_choice(product, index, _sizes_for(_product_id(product)))
 
-    if text.strip().lower().rstrip(".!") in BUY_WORDS:
+    buy_size = parse_buy(text)
+    if buy_size is not None:
         chosen = previous.get("selected_product")
         if not chosen:
             return (
                 "Tell me which item you would like first — reply with its number, "
                 "or describe what you are looking for."
             )
-        return await _place_order(user_id, chosen)
+        return await _place_order(user_id, chosen, buy_size)
 
     return None
 
 
-async def _place_order(user_id: int, product: dict) -> str:
-    """Placeholder checkout until Razorpay lands: records the order, no payment."""
+def _format_cart(cart: dict) -> str:
+    if not cart["items"]:
+        return "Your cart is empty. Tell me what you are looking for."
+
+    lines = ["Your cart:"]
+    for position, item in enumerate(cart["items"], start=1):
+        if not item["available"]:
+            lines.append(f"{position}. {item['name']} · no longer available")
+            continue
+        size = item["size"] or "size not chosen"
+        lines.append(
+            f"{position}. {item['name']} · {size} · "
+            f"{item['quantity']} × Rs. {item['price_inr']:,.0f}"
+        )
+    noun = "item" if cart["count"] == 1 else "items"
+    lines.append(f"Total: Rs. {cart['total_inr']:,.0f} ({cart['count']} {noun})")
+    lines.append("")
+    lines.append(_cart_hints(cart))
+    return "\n".join(lines)
+
+
+def _cart_hints(cart: dict) -> str:
+    """Command hints using this cart's own positions and sizes, not placeholders."""
+    missing = _missing_sizes(cart)
+    if missing:
+        position, item = missing[0]
+        sizes = item["sizes_available"]
+        return f"Reply SIZE {position} {sizes[len(sizes) // 2]} to choose a size ({', '.join(sizes)})"
+    last = len(cart["items"])
+    return f"REMOVE {last} to drop an item · CHECKOUT to pay"
+
+
+def _missing_sizes(cart: dict) -> list[tuple[int, dict]]:
+    """Lines that still need a size before they can be ordered."""
+    return [
+        (position, item)
+        for position, item in enumerate(cart["items"], start=1)
+        if item["available"] and not item["size"] and len(item["sizes_available"]) > 1
+    ]
+
+
+def _ask_for_sizes(missing: list[tuple[int, dict]]) -> str:
+    lines = ["Choose a size before checkout:"]
+    for position, item in missing:
+        lines.append(f"{position}. {item['name']} — {', '.join(item['sizes_available'])}")
+    first_position, first_item = missing[0]
+    example = first_item["sizes_available"][len(first_item["sizes_available"]) // 2]
+    lines.append(f"Reply SIZE {first_position} {example}, for example.")
+    return "\n".join(lines)
+
+
+async def _handle_cart_command(
+    user_id: int, name: str, args: dict, previous: dict | None
+) -> str:
+    if name == "cart":
+        return _format_cart(await asyncio.to_thread(repo.get_cart, user_id))
+
+    if name == "clear":
+        await asyncio.to_thread(repo.clear_cart, user_id)
+        return "Your cart is empty now. Tell me what you are looking for."
+
+    if name == "add":
+        chosen = (previous or {}).get("selected_product")
+        if not chosen:
+            return (
+                "Pick an item first — reply with its number from the list, "
+                "or tell me what you are looking for."
+            )
+        product_id = _product_id(chosen)
+        sizes = _sizes_for(product_id)
+        size = ""
+        if args["size"]:
+            size = match_size(args["size"], sizes) or ""
+            if not size:
+                return f"{chosen.get('name', 'That item')} comes in {', '.join(sizes)}. Reply ADD M, for example."
+
+        cart = await asyncio.to_thread(repo.add_to_cart, user_id, product_id, size)
+        added = next(
+            (i for i in reversed(cart["items"]) if i["product_id"] == product_id and i["size"] == size),
+            None,
+        )
+        shown_size = (added or {}).get("size") or size
+        note = f" (size {shown_size})" if shown_size else " (size not chosen yet)"
+        noun = "item" if cart["count"] == 1 else "items"
+        hint = (
+            _cart_hints(cart) + ", or keep browsing."
+            if _missing_sizes(cart)
+            else "Reply CHECKOUT to pay, CART to review, or keep browsing."
+        )
+        return (
+            f"Added {chosen.get('name', 'it')}{note} to your cart.\n"
+            f"Cart: {cart['count']} {noun}, Rs. {cart['total_inr']:,.0f}.\n{hint}"
+        )
+
+    cart = await asyncio.to_thread(repo.get_cart, user_id)
+
+    if name in ("remove", "size"):
+        position = args["position"]
+        if not 1 <= position <= len(cart["items"]):
+            return f"There is no item {position} in your cart. Reply CART to see it."
+        item = cart["items"][position - 1]
+
+        if name == "remove":
+            await asyncio.to_thread(repo.remove_from_cart, user_id, item["cart_item_id"])
+            remaining = await asyncio.to_thread(repo.get_cart, user_id)
+            return f"Removed {item['name']}.\n\n" + _format_cart(remaining)
+
+        size = match_size(args["size"], item["sizes_available"])
+        if not size:
+            return f"{item['name']} comes in {', '.join(item['sizes_available'])}."
+        await asyncio.to_thread(repo.update_cart_item_size, user_id, item["cart_item_id"], size)
+        updated = await asyncio.to_thread(repo.get_cart, user_id)
+        return f"{item['name']} set to size {size}.\n\n" + _format_cart(updated)
+
+    if name == "checkout":
+        if not any(item["available"] for item in cart["items"]):
+            return "Your cart is empty. Tell me what you are looking for, then reply ADD."
+        missing = _missing_sizes(cart)
+        if missing:
+            return _ask_for_sizes(missing)
+
+        placed = await asyncio.to_thread(repo.create_order_from_cart, user_id, "bot")
+        if placed is None:
+            return "Your cart is empty. Tell me what you are looking for, then reply ADD."
+        print(f"[webhook] order {placed['order_id']} created from cart for user {user_id}")
+        noun = "item" if placed["item_count"] == 1 else "items"
+        return (
+            f"Order #{placed['order_id']} created — {placed['item_count']} {noun}, "
+            f"total Rs. {placed['total_inr']:,.0f}.\n"
+            "You will get a payment link here shortly."
+        )
+
+    return "Sorry, I did not understand that. Reply CART to see your cart."
+
+
+async def _place_order(user_id: int, product: dict, size_token: str = "") -> str:
+    """Single-item BUY. Placeholder until Razorpay: records the order, no payment.
+
+    Refuses to create an order without a size for products that have several —
+    an unsized order for a kurta is not something a shop can fulfil.
+    """
     name = product.get("name", "your item")
     price = product.get("price_inr", product.get("price", 0))
+    product_id = _product_id(product)
+    sizes = _sizes_for(product_id)
+
+    size = ""
+    if size_token:
+        size = match_size(size_token, sizes) or ""
+        if not size:
+            return f"{name} comes in {', '.join(sizes)}. Reply BUY M, for example."
+    elif len(sizes) > 1:
+        example = sizes[len(sizes) // 2]
+        return f"Which size? {name} comes in {', '.join(sizes)}. Reply BUY {example}, for example."
+
     try:
         order_id = await asyncio.to_thread(
-            repo.create_order_for_product,
-            user_id,
-            product.get("product_id") or product.get("id") or "",
-            "",
-            1,
-            "bot",
+            repo.create_order_for_product, user_id, product_id, size, 1, "bot"
         )
     except Exception as exc:
         print(f"[webhook] order creation failed: {exc!r}")
         return "Sorry, I could not place that order just now. Please try again in a moment."
 
     print(f"[webhook] order {order_id} created for user {user_id}")
+    size_note = f" (size {size})" if size else ""
     return (
-        f"Order #{order_id} placed — {name} for Rs. {price:,.0f}.\n"
+        f"Order #{order_id} placed — {name}{size_note} for Rs. {price:,.0f}.\n"
         "You will get a payment link here shortly. Anything else I can help you find?"
     )
 
@@ -228,7 +400,10 @@ async def _handle_text(sender: str, text: str, display_name: str | None) -> str:
         except Exception as exc:
             print(f"[webhook] could not record turn: {exc!r}")
 
-    return reply
+    # Contract C1: the RAG side returns intro + numbered list; the command hints
+    # belong to whoever owns the commands
+    footer = results_footer(len(matches))
+    return f"{reply}\n\n{footer}" if footer else reply
 
 
 @router.post("/webhook")

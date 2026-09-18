@@ -203,9 +203,91 @@ def main() -> int:
         orphan_left = db.exec(select(CartItem).where(CartItem.user_id == bot_user)).all()
     check("nothing left on the deleted bot user", not orphan_left)
 
+    print("\n7. Cart by WhatsApp, through the real webhook")
+    bot_conversation_checks()
+
     print(f"\n{passed} passed, {failed} failed")
     cleanup()
     return 1 if failed else 0
+
+
+def bot_conversation_checks() -> None:
+    from fastapi.testclient import TestClient
+
+    from main import app
+
+    phone = TEST_PHONES[0]
+
+    def say(client: TestClient, body: str) -> str:
+        payload = {
+            "object": "whatsapp_business_account",
+            "entry": [{"id": "1", "changes": [{"field": "messages", "value": {
+                "messaging_product": "whatsapp",
+                "contacts": [{"wa_id": phone, "profile": {"name": "Cart Tester"}}],
+                "messages": [{"from": phone, "id": "wamid.t", "timestamp": "1",
+                              "type": "text", "text": {"body": body}}],
+            }}]}],
+        }
+        response = client.post("/webhook", json=payload, headers={"X-Local-Test": "true"})
+        response.raise_for_status()
+        return response.json()["responses"][0]["body"]
+
+    cleanup()
+    user = repo.get_or_create_user(phone, "Cart Tester")
+
+    with TestClient(app) as client:
+        check("CART on a fresh chat says empty", "cart is empty" in say(client, "CART").lower())
+        check("ADD with nothing selected asks to pick", "pick an item" in say(client, "ADD").lower())
+
+        results = say(client, "sherwani for my wedding")
+        check("search results carry the C1 footer", "CART to see your cart" in results)
+
+        chosen = say(client, "1")
+        check("choosing a multi-size item lists sizes", "Sizes:" in chosen, chosen[:80])
+
+        check("unsized BUY asks which size", "which size" in say(client, "BUY").lower())
+
+        added = say(client, "ADD")
+        check("ADD without a size still adds", "Added" in added and "size not chosen" in added, added[:90])
+
+        blocked = say(client, "CHECKOUT")
+        check("CHECKOUT refuses unsized lines", "Choose a size" in blocked, blocked[:80])
+        check("no order created while sizes are missing", not repo.get_order_history(user))
+
+        sizes = repo.get_cart(user)["items"][0]["sizes_available"]
+        sized = say(client, f"SIZE 1 {sizes[0]}")
+        check("SIZE sets the size", f"set to size {sizes[0]}" in sized, sized[:80])
+
+        check("SIZE with an invalid size is refused", "comes in" in say(client, "SIZE 1 XXXL"))
+        check("REMOVE out of range is explained", "no item 9" in say(client, "REMOVE 9").lower())
+
+        say(client, "light kurti for office")
+        say(client, "2")
+        say(client, "ADD")
+        cart = repo.get_cart(user)
+        check("second item added from a new search", len(cart["items"]) == 2)
+
+        # Give any unsized line a size, then check out
+        for position, item in enumerate(cart["items"], start=1):
+            if not item["size"] and len(item["sizes_available"]) > 1:
+                say(client, f"SIZE {position} {item['sizes_available'][0]}")
+
+        done = say(client, "CHECKOUT")
+        check("CHECKOUT creates one order", "created" in done and len(repo.get_order_history(user)) == 1,
+              done[:80])
+        order = repo.get_order_history(user)[0]
+        check("order has both lines, all sized",
+              len(order["items"]) == 2 and all(i["size"] for i in order["items"]),
+              f"got {order['items']}")
+        check("order total matches the cart", order["total_inr"] == repo.get_cart(user)["total_inr"])
+
+        say(client, "REMOVE 1")
+        check("REMOVE drops a line", len(repo.get_cart(user)["items"]) == 1)
+        check("CLEAR empties the cart", "empty" in say(client, "clear cart").lower()
+              and not repo.get_cart(user)["items"])
+
+        check("a normal search is not mistaken for a command",
+              "CART to see your cart" in say(client, "add a red dupatta"))
 
 
 if __name__ == "__main__":
