@@ -46,7 +46,7 @@
         {% for order in orders %}
         <li class="py-3">
           <div class="flex items-baseline gap-2">
-            <span class="font-medium flex-1">Order #{{ order.order_id }}</span>
+            <a href="/orders/{{ order.order_id }}" class="font-medium flex-1 hover:underline">Order #{{ order.order_id }}</a>
             <span class="text-xs text-stone-400">{{ order.channel }} &middot;
               {%- if order.status == "captured" %} <span class="text-emerald-700">paid</span>
               {%- elif order.status == "failed" %} cancelled

@@ -73,7 +73,11 @@ class ProductMatch(BaseModel):
 - [x] A2: cart on WhatsApp (ADD, CART, REMOVE n, SIZE n x, CHECKOUT) and on the web (/cart, /api/cart)
 - [x] A3: Razorpay Payment Links for both channels; Pay Now cta_url button in chat;
       confirmation by redirect (verified against Razorpay's API) and by signed webhook
-- [ ] A3 live check: blocked on valid test keys (current pair returns 401)
+- [x] A3 live: real payment link created and fetched via Razorpay test API
+- [x] A4: web orders confirm on the customer's WhatsApp when their account is linked
+- [x] A5: /orders/{id} tracking page (placed, paid, arriving by), ORDERS in chat
+- [x] Chat greeting and HELP (a bare "hi" no longer runs a product search)
+- [ ] End-to-end payment on a real phone
 
 ## Payments
 checkout.py orchestrates; payments.py is a thin httpx wrapper over three Razorpay

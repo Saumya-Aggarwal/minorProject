@@ -58,11 +58,32 @@ def check(label: str, condition: bool, detail: str = "") -> None:
 
 
 def wipe() -> None:
+    """Remove only this test's own users and their rows.
+
+    This used to delete every row in every table, which also erased the
+    developer's real linked account each time the tests ran.
+    """
+    from sqlmodel import select
+
     with session_scope() as db:
-        # Children before parents: order_items -> orders -> users
-        for model in (LinkToken, OrderItem, Order, CartItem, Session, User):
-            for row in db.exec(__import__("sqlmodel").select(model)).all():
+        users = db.exec(
+            select(User).where((User.whatsapp_number == PHONE) | (User.email == EMAIL))
+        ).all()
+        ids = [user.user_id for user in users]
+        if not ids:
+            return
+        order_ids = [o.order_id for o in db.exec(select(Order).where(Order.user_id.in_(ids))).all()]
+        if order_ids:
+            for row in db.exec(select(OrderItem).where(OrderItem.order_id.in_(order_ids))).all():
                 db.delete(row)
+        # Children before parents
+        for model, column in ((Order, Order.user_id), (CartItem, CartItem.user_id),
+                              (Session, Session.user_id), (LinkToken, LinkToken.user_id)):
+            for row in db.exec(select(model).where(column.in_(ids))).all():
+                db.delete(row)
+        db.flush()
+        for user in users:
+            db.delete(user)
 
 
 def whatsapp_message(client: TestClient, body: str) -> str:
@@ -129,10 +150,13 @@ def main() -> int:
 
         with session_scope() as db:
             from sqlmodel import select
-            remaining = db.exec(select(User)).all()
+            remaining = db.exec(
+                select(User).where((User.whatsapp_number == PHONE) | (User.email == EMAIL))
+            ).all()
             orphan_gone = db.get(User, orphan_id) is None
         check("orphan row merged away", orphan_gone)
-        check("exactly one user row", len(remaining) == 1, f"(found {len(remaining)})")
+        check("exactly one user row for this customer", len(remaining) == 1,
+              f"(found {len(remaining)})")
 
         print("\n6. Token safety")
         check("replayed code refused", "invalid or has expired" in whatsapp_message(client, code))

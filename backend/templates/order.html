@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}{% if order %}Order #{{ order.order_id }}{% else %}Order not found{% endif %}{% endblock %}
+{% block content %}
+<a href="/account" class="text-sm text-stone-500 hover:underline">&larr; Your orders</a>
+
+{% if not order %}
+<div class="bg-white border border-stone-200 rounded-lg p-6 mt-4 max-w-xl">
+  <h1 class="text-xl font-semibold">Order not found</h1>
+  <p class="text-sm text-stone-600 mt-2">It may belong to a different account.</p>
+</div>
+{% else %}
+<div class="grid gap-6 md:grid-cols-3 mt-4">
+  <section class="md:col-span-2 bg-white border border-stone-200 rounded-lg p-6">
+    <div class="flex items-start gap-3 flex-wrap">
+      <div class="flex-1 min-w-0">
+        <h1 class="text-2xl font-semibold">Order #{{ order.order_id }}</h1>
+        <p class="text-sm text-stone-500 mt-1">
+          Placed {{ order.created_at.strftime('%d %b %Y, %I:%M %p') }}
+          on {{ "WhatsApp" if order.channel == "bot" else "the website" }}
+        </p>
+      </div>
+      {% if order.status == "captured" %}
+      <span class="bg-emerald-100 text-emerald-800 text-xs font-medium px-2.5 py-1 rounded">Paid</span>
+      {% elif order.status == "failed" %}
+      <span class="bg-stone-100 text-stone-600 text-xs font-medium px-2.5 py-1 rounded">Cancelled</span>
+      {% else %}
+      <span class="bg-amber-100 text-amber-800 text-xs font-medium px-2.5 py-1 rounded">Awaiting payment</span>
+      {% endif %}
+    </div>
+
+    {# Progress: placed -> paid -> arriving #}
+    <ol class="mt-6 grid grid-cols-3 text-xs text-center gap-2">
+      {% set paid = order.status == "captured" %}
+      <li class="border-t-4 pt-2 border-emerald-600">Placed</li>
+      <li class="border-t-4 pt-2 {{ 'border-emerald-600' if paid else 'border-stone-200 text-stone-400' }}">Paid</li>
+      <li class="border-t-4 pt-2 {{ 'border-emerald-300' if paid else 'border-stone-200 text-stone-400' }}">
+        {% if order.deliver_by %}Arriving by {{ order.deliver_by.strftime('%d %b') }}{% else %}Delivery{% endif %}
+      </li>
+    </ol>
+
+    <ul class="mt-6 divide-y divide-stone-100">
+      {% for item in order["items"] %}
+      <li class="py-3 flex gap-4 items-center">
+        {% if item.image_url %}
+        <img src="{{ item.image_url }}" alt="{{ item.product_name }}" class="w-14 h-16 object-cover rounded">
+        {% endif %}
+        <div class="flex-1 min-w-0 text-sm">
+          <a href="/product/{{ item.product_id }}" class="font-medium hover:underline">{{ item.product_name }}</a>
+          <div class="text-stone-500">
+            {% if item.size %}Size {{ item.size }} &middot; {% endif %}Qty {{ item.quantity }}
+          </div>
+        </div>
+        <div class="text-sm font-medium">&#8377;{{ '{:,.0f}'.format(item.price_inr * item.quantity) }}</div>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <aside class="bg-white border border-stone-200 rounded-lg p-5 h-fit text-sm">
+    <div class="flex justify-between font-semibold text-lg">
+      <span>Total</span><span>&#8377;{{ '{:,.0f}'.format(order.total_inr) }}</span>
+    </div>
+
+    {% if order.status == "captured" %}
+    <p class="text-stone-600 mt-3">
+      Paid {{ order.captured_at.strftime('%d %b, %I:%M %p') }}.
+      Delivery within {{ order.delivery_days }} days of payment.
+    </p>
+    {% if order.razorpay_payment_id %}
+    <p class="text-xs text-stone-400 mt-2 break-all">Payment ID {{ order.razorpay_payment_id }}</p>
+    {% endif %}
+    {% elif order.status == "failed" %}
+    <p class="text-stone-600 mt-3">This order was cancelled before payment. Nothing was charged.</p>
+    {% else %}
+    <p class="text-stone-600 mt-3">This order is not paid yet.</p>
+    {% if order.payment_link_url %}
+    <a href="{{ order.payment_link_url }}"
+       class="mt-4 block text-center bg-stone-900 text-white py-2.5 rounded-md hover:bg-stone-700 font-medium">
+      Pay now
+    </a>
+    {% endif %}
+    {% endif %}
+  </aside>
+</div>
+{% endif %}
+{% endblock %}

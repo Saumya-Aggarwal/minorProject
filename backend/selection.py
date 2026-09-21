@@ -108,6 +108,12 @@ _CHECKOUT_PHRASES = {
     "place my order", "pay", "pay now", "proceed to checkout", "proceed to pay",
 }
 _CLEAR_PHRASES = {"clear cart", "empty cart", "clear my cart", "empty my cart"}
+# Not bare "order": that already means "buy the item I just picked"
+_ORDERS_PHRASES = {
+    "orders", "my orders", "order status", "my order status", "track order",
+    "track my order", "track orders", "where is my order", "status", "order history",
+}
+_HELP_PHRASES = {"help", "menu", "commands", "what can you do", "how does this work"}
 
 _ADD_WITH_SIZE = re.compile(r"^add(?: it| this)?(?: in)?(?: size)? (.+)$")
 _REMOVE = re.compile(r"^(?:remove|delete|drop)(?: item)? (?:no\.? ?|#)?(\d{1,2})$")
@@ -135,6 +141,10 @@ def parse_command(text: str) -> Optional[tuple[str, dict[str, Any]]]:
         return ("checkout", {})
     if cleaned in _CLEAR_PHRASES:
         return ("clear", {})
+    if cleaned in _ORDERS_PHRASES:
+        return ("orders", {})
+    if cleaned in _HELP_PHRASES:
+        return ("help", {})
     if cleaned in _ADD_PHRASES:
         return ("add", {"size": ""})
 
@@ -209,3 +219,20 @@ def results_footer(count: int) -> str:
         return ""
     choose = "Reply 1 to choose" if count == 1 else f"Reply 1–{count} to choose"
     return f"{choose} · CART to see your cart"
+
+
+# --- greetings ------------------------------------------------------------------
+
+# "hi" used to run a product search for the word "hi" and answer with three
+# random kurtas. Greetings are matched as the whole message, stretched letters
+# included ("hiii", "heyyy"), optionally followed by one filler word. Anything
+# longer ("hey need a kurta") is a search, so a real request is never swallowed.
+_GREETING = re.compile(
+    r"^(?:h+i+|h+e+y+|h+e+l+o+|h+l+o+|namaste|namaskar|hola|yo+|start|"
+    r"good (?:morning|afternoon|evening))"
+    r"(?: (?:there|bot|again|all|everyone|hru|yo+|sir|maam))?$"
+)
+
+
+def is_greeting(text: str) -> bool:
+    return bool(_GREETING.match(_clean(text)))

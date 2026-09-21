@@ -36,7 +36,8 @@ import repository as repo  # noqa: E402
 from db import init_db, session_scope  # noqa: E402
 from models import CartItem, LinkToken, Order, OrderItem, Session, User  # noqa: E402
 
-PHONES = ["910000000011", "910000000012"]
+PHONES = ["910000000011", "910000000012", "910000000013"]
+EMAILS = ["test-pay-web@example.com"]
 WEBHOOK_SECRET = "test-webhook-secret-not-real"
 
 passed, failed = 0, 0
@@ -101,7 +102,9 @@ def install_fakes() -> None:
 
 def cleanup() -> None:
     with session_scope() as db:
-        users = db.exec(select(User).where(User.whatsapp_number.in_(PHONES))).all()
+        users = db.exec(
+            select(User).where(User.whatsapp_number.in_(PHONES) | User.email.in_(EMAILS))
+        ).all()
         ids = [u.user_id for u in users]
         if not ids:
             return
@@ -128,7 +131,10 @@ def paid_event(link_id: str, payment_id: str) -> dict:
         "event": "payment_link.paid",
         "payload": {
             "payment_link": {"entity": {"id": link_id, "status": "paid"}},
-            "payment": {"entity": {"id": payment_id, "order_id": "order_w", "status": "captured"}},
+            # Each real payment link has its own Razorpay order, so the id must be
+            # unique per payment — a shared one collides on orders_razorpay_order_id_key
+            "payment": {"entity": {"id": payment_id, "order_id": f"order_{payment_id}",
+                                   "status": "captured"}},
         },
     }
 
@@ -240,6 +246,42 @@ def main() -> int:
               client.get("/payments/callback?razorpay_payment_link_id=plink_nope").status_code == 404)
         check("malformed link id is a 400",
               client.get("/payments/callback?razorpay_payment_link_id=bad").status_code == 400)
+
+    print("\n6a. Web order by a linked customer (A4) and order tracking (A5)")
+    web_phone = PHONES[2]
+    with TestClient(__import__("main").app) as web:
+        web.post("/signup", data={"email": EMAILS[0], "password": "test-password-123",
+                                  "display_name": "Web Payer"}, follow_redirects=False)
+        web_user = web.get("/api/me").json()["user_id"]
+        token = web.post("/api/link/start").json()["token"]
+        repo.consume_link_token(token, web_phone)
+
+        web.post("/cart/add/EW012", data={"size": "Free Size", "quantity": "1"}, follow_redirects=False)
+        to_pay = web.post("/checkout", follow_redirects=False).headers.get("location", "")
+        check("web checkout goes to the payment page", to_pay.startswith("https://rzp.io/test/"), to_pay)
+        web_order = repo.get_order_history(web_user)[0]
+
+        tracking = web.get(f"/orders/{web_order['order_id']}")
+        check("tracking page before payment offers Pay now",
+              tracking.status_code == 200 and "Awaiting payment" in tracking.text and to_pay in tracking.text)
+
+        link_id = repo.get_order(web_order["order_id"])["payment_link_id"]
+        raw, sig = signed(paid_event(link_id, "pay_WEB1"))
+        web.post("/razorpay/webhook", content=raw,
+                 headers={"Content-Type": "application/json", "X-Razorpay-Signature": sig})
+        check("A4: web order confirmed on the customer's WhatsApp",
+              len(messages_to(web_phone)) == 1, f"got {messages_to(web_phone)}")
+
+        tracking = web.get(f"/orders/{web_order['order_id']}")
+        check("tracking page after payment shows paid and a delivery date",
+              "Paid" in tracking.text and "Arriving by" in tracking.text)
+        check("someone else's order is a 404", web.get(f"/orders/{order_id}").status_code == 404)
+
+        api_own = web.get(f"/api/orders/{web_order['order_id']}")
+        check("order API returns own order without contact details",
+              api_own.status_code == 200 and "whatsapp_number" not in api_own.json())
+        check("order API hides other people's orders", web.get(f"/api/orders/{order_id}").status_code == 404)
+        check("account lists the order as paid", "paid" in web.get("/account").text)
 
     print("\n6. Simultaneous confirmations (row lock)")
     racer = repo.get_or_create_user(PHONES[1], "Racer")

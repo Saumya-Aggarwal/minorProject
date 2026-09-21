@@ -14,6 +14,7 @@ from common.schemas import ProductMatch
 from repository import LINK_PREFIX
 from selection import (
     describe_choice,
+    is_greeting,
     match_size,
     parse_buy,
     parse_command,
@@ -193,6 +194,65 @@ async def _handle_follow_up(
     return None
 
 
+HELP_TEXT = "\n".join(
+    [
+        "Here is how I can help:",
+        "• Describe what you want — \"sherwani for my wedding\", \"saree for office\"",
+        "• Reply with a number to pick an item from my list",
+        "• ADD M — add it to your cart in size M (or just ADD)",
+        "• BUY M — order only that item",
+        "• CART — see your cart · REMOVE 2 · SIZE 1 L",
+        "• CHECKOUT — pay for everything in your cart",
+        "• ORDERS — track your orders",
+    ]
+)
+
+
+def _greeting(user: dict | None, history: list[dict]) -> str:
+    """Welcome message; linked customers are recognised by name and history."""
+    name = (user or {}).get("display_name")
+    opening = f"Hi {name}!" if name else "Hi!"
+    lines = [f"{opening} I am the Kurta & Co. shopping assistant."]
+    if history:
+        lines.append(f"Last time you picked up the {history[0]['product_name']}.")
+    lines.append(
+        "Tell me what you are shopping for — for example \"sherwani for my wedding\" "
+        "or \"saree for office\" — and I will suggest pieces from our collection."
+    )
+    lines.append("Reply HELP any time to see everything I can do.")
+    return "\n".join(lines)
+
+
+async def _format_orders(user_id: int) -> str:
+    """Recent orders with status; unpaid ones carry their payment link again."""
+    history = await asyncio.to_thread(repo.get_order_history, user_id, 3)
+    if not history:
+        return "You have no orders yet. Tell me what you are looking for."
+
+    lines = ["Your recent orders:"]
+    for summary in history:
+        order = await asyncio.to_thread(repo.get_order, summary["order_id"])
+        items = order["items"]
+        what = items[0]["product_name"] if len(items) == 1 else f"{len(items)} items"
+        line = f"#{order['order_id']} · {what} · Rs. {order['total_inr']:,.0f} · "
+        if order["status"] == "captured":
+            line += "paid"
+            if order["deliver_by"]:
+                line += f", arriving by {order['deliver_by']:%d %b}"
+        elif order["status"] == "failed":
+            line += "cancelled"
+        else:
+            line += "awaiting payment"
+            if order["payment_link_url"]:
+                line += f" — pay here: {order['payment_link_url']}"
+        lines.append(line)
+
+    base_url = os.getenv("PUBLIC_BASE_URL", "").rstrip("/")
+    if base_url:
+        lines.append(f"\nFull details on the website: {base_url}/account")
+    return "\n".join(lines)
+
+
 def _format_cart(cart: dict) -> str:
     if not cart["items"]:
         return "Your cart is empty. Tell me what you are looking for."
@@ -247,6 +307,12 @@ def _ask_for_sizes(missing: list[tuple[int, dict]]) -> str:
 async def _handle_cart_command(
     user_id: int, name: str, args: dict, previous: dict | None
 ) -> str:
+    if name == "help":
+        return HELP_TEXT
+
+    if name == "orders":
+        return await _format_orders(user_id)
+
     if name == "cart":
         return _format_cart(await asyncio.to_thread(repo.get_cart, user_id))
 
@@ -417,6 +483,11 @@ async def _handle_text(sender: str, text: str, display_name: str | None) -> str:
         follow_up = await _handle_follow_up(user_id, text, previous)
         if follow_up is not None:
             return follow_up
+
+        # After commands, so "hi" never shadows one; before search, so it never
+        # reaches retrieval and comes back as three random products
+        if is_greeting(text):
+            return _greeting(user, history)
     except Exception as exc:
         print(f"[webhook] user lookup failed, continuing stateless: {exc!r}")
 

@@ -249,3 +249,20 @@ async def checkout(request: Request):
     if placed is None:
         return RedirectResponse("/cart?error=empty", status_code=303)
     return RedirectResponse(placed["url"], status_code=303)
+
+
+# --- order tracking (A5) ----------------------------------------------------------
+
+
+@router.get("/orders/{order_id}", response_class=HTMLResponse)
+async def order_page(request: Request, order_id: int):
+    user = current_user(request)
+    if user is None:
+        return RedirectResponse("/login", status_code=303)
+    order = await asyncio.to_thread(repo.get_order, order_id)
+    # Someone else's order is a 404, not a 403: a 403 would confirm it exists
+    if order is None or order["user_id"] != user["user_id"]:
+        return templates.TemplateResponse(
+            request, "order.html", {"user": user, "order": None}, status_code=404
+        )
+    return templates.TemplateResponse(request, "order.html", {"user": user, "order": order})

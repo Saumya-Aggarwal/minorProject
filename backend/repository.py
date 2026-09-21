@@ -251,9 +251,25 @@ def get_order(order_id: int) -> Optional[dict[str, Any]]:
             .where(OrderItem.order_id == order_id)
             .order_by(OrderItem.order_item_id)
         ).all()
+
+        # The slowest item decides when the order arrives. Counted from payment,
+        # because nothing ships before it is paid for.
+        products = {line.product_id: catalog.get_by_id(line.product_id) or {} for line in lines}
+        delivery_days = max(
+            (products[line.product_id].get("delivery_days", 5) for line in lines), default=5
+        )
+        deliver_by = (
+            (order.captured_at + timedelta(days=delivery_days)).date()
+            if order.status == "captured" and order.captured_at
+            else None
+        )
         return {
             "order_id": order.order_id,
             "user_id": order.user_id,
+            "created_at": order.created_at,
+            "captured_at": order.captured_at,
+            "delivery_days": delivery_days,
+            "deliver_by": deliver_by,
             "channel": order.channel,
             "status": order.status,
             "total_inr": float(order.total_inr),
@@ -271,6 +287,7 @@ def get_order(order_id: int) -> Optional[dict[str, Any]]:
                     "price_inr": float(line.price_inr),
                     "size": line.size,
                     "quantity": line.quantity,
+                    "image_url": products[line.product_id].get("image_url"),
                 }
                 for line in lines
             ],

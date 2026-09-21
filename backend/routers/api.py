@@ -155,3 +155,13 @@ async def checkout(request: Request):
         raise HTTPException(status_code=422, detail="Cart is empty")
     # payment_url is where a client sends the customer to pay
     return {**placed, "payment_url": placed["url"]}
+
+
+@router.get("/orders/{order_id}")
+async def get_order(request: Request, order_id: int):
+    user = _signed_in(request)
+    order = await asyncio.to_thread(repo.get_order, order_id)
+    if order is None or order["user_id"] != user["user_id"]:
+        raise HTTPException(status_code=404, detail="Order not found")
+    # Contact details are the customer's own, but the API has no need to echo them
+    return {k: v for k, v in order.items() if k not in ("customer_email", "whatsapp_number")}

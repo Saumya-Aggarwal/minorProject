@@ -260,6 +260,11 @@ def bot_conversation_checks() -> None:
     user = repo.get_or_create_user(phone, "Cart Tester")
 
     with TestClient(app) as client:
+        greeting = say(client, "hii")
+        check("hi greets instead of running a search",
+              "shopping assistant" in greeting and "CART to see your cart" not in greeting, greeting[:80])
+        check("HELP lists the commands", "CHECKOUT" in say(client, "HELP"))
+        check("ORDERS with no orders says so", "no orders yet" in say(client, "my orders").lower())
         check("CART on a fresh chat says empty", "cart is empty" in say(client, "CART").lower())
         check("ADD with nothing selected asks to pick", "pick an item" in say(client, "ADD").lower())
 
@@ -304,6 +309,9 @@ def bot_conversation_checks() -> None:
         again = say(client, "CHECKOUT")
         check("CHECKOUT twice reuses the unpaid order",
               "still waiting" in again and len(repo.get_order_history(user)) == 1, again[:80])
+        orders_reply = say(client, "ORDERS")
+        check("ORDERS shows the unpaid order with its pay link",
+              "awaiting payment" in orders_reply and FAKE_PAY_URL in orders_reply, orders_reply[:120])
         order = repo.get_order_history(user)[0]
         check("order has both lines, all sized",
               len(order["items"]) == 2 and all(i["size"] for i in order["items"]),
