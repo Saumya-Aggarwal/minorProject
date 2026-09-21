@@ -62,9 +62,13 @@ REAL_CREATE = payments.create_payment_link
 REAL_FETCH = payments.fetch_payment_link
 
 
-async def fake_create_payment_link(order_id, amount_inr, description, **_):
+callback_for: dict[int, object] = {}  # order_id -> callback_url the link was created with
+
+
+async def fake_create_payment_link(order_id, amount_inr, description, **options):
     global _counter
     _counter += 1
+    callback_for[order_id] = options.get("callback_url")
     link_id = f"plink_test{order_id}n{_counter}"
     fake_link_status[link_id] = {"id": link_id, "status": "created", "payments": []}
     return {"id": link_id, "short_url": f"https://rzp.io/test/{link_id}"}
@@ -95,6 +99,9 @@ def install_fakes() -> None:
     payments.fetch_payment_link = fake_fetch_payment_link
     checkout.send_whatsapp_message = record_whatsapp
     os.environ["RAZORPAY_WEBHOOK_SECRET"] = WEBHOOK_SECRET
+    # The background reconciler would confirm fake payments on its own and race
+    # the checks below; section 9 turns it on deliberately to test it
+    os.environ["PAYMENT_RECONCILE_SECONDS"] = "0"
 
 
 # --- helpers -----------------------------------------------------------------------
@@ -316,7 +323,57 @@ def main() -> int:
     check("cart untouched by the outage", len(repo.get_cart(racer)["items"]) == 1)
     payments.create_payment_link = fake_create_payment_link
 
-    print("\n8. Live Razorpay test API (one real call)")
+    print("\n9. Return to WhatsApp, and background reconciliation")
+    returner = repo.get_or_create_user(PHONES[1], "Racer")
+    chat_order = asyncio.run(checkout.checkout_single(returner, "EW012", "", 1, "bot"))
+    check("chat orders return to the WhatsApp chat, not our site",
+          str(callback_for[chat_order["order_id"]]).startswith("https://wa.me/"),
+          f"got {callback_for[chat_order['order_id']]}")
+    web_order_id = repo.get_order_history(repo.get_user_by_whatsapp(PHONES[2])["user_id"])[0]["order_id"]
+    check("website orders keep the default (our confirmation page)",
+          callback_for.get(web_order_id) is None, f"got {callback_for.get(web_order_id)}")
+
+    check("reconcile: nothing to confirm while unpaid",
+          asyncio.run(checkout.reconcile_pending_payments()) == 0)
+    link_id = repo.get_order(chat_order["order_id"])["payment_link_id"]
+    before = len(messages_to(PHONES[1]))
+    pay_fake_link(link_id, "pay_RECON1")
+    check("reconcile confirms a paid order the webhook never reported",
+          asyncio.run(checkout.reconcile_pending_payments()) == 1
+          and status_of(chat_order["order_id"]) == "captured")
+    check("...with one WhatsApp confirmation", len(messages_to(PHONES[1])) == before + 1)
+    check("reconcile again confirms nothing twice",
+          asyncio.run(checkout.reconcile_pending_payments()) == 0
+          and len(messages_to(PHONES[1])) == before + 1)
+
+    stale = asyncio.run(checkout.checkout_single(returner, "EW012", "", 1, "bot"))
+    with session_scope() as db:
+        row = db.get(Order, stale["order_id"])
+        row.created_at = row.created_at.replace(year=row.created_at.year - 1)
+    pay_fake_link(repo.get_order(stale["order_id"])["payment_link_id"], "pay_OLD")
+    asyncio.run(checkout.reconcile_pending_payments())
+    check("old abandoned orders are not polled", status_of(stale["order_id"]) == "created")
+
+    # The loop really starts with the app, and confirms without any request
+    import time
+    os.environ["PAYMENT_RECONCILE_SECONDS"] = "0.2"
+    background = asyncio.run(checkout.checkout_single(returner, "EW012", "", 1, "bot"))
+    pay_fake_link(repo.get_order(background["order_id"])["payment_link_id"], "pay_BG1")
+    with TestClient(__import__("main").app):
+        for _ in range(20):
+            if status_of(background["order_id"]) == "captured":
+                break
+            time.sleep(0.1)
+    os.environ["PAYMENT_RECONCILE_SECONDS"] = "0"
+    check("background reconciler confirms on its own when the app is running",
+          status_of(background["order_id"]) == "captured")
+
+    with TestClient(__import__("main").app) as client:
+        page = client.get(f"/payments/callback?razorpay_payment_link_id={link_id}").text
+        check("confirmation page has a Back to WhatsApp button",
+              "Back to WhatsApp" in page and "https://wa.me/" in page)
+
+    print("\n10. Live Razorpay test API (one real call)")
     payments.create_payment_link = REAL_CREATE
     payments.fetch_payment_link = REAL_FETCH
     try:

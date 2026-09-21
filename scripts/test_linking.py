@@ -7,6 +7,7 @@ has to be folded into the website account.
 Run from the repo root:  backend/.venv/Scripts/python scripts/test_linking.py
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -36,6 +37,7 @@ async def _no_whatsapp(to, body):
 
 
 payments.create_payment_link = _fake_create_payment_link
+os.environ["PAYMENT_RECONCILE_SECONDS"] = "0"  # no background confirmations racing the checks
 checkout.send_whatsapp_message = _no_whatsapp
 from main import app  # noqa: E402
 from models import CartItem, LinkToken, Order, OrderItem, Session, User  # noqa: E402

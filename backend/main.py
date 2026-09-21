@@ -9,6 +9,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 # Load backend/.env before anything reads os.environ
 load_dotenv(Path(__file__).parent / ".env")
 
+import asyncio  # noqa: E402
+import os  # noqa: E402
 from contextlib import asynccontextmanager  # noqa: E402
 
 import httpx  # noqa: E402
@@ -17,6 +19,7 @@ from fastapi.staticfiles import StaticFiles  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 from starlette.middleware.sessions import SessionMiddleware  # noqa: E402
 
+import checkout  # noqa: E402
 from auth import session_secret  # noqa: E402
 from db import init_db  # noqa: E402
 from routers import api, browse, payments, store, webhook  # noqa: E402
@@ -31,7 +34,20 @@ async def lifespan(app: FastAPI):
         print("[db] tables ready")
     except Exception as exc:
         print(f"[db] init skipped: {exc!r}")
+
+    # Payment reconciliation: confirms paid orders even if a webhook is missed.
+    # PAYMENT_RECONCILE_SECONDS=0 turns it off (the test scripts do, so a
+    # background confirmation cannot race the checks they make).
+    interval = float(os.getenv("PAYMENT_RECONCILE_SECONDS", "5"))
+    reconciler = None
+    if interval > 0 and os.getenv("RAZORPAY_KEY_ID"):
+        reconciler = asyncio.create_task(checkout.reconcile_forever(interval))
+        print(f"[checkout] payment reconciliation every {interval:g}s")
+
     yield
+
+    if reconciler is not None:
+        reconciler.cancel()
 
 
 app = FastAPI(title="WhatsApp Shopping Assistant", lifespan=lifespan)

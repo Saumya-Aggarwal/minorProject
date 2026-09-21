@@ -13,6 +13,7 @@ customer's own UPI PIN or OTP, entered on Razorpay's page, not in our code.
 """
 
 import asyncio
+import os
 from typing import Any, Optional
 
 import payments
@@ -25,6 +26,30 @@ def _describe(order: dict[str, Any]) -> str:
     if len(items) == 1:
         return f"Kurta & Co. order #{order['order_id']}: {items[0]['product_name']}"
     return f"Kurta & Co. order #{order['order_id']}: {len(items)} items"
+
+
+def whatsapp_chat_url() -> Optional[str]:
+    """A link that opens the chat with our WhatsApp number, or None if unset."""
+    number = os.getenv("WHATSAPP_DISPLAY_NUMBER", "").lstrip("+").replace(" ", "")
+    return f"https://wa.me/{number}" if number else None
+
+
+def _return_url(order: dict[str, Any]) -> Optional[str]:
+    """Where the customer's browser goes after paying.
+
+    Chat orders go straight back to the WhatsApp chat, where the confirmation
+    message is waiting. Sending them to our own page instead meant a phone
+    browser that had never visited the site hit ngrok's free-plan warning page
+    ("You are about to visit...") at the moment of paying.
+
+    Website orders return to our confirmation page: that browser has already
+    been through the warning once, so it does not appear again.
+
+    None means payments.py's default, our /payments/callback page.
+    """
+    if order["channel"] == "bot":
+        return whatsapp_chat_url()
+    return None
 
 
 async def start_payment(order_id: int) -> str:
@@ -47,6 +72,7 @@ async def start_payment(order_id: int) -> str:
         customer_name=order["customer_name"],
         customer_phone=order["whatsapp_number"],
         customer_email=order["customer_email"],
+        callback_url=_return_url(order),
     )
     await asyncio.to_thread(repo.attach_payment_link, order_id, link["id"], link["short_url"])
     print(f"[checkout] order {order_id} -> payment link {link['id']}")
@@ -177,3 +203,47 @@ async def notify_paid(order: dict[str, Any]) -> None:
     except Exception as exc:
         # The payment is recorded regardless; a lost message must not undo that
         print(f"[checkout] payment confirmation to {number} not delivered: {exc!r}")
+
+
+# --- reconciliation ------------------------------------------------------------
+
+RECONCILE_MAX_AGE_MINUTES = 60
+RECONCILE_BATCH = 10
+
+
+async def reconcile_pending_payments() -> int:
+    """Ask Razorpay about recent unpaid orders; confirm any that are paid.
+
+    The safety net under the webhook. Chat orders no longer bring the customer
+    back through our callback page, so without this a missing or misconfigured
+    webhook would leave paid orders unconfirmed. Only recent orders are checked,
+    so abandoned ones stop costing API calls after an hour.
+
+    Returns how many orders this round confirmed for the first time.
+    """
+    pending = await asyncio.to_thread(
+        repo.get_unpaid_link_orders, RECONCILE_MAX_AGE_MINUTES, RECONCILE_BATCH
+    )
+    confirmed = 0
+    for _order_id, payment_link_id in pending:
+        try:
+            result = await confirm_payment_link(payment_link_id)
+        except payments.PaymentError as exc:
+            # Razorpay unreachable or keys wrong: try again next round
+            print(f"[checkout] reconcile paused: {exc}")
+            break
+        if result and result.get("first_time"):
+            confirmed += 1
+    return confirmed
+
+
+async def reconcile_forever(interval_seconds: float) -> None:
+    """Background loop started with the app. Never raises; logs and carries on."""
+    while True:
+        try:
+            confirmed = await reconcile_pending_payments()
+            if confirmed:
+                print(f"[checkout] reconcile confirmed {confirmed} order(s)")
+        except Exception as exc:
+            print(f"[checkout] reconcile error: {exc!r}")
+        await asyncio.sleep(interval_seconds)

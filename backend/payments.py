@@ -53,14 +53,20 @@ async def create_payment_link(
     customer_name: Optional[str] = None,
     customer_phone: Optional[str] = None,
     customer_email: Optional[str] = None,
+    callback_url: Optional[str] = None,
 ) -> dict[str, Any]:
     """Create a hosted payment page for one order. Returns {"id", "short_url"}.
+
+    callback_url is where Razorpay sends the customer's browser after paying.
+    Defaults to our /payments/callback page.
 
     reference_id must be unique across the Razorpay account forever, but local
     order ids restart whenever the tables are rebuilt. A random suffix keeps
     reference ids unique; the order is found again by the link id, not by it.
     """
-    base_url = os.getenv("PUBLIC_BASE_URL", "").rstrip("/")
+    if callback_url is None:
+        base_url = os.getenv("PUBLIC_BASE_URL", "").rstrip("/")
+        callback_url = f"{base_url}/payments/callback" if base_url else None
 
     customer: dict[str, str] = {}
     if customer_name:
@@ -84,8 +90,8 @@ async def create_payment_link(
     }
     if customer:
         payload["customer"] = customer
-    if base_url:
-        payload["callback_url"] = f"{base_url}/payments/callback"
+    if callback_url:
+        payload["callback_url"] = callback_url
         payload["callback_method"] = "get"
 
     async with httpx.AsyncClient(timeout=TIMEOUT) as client:

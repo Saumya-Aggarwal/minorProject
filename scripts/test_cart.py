@@ -1,11 +1,12 @@
 """Cart and order checks against the real database.
 
 Creates its own throwaway users and deletes only those, so running it does not
-disturb real accounts (unlike test_linking.py, which wipes everything).
+disturb real accounts.
 
 Run from the repo root:  backend/.venv/Scripts/python scripts/test_cart.py
 """
 
+import os
 import sys
 import threading
 from decimal import Decimal
@@ -43,6 +44,7 @@ async def _no_whatsapp(to, body):
 
 
 payments.create_payment_link = _fake_create_payment_link
+os.environ["PAYMENT_RECONCILE_SECONDS"] = "0"  # no background confirmations racing the checks
 checkout.send_whatsapp_message = _no_whatsapp
 from db import init_db, session_scope  # noqa: E402
 from models import CartItem, LinkToken, Order, OrderItem, Session, User  # noqa: E402

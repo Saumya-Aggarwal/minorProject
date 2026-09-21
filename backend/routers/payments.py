@@ -33,7 +33,12 @@ async def payment_callback(request: Request):
     Nothing is trusted from the URL except which link to look up.
     """
     link_id = request.query_params.get("razorpay_payment_link_id", "")
-    context = {"user": current_user(request), "order": None, "state": "unknown"}
+    context = {
+        "user": current_user(request),
+        "order": None,
+        "state": "unknown",
+        "whatsapp_url": checkout.whatsapp_chat_url(),
+    }
 
     if not link_id.startswith("plink_"):
         return templates.TemplateResponse(request, "payment_result.html", context, status_code=400)

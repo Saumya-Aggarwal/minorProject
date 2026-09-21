@@ -103,6 +103,15 @@ body). mark_order_paid is idempotent and row-locked (SELECT ... FOR UPDATE), so
 both paths together send exactly one WhatsApp confirmation.
 On payment, only the ordered quantities leave the cart. If Razorpay is down, the
 order just created is cancelled. CHECKOUT twice reuses the unpaid order.
+Chat orders return the customer's browser to https://wa.me/<number> (the chat),
+not to our site: a phone browser that had never visited the ngrok domain hit
+ngrok's free-plan "You are about to visit" warning at the moment of paying.
+Website orders still return to /payments/callback, which then offers a Back to
+WhatsApp button.
+Because chat orders skip our callback, a background reconciler (checkout.
+reconcile_forever, started in main.py's lifespan) asks Razorpay every
+PAYMENT_RECONCILE_SECONDS (default 5) about unpaid orders from the last hour.
+Webhook = fast path; reconciler = guarantee. Tests set it to 0.
 Verify with: backend/.venv/Scripts/python scripts/test_payments.py
 
 ## Account linking

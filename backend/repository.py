@@ -312,6 +312,23 @@ def get_pending_cart_order(user_id: int) -> Optional[dict[str, Any]]:
     return get_order(order_id) if order_id else None
 
 
+def get_unpaid_link_orders(max_age_minutes: int, limit: int) -> list[tuple[int, str]]:
+    """(order_id, payment_link_id) for recent orders still awaiting payment."""
+    since = datetime.now(timezone.utc) - timedelta(minutes=max_age_minutes)
+    with session_scope() as db:
+        rows = db.exec(
+            select(Order.order_id, Order.payment_link_id)
+            .where(
+                Order.status == "created",
+                Order.payment_link_id.is_not(None),
+                Order.created_at >= since,
+            )
+            .order_by(Order.created_at.desc())
+            .limit(limit)
+        ).all()
+    return [(order_id, link_id) for order_id, link_id in rows]
+
+
 def cancel_order(order_id: int) -> None:
     """Mark an order that never reached payment as failed.
 

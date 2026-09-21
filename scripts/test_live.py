@@ -58,6 +58,7 @@ async def no_whatsapp(to, body):
 
 
 payments.create_payment_link = fake_link
+os.environ["PAYMENT_RECONCILE_SECONDS"] = "0"  # no background confirmations racing the checks
 checkout.send_whatsapp_message = no_whatsapp
 os.environ["RAZORPAY_WEBHOOK_SECRET"] = SECRET
 
