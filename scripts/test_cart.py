@@ -342,6 +342,31 @@ def bot_conversation_checks() -> None:
         check("SIZE 1 uk10 sets UK 10", "set to size UK 10" in resized, resized[:80])
         check("a size a shoe does not come in is refused", "comes in" in say(client, "SIZE 1 4"))
 
+        # Live bug: "add this one to cart", then "xxl", was refused twice
+        say(client, "clear cart")
+        say(client, "EW045")
+        added = say(client, "add this one to cart")
+        check("'add this one to cart' is the ADD command", "Added Tangerine Embroidered Kurta" in added
+              and "size not chosen" in added, added[:90])
+        check("...and asks for the size in plain words", "Reply with the size you want" in added, added[-80:])
+        sized = say(client, "xxl")
+        check("a bare size answers it", "set to size XXL" in sized, sized[:80])
+        check("...on the same cart line", [(i["product_id"], i["size"]) for i in repo.get_cart(user)["items"]]
+              == [("EW045", "XXL")])
+        say(client, "EW050")
+        more = say(client, "xl")
+        check("a bare size after picking adds that item in that size",
+              "Added Teal Cotton Kurta (size XL)" in more, more[:80])
+        check("'pls add that one to my bag in L' parses with its size",
+              "size L" in say(client, "pls add that one to my bag in L"))
+        say(client, "sherwani for my wedding")
+        check("a bare number after a list is still a pick, not a shoe size", "Sizes:" in say(client, "3"))
+        check("picking from a list does not change the cart", repo.get_cart(user)["count"] == 3)
+        say(client, "EW035")
+        polite = say(client, "size xl please")
+        check("'size xl please' works like a bare size", "Added Lime Green Jacquard Kurta (size XL)" in polite,
+              polite[:80])
+
 
 def web_cart_checks() -> None:
     from fastapi.testclient import TestClient

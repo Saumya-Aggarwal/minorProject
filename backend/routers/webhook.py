@@ -21,6 +21,7 @@ from selection import (
     find_product_code,
     is_greeting,
     match_size,
+    parse_bare_size,
     parse_buy,
     parse_command,
     parse_selection,
@@ -263,6 +264,12 @@ async def _handle_follow_up(
         return _detail_reply(describe_choice(product, index, _sizes_for(_product_id(product))),
                              _product_id(product))
 
+    bare_size = parse_bare_size(text)
+    if bare_size:
+        reply = await _bare_size(user_id, bare_size, previous)
+        if reply is not None:
+            return reply
+
     buy_size = parse_buy(text)
     if buy_size is not None:
         chosen = previous.get("selected_product")
@@ -273,6 +280,28 @@ async def _handle_follow_up(
             )
         return await _place_order(user_id, chosen, buy_size)
 
+    return None
+
+
+async def _bare_size(user_id: int, text: str, previous: dict) -> str | None:
+    """A message that is only a size ("xxl", "42", "8") answers "which size?".
+
+    It sizes the cart line still waiting for one (the picked item's first), or
+    else adds the picked item in that size. Live, "add this one to cart" then
+    "xxl" was refused twice because "xxl" alone did not ask to add anything.
+    """
+    chosen = previous.get("selected_product")
+    chosen_id = _product_id(chosen) if chosen else None
+    cart = await asyncio.to_thread(repo.get_cart, user_id)
+    missing = _missing_sizes(cart)
+    waiting = next((line for line in missing if line[1]["product_id"] == chosen_id), None) or (
+        missing[-1] if missing else None)
+    if waiting is not None:
+        position, item = waiting
+        if match_size(text, item["sizes_available"]) or item["product_id"] == chosen_id:
+            return await _handle_cart_command(user_id, "size", {"position": position, "size": text}, previous)
+    if chosen:
+        return await _handle_cart_command(user_id, "add", {"size": text}, previous)
     return None
 
 
@@ -362,7 +391,7 @@ def _cart_hints(cart: dict) -> str:
     if missing:
         position, item = missing[0]
         sizes = item["sizes_available"]
-        return f"Reply SIZE {position} {sizes[len(sizes) // 2]} to choose a size ({', '.join(sizes)})"
+        return f"Reply with the size you want ({', '.join(sizes)})"
     last = len(cart["items"])
     return f"REMOVE {last} to drop an item · CHECKOUT to pay"
 

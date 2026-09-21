@@ -100,6 +100,16 @@ def looks_like_size(token: str) -> bool:
     return bool(_SIZE_TOKEN.match(_clean(token)))
 
 
+_BARE_SIZE = re.compile(r"^(?:(?:its |it is |i want |i need |in )?size )?(?P<size>.+?)(?: size)?(?: please| pls| plz)?$")
+
+
+def parse_bare_size(text: str) -> Optional[str]:
+    """The size in a reply that is only a size: "xxl", "size 42", "XL please"."""
+    match = _BARE_SIZE.match(_clean(text))
+    size = match.group("size") if match else ""
+    return size if size and looks_like_size(size) else None
+
+
 # --- cart commands ------------------------------------------------------------
 
 _ADD_PHRASES = {
@@ -122,7 +132,11 @@ _ORDERS_PHRASES = {
 }
 _HELP_PHRASES = {"help", "menu", "commands", "what can you do", "how does this work"}
 
-_ADD_WITH_SIZE = re.compile(r"^add(?: it| this)?(?: in)?(?: size)? (.+)$")
+# "add", "add this one to cart", "pls add that one to my bag in XXL", "add it in 42"
+_ADD_WITH_SIZE = re.compile(
+    r"^(?:please |pls |ok |okay |yes |yeah )?add(?: (?:it|this|that)(?: one)?)?"
+    r"(?: to (?:my |the )?(?:cart|bag))?(?:(?: in)?(?: size)? (?P<size>.+))?$"
+)
 _REMOVE = re.compile(r"^(?:remove|delete|drop)(?: item)? (?:no\.? ?|#)?(\d{1,2})$")
 _SIZE = re.compile(r"^(?:size|change size)(?: of)?(?: item)? (\d{1,2}) (?:to )?(.+)$")
 
@@ -163,9 +177,14 @@ def parse_command(text: str) -> Optional[tuple[str, dict[str, Any]]]:
     if match and looks_like_size(match.group(2)):
         return ("size", {"position": int(match.group(1)), "size": match.group(2)})
 
-    match = _ADD_WITH_SIZE.match(cleaned)
-    if match and looks_like_size(match.group(1)):
-        return ("add", {"size": match.group(1)})
+    match = _ADD_WITH_SIZE.match(re.sub(r"\s+(?:please|pls|plz)$", "", cleaned))
+    if match:
+        size = match.group("size")
+        if size is None:
+            return ("add", {"size": ""})
+        if looks_like_size(size):
+            return ("add", {"size": size})
+        # "add a red dupatta" is a search, not a command
 
     return None
 
