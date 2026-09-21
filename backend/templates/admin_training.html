@@ -33,20 +33,42 @@
     <ul class="mt-8 space-y-6">
       {% for reply in replies %}
       {% set whole = reply.ratings.get("") %}
+      {% set how = {"assistant": "AI assistant", "search": "Plain search (AI unavailable)", "lookup": "Cart / orders, answered by code"} %}
       <li id="reply-{{ reply.reply_id }}" class="panel p-5 sm:p-6">
-        <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[12px] text-muted">
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] text-muted">
           <span class="font-medium text-ink">{{ reply.customer }}</span>
+          <span>·</span>
           <span>{{ reply.created_at.strftime("%d %b, %H:%M") }}</span>
-          <span class="uppercase tracking-label">{{ reply.path }}</span>
-          {% if whole %}<span class="{{ 'pill-paid' if whole.rating > 0 else 'pill-cancelled' }}">{{ "good reply" if whole.rating > 0 else "bad reply" }}</span>{% endif %}
+          <span>·</span>
+          <span>{{ how.get(reply.path, reply.path) }}</span>
+          {% if whole %}<span class="{{ 'pill-paid' if whole.rating > 0 else 'pill-cancelled' }}">{{ "Rated good" if whole.rating > 0 else "Rated bad" }}</span>{% endif %}
         </div>
-        <p class="mt-3 font-serif text-xl">“{{ reply.question }}”</p>
-        <details class="mt-3 text-sm">
-          <summary class="cursor-pointer text-muted hover:text-maroon">What the bot replied</summary>
-          <pre class="mt-2 whitespace-pre-wrap font-sans text-[13px] leading-relaxed">{{ reply.answer }}</pre>
-        </details>
+
+        {# The conversation, as the customer saw it #}
+        <div class="mt-4 space-y-3 rounded-sm bg-sand/60 p-4 text-[14px] leading-relaxed">
+          {% if reply.show_earlier %}
+          <p class="text-[12px] text-muted">Earlier the customer said: “{{ reply.earlier }}”</p>
+          {% endif %}
+          <div class="flex justify-end">
+            <p class="max-w-[85%] rounded-sm bg-[#DCF8C6] px-3 py-2 text-ink">
+              <span class="block text-[11px] font-medium uppercase tracking-label text-muted">Customer</span>
+              {{ reply.question }}
+            </p>
+          </div>
+          <div class="flex justify-start">
+            <div class="max-w-[85%] rounded-sm bg-white px-3 py-2 shadow-sm">
+              <span class="block text-[11px] font-medium uppercase tracking-label text-muted">Bot replied</span>
+              <p class="max-h-72 overflow-y-auto whitespace-pre-wrap text-ink">{{ reply.answer_text or "(no text)" }}</p>
+            </div>
+          </div>
+        </div>
+
+        {% if not reply.products %}
+        <p class="mt-4 text-[13px] text-muted">No products were shown in this reply{% if reply.path == "assistant" %} — the bot asked a question or answered in words{% endif %}. Rate the reply as a whole below.</p>
+        {% endif %}
 
         {% if reply.products %}
+        <p class="mt-5 text-[12px] font-medium uppercase tracking-label text-muted">Products it showed — were they right for this question?</p>
         <ul class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
           {% for product in reply.products %}
           {% set mark = reply.ratings.get(product.id) %}
@@ -61,7 +83,7 @@
               {% for value, label in [(1, "✓ Good match"), (-1, "✕ Wrong")] %}
               <form method="post" action="/admin/training/rate">
                 <input type="hidden" name="reply_id" value="{{ reply.reply_id }}">
-                <input type="hidden" name="question" value="{{ reply.question }}">
+                <input type="hidden" name="question" value="{{ reply.rated_question }}">
                 <input type="hidden" name="product_id" value="{{ product.id }}">
                 <input type="hidden" name="rating" value="{{ value }}">
                 <button class="border px-2 py-1 text-[12px] {% if mark and mark.rating == value %}{{ 'border-maroon bg-maroon text-ivory' if value < 0 else 'border-ink bg-ink text-ivory' }}{% else %}border-line hover:border-ink{% endif %}">{{ label }}</button>
@@ -75,7 +97,7 @@
 
         <form method="post" action="/admin/training/rate" class="mt-5 flex flex-wrap items-center gap-3">
           <input type="hidden" name="reply_id" value="{{ reply.reply_id }}">
-          <input type="hidden" name="question" value="{{ reply.question }}">
+          <input type="hidden" name="question" value="{{ reply.rated_question }}">
           <label class="sr-only" for="note-{{ reply.reply_id }}">Note</label>
           <input id="note-{{ reply.reply_id }}" name="note" value="{{ whole.note if whole else '' }}" maxlength="300"
                  placeholder="Optional note, e.g. “ask the budget first”" class="field min-w-[14rem] flex-1 py-2 text-sm">

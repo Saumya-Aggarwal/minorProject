@@ -10,7 +10,7 @@
   <link rel="preload" href="/static/fonts/CormorantGaramond-variable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/static/fonts/Inter-variable.woff2" as="font" type="font/woff2" crossorigin>
   {# Compiled Tailwind, served locally: no CDN, so styling survives bad venue Wi-Fi #}
-  <link rel="stylesheet" href="/static/css/site.css">
+  <link rel="stylesheet" href="/static/css/site.css?v={{ asset_version() }}">
 </head>
 <body class="flex min-h-screen flex-col">
   <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-white focus:px-4 focus:py-2">Skip to content</a>

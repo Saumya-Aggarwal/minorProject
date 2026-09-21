@@ -58,3 +58,14 @@ templates.env.filters["inr"] = inr
 templates.env.globals["side_image"] = side_image
 templates.env.globals["whatsapp_url"] = whatsapp_url
 templates.env.globals["NAV"] = NAV
+
+
+def asset_version() -> str:
+    """Changes whenever site.css is rebuilt, so browsers never keep a stale copy."""
+    try:
+        return str(int((STATIC / "css" / "site.css").stat().st_mtime))
+    except OSError:
+        return "0"
+
+
+templates.env.globals["asset_version"] = asset_version

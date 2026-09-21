@@ -7,6 +7,7 @@ in training.py.
 
 import asyncio
 import os
+from datetime import timedelta, timezone
 from typing import Any, Optional
 from urllib.parse import urlencode
 
@@ -19,6 +20,8 @@ from auth import current_user
 from templating import templates
 
 router = APIRouter(tags=["admin"])
+
+IST = timezone(timedelta(hours=5, minutes=30))   # times are stored in UTC
 
 
 def _admin_emails() -> set[str]:
@@ -45,12 +48,23 @@ async def training_page(request: Request, tab: str = "replies"):
     if tab == "learned":
         rules = await asyncio.to_thread(training.learned_rules)
         for rule in rules:
+            rule["created_at"] = rule["created_at"].astimezone(IST)
             rule["product"] = catalog.get_by_id(rule["product_id"]) if rule["product_id"] else None
         return templates.TemplateResponse(request, "admin_training.html",
                                           {"user": user, "tab": "learned", "rules": rules})
     replies = await asyncio.to_thread(training.recent_replies, 40)
     for reply in replies:
+        reply["created_at"] = reply["created_at"].astimezone(IST)
         reply["products"] = [p for p in (catalog.get_by_id(pid) for pid in reply["product_ids"]) if p]
+        # The product links are long and the photos are shown beside the text
+        reply["answer_text"] = "\n".join(
+            line for line in (reply["answer"] or "").splitlines() if not line.strip().startswith("http")).strip()
+        # A short follow-up is rated together with what it followed, so the
+        # rating matches questions like "haldi outfit for my brother around 7k"
+        short = len(reply["question"].split()) <= 5
+        reply["rated_question"] = (f"{reply['earlier']} {reply['question']}"
+                                   if reply["earlier"] and short else reply["question"])
+        reply["show_earlier"] = bool(reply["earlier"]) and short
     return templates.TemplateResponse(request, "admin_training.html",
                                       {"user": user, "tab": "replies", "replies": replies})
 

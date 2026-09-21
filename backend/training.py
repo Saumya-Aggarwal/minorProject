@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import math
 import time
+from datetime import timedelta
 from functools import lru_cache
 from typing import Any, Optional
 
@@ -177,12 +178,22 @@ def recent_replies(limit: int = 40) -> list[dict[str, Any]]:
                                                    Feedback.reply_id.in_(ids))).all():
                 ratings.setdefault(f.reply_id, {})[f.product_id] = {
                     "id": f.feedback_id, "rating": f.rating, "note": f.note}
-        return [{
-            "reply_id": reply.reply_id, "question": reply.question, "answer": reply.answer,
-            "product_ids": reply.product_ids, "path": reply.path, "created_at": reply.created_at,
-            "customer": user.display_name or user.email or user.whatsapp_number,
-            "ratings": ratings.get(reply.reply_id, {}),
-        } for reply, user in replies]
+        result = []
+        for reply, user in replies:
+            # A follow-up like "around 7k" means nothing on its own: fetch the
+            # customer's message just before it (same chat, within 30 minutes)
+            earlier = db.exec(select(BotReply.question).where(
+                BotReply.user_id == reply.user_id, BotReply.reply_id < reply.reply_id,
+                BotReply.created_at >= reply.created_at - timedelta(minutes=30))
+                .order_by(BotReply.reply_id.desc()).limit(1)).first()
+            result.append({
+                "reply_id": reply.reply_id, "question": reply.question, "answer": reply.answer,
+                "earlier": earlier or "",
+                "product_ids": reply.product_ids, "path": reply.path, "created_at": reply.created_at,
+                "customer": user.display_name or user.email or user.whatsapp_number,
+                "ratings": ratings.get(reply.reply_id, {}),
+            })
+        return result
 
 
 def learned_rules() -> list[dict[str, Any]]:
