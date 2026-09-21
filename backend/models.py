@@ -118,6 +118,17 @@ class Order(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utcnow, sa_column=_tstz(nullable=False))
     captured_at: Optional[datetime] = Field(default=None, sa_column=_tstz(nullable=True))
 
+    # Delivery address, snapshotted like the prices: an order keeps the address
+    # it was sent to even if the customer later moves. Nullable because chat
+    # orders may be placed before the customer has ever given an address.
+    ship_name: Optional[str] = Field(default=None, max_length=100)
+    ship_phone: Optional[str] = Field(default=None, max_length=15)
+    ship_line1: Optional[str] = Field(default=None, max_length=200)
+    ship_line2: Optional[str] = Field(default=None, max_length=200)
+    ship_city: Optional[str] = Field(default=None, max_length=100)
+    ship_state: Optional[str] = Field(default=None, max_length=60)
+    ship_pincode: Optional[str] = Field(default=None, max_length=6)
+
 
 class OrderItem(SQLModel, table=True):
     """One product line in an order, with name and price snapshotted.

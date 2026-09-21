@@ -10,18 +10,16 @@ so when both arrive the customer still gets one confirmation.
 """
 
 import json
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 
 import checkout
 import payments
 from auth import current_user
+from templating import templates
 
 router = APIRouter(tags=["payments"])
-templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
 
 
 @router.get("/payments/callback", response_class=HTMLResponse)
@@ -33,12 +31,9 @@ async def payment_callback(request: Request):
     Nothing is trusted from the URL except which link to look up.
     """
     link_id = request.query_params.get("razorpay_payment_link_id", "")
-    context = {
-        "user": current_user(request),
-        "order": None,
-        "state": "unknown",
-        "whatsapp_url": checkout.whatsapp_chat_url(),
-    }
+    # The "Back to WhatsApp" link comes from the template global whatsapp_url();
+    # a page variable of the same name would shadow it and break base.html
+    context = {"user": current_user(request), "order": None, "state": "unknown"}
 
     if not link_id.startswith("plink_"):
         return templates.TemplateResponse(request, "payment_result.html", context, status_code=400)

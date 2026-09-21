@@ -1,76 +1,92 @@
 {% extends "base.html" %}
+{% import "partials/icons.html" as icon %}
 {% block live_attr %}data-live-refresh{% endblock %}
-{% block title %}Your account{% endblock %}
+{% block title %}Your account — Kurta &amp; Co.{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-semibold mb-6">Your account</h1>
+<div class="container-site pt-10">
+  <p class="eyebrow">Your account</p>
+  <h1 class="display mt-3 text-4xl sm:text-5xl">Hello{% if user.display_name %}, {{ user.display_name }}{% endif %}</h1>
 
-{% if just_ordered %}
-<p class="bg-emerald-50 text-emerald-800 text-sm rounded px-3 py-2 mb-6">
-  Order #{{ just_ordered }} — see its status below.
-</p>
-{% endif %}
+  {% if just_ordered %}
+  <p class="mt-6 border-l-2 border-gold bg-white px-4 py-3 text-sm">Order #{{ just_ordered }} — see its status below.</p>
+  {% endif %}
 
-<div class="grid gap-6 md:grid-cols-2">
-  <section class="bg-white border border-stone-200 rounded-lg p-5">
-    <h2 class="font-medium mb-3">WhatsApp assistant</h2>
-
-    {% if user.whatsapp_number %}
-      <p class="text-sm text-stone-600">
-        Connected to <span class="font-mono">+{{ user.whatsapp_number }}</span>.
-      </p>
-      <p class="text-sm text-stone-500 mt-2">
-        Message us any time &mdash; the assistant already knows your order history.
-      </p>
-    {% else %}
-      <p class="text-sm text-stone-600 mb-4">
-        Connect WhatsApp so the shopping assistant can see your orders and make
-        recommendations that fit what you already own.
-      </p>
-      <a href="{{ link.url }}" target="_blank" rel="noopener"
-         class="inline-block bg-emerald-600 text-white px-4 py-2.5 rounded-md hover:bg-emerald-700">
-        Connect WhatsApp
-      </a>
-      <p class="text-xs text-stone-400 mt-3">
-        Opens WhatsApp with a one-time code. Send it as-is; it expires in
-        {{ link.ttl }} minutes.
-      </p>
-      <p class="text-xs text-stone-400 mt-1">
-        Not opening? Message us <span class="font-mono">{{ link.code }}</span> manually.
-      </p>
-    {% endif %}
-  </section>
-
-  <section class="bg-white border border-stone-200 rounded-lg p-5">
-    <h2 class="font-medium mb-3">Order history</h2>
-    {% if orders %}
-      <ul class="divide-y divide-stone-100 text-sm">
+  <div class="mt-10 grid gap-10 lg:grid-cols-12">
+    <section class="lg:col-span-8" aria-labelledby="orders-heading">
+      <h2 id="orders-heading" class="display text-2xl">Orders</h2>
+      {% if orders %}
+      <ul class="mt-5 divide-y divide-line border-y border-line">
         {% for order in orders %}
-        <li class="py-3">
-          <div class="flex items-baseline gap-2">
-            <a href="/orders/{{ order.order_id }}" class="font-medium flex-1 hover:underline">Order #{{ order.order_id }}</a>
-            <span class="text-xs text-stone-400">{{ order.channel }} &middot;
-              {%- if order.status == "captured" %} <span class="text-emerald-700">paid</span>
-              {%- elif order.status == "failed" %} cancelled
-              {%- else %} <span class="text-amber-700">awaiting payment</span>{% endif %}
-            </span>
-            {% if order.status == "created" and order.payment_link_url %}
-            <a href="{{ order.payment_link_url }}" class="text-xs underline font-medium">Pay now</a>
-            {% endif %}
-            <span class="font-medium">&#8377;{{ '{:,.0f}'.format(order.total_inr) }}</span>
+        <li class="py-5">
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <a href="/orders/{{ order.order_id }}" class="font-medium hover:text-maroon">Order #{{ order.order_id }}</a>
+            {% if order.status == "captured" %}<span class="pill-paid">paid</span>
+            {% elif order.status == "failed" %}<span class="pill-cancelled">cancelled</span>
+            {% else %}<span class="pill-waiting">awaiting payment</span>{% endif %}
+            <span class="text-[12px] text-muted">{{ "on WhatsApp" if order.channel == "bot" else "on the website" }}</span>
+            <span class="ml-auto font-medium">{{ order.total_inr | inr }}</span>
           </div>
-          <ul class="mt-1 text-stone-500 text-xs space-y-0.5">
-            {% for item in order["items"] %}
-            <li>{{ item.quantity }} &times; {{ item.product_name }}{% if item.size %} ({{ item.size }}){% endif %}</li>
-            {% endfor %}
-          </ul>
+          <p class="mt-2 text-sm text-muted">
+            {% for item in order["items"] %}{{ item.quantity }} × {{ item.product_name }}{% if item.size %} ({{ item.size }}){% endif %}{% if not loop.last %} · {% endif %}{% endfor %}
+          </p>
+          <div class="mt-3 flex gap-5 text-[12px] font-medium uppercase tracking-label">
+            <a href="/orders/{{ order.order_id }}" class="hover:text-maroon">Track order</a>
+            {% if order.status == "created" and order.payment_link_url %}
+            <a href="{{ order.payment_link_url }}" class="text-maroon hover:underline">Pay now</a>
+            {% endif %}
+          </div>
         </li>
         {% endfor %}
       </ul>
-    {% else %}
-      <p class="text-sm text-stone-500">
-        Nothing yet. <a href="/" class="underline">Browse the collection</a>.
-      </p>
-    {% endif %}
-  </section>
+      {% else %}
+      <div class="panel mt-5 px-6 py-12 text-center">
+        <p class="display text-2xl">No orders yet</p>
+        <p class="mt-2 text-sm text-muted">When you order — here or on WhatsApp — it appears here.</p>
+        <a href="/shop" class="btn-primary mt-6">Shop the collection</a>
+      </div>
+      {% endif %}
+    </section>
+
+    <aside class="space-y-6 lg:col-span-4">
+      <div class="panel p-6">
+        <div class="flex items-center gap-3">
+          <span class="text-[#25D366]">{{ icon.whatsapp("h-6 w-6") }}</span>
+          <h2 class="display text-2xl">WhatsApp</h2>
+        </div>
+        {% if user.whatsapp_number %}
+        <p class="mt-4 text-sm">Connected to <span class="font-medium">+{{ user.whatsapp_number }}</span>.</p>
+        <p class="mt-2 text-sm text-muted">The assistant knows your orders and shares this bag. Message it any time.</p>
+        {% if whatsapp_url() %}<a href="{{ whatsapp_url('Hi') }}" class="btn-outline mt-5 w-full">Open the chat</a>{% endif %}
+        {% else %}
+        <p class="mt-4 text-sm text-muted">
+          Connect WhatsApp and the assistant will recognise you, see your orders, and share this bag.
+        </p>
+        <a href="{{ link.url }}" target="_blank" rel="noopener" class="btn-primary mt-5 w-full">Connect WhatsApp</a>
+        <p class="mt-3 text-[12px] text-muted">
+          Opens WhatsApp with a one-time code — just press send. It expires in {{ link.ttl }} minutes.
+          Not opening? Send <span class="font-mono text-ink">{{ link.code }}</span> to us yourself.
+        </p>
+        {% endif %}
+      </div>
+
+      <div class="panel p-6">
+        <h2 class="display text-2xl">Delivery address</h2>
+        {% if address %}
+        <p class="mt-4 text-sm leading-relaxed">
+          <span class="font-medium">{{ address.name }}</span><br>{{ address_line }}<br>
+          <span class="text-muted">+91 {{ address.phone }}</span>
+        </p>
+        <p class="mt-3 text-[12px] text-muted">Used for your next order. You can change it at checkout.</p>
+        {% else %}
+        <p class="mt-4 text-sm text-muted">Saved from your first order, so checkout is quicker next time.</p>
+        {% endif %}
+      </div>
+
+      <div class="panel p-6 text-sm">
+        <p class="text-muted">Signed in as {{ user.email or ('+' ~ user.whatsapp_number) }}</p>
+        <a href="/logout" class="mt-3 inline-block text-[12px] font-medium uppercase tracking-label hover:text-maroon">Sign out</a>
+      </div>
+    </aside>
+  </div>
 </div>
 {% endblock %}

@@ -14,6 +14,7 @@ from common.schemas import ProductMatch
 from repository import LINK_PREFIX
 from selection import (
     describe_choice,
+    find_product_code,
     is_greeting,
     match_size,
     parse_buy,
@@ -169,6 +170,16 @@ async def _handle_follow_up(
         except Exception as exc:
             print(f"[webhook] cart command {name!r} failed: {exc!r}")
             return "Sorry, I could not reach your cart just now. Please try again in a moment."
+
+    code = find_product_code(text)
+    product = catalog.get_by_id(code) if code else None
+    if product is not None:
+        # Arrived from a product page on the website: show it and select it, so
+        # "ADD 42" or "BUY 42" works as the very next message
+        chosen = ProductMatch.from_raw(product).model_dump()
+        print(f"[webhook] product code {code} from the website")
+        await asyncio.to_thread(repo.record_selection, user_id, chosen)
+        return describe_choice(chosen, 0, product.get("sizes_available") or [])
 
     if not previous:
         return None

@@ -1,0 +1,9 @@
+{# Price block: selling price, struck MRP, discount. Expects `product`; optional `price_size` ("lg" for the product page). #}
+{% set large = price_size == "lg" %}
+<div class="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 {{ 'mt-4' if large else 'mt-1.5' }}">
+  <span class="{{ 'font-serif text-3xl font-medium' if large else 'text-[15px] font-medium' }} text-ink">{{ product.price | inr }}</span>
+  {% if product.mrp and product.mrp > product.price %}
+  <span class="{{ 'text-base' if large else 'text-[13px]' }} text-muted line-through">{{ product.mrp | inr }}</span>
+  <span class="{{ 'text-sm' if large else 'text-[12px]' }} font-medium text-maroon">{{ product.discount_percent }}% off</span>
+  {% endif %}
+</div>

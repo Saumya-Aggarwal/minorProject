@@ -1,87 +1,108 @@
 {% extends "base.html" %}
+{% import "partials/icons.html" as icon %}
 {% block live_attr %}data-live-refresh{% endblock %}
-{% block title %}{% if order %}Order #{{ order.order_id }}{% else %}Order not found{% endif %}{% endblock %}
+{% block title %}{% if order %}Order #{{ order.order_id }}{% else %}Order not found{% endif %} — Kurta &amp; Co.{% endblock %}
 {% block content %}
-<a href="/account" class="text-sm text-stone-500 hover:underline">&larr; Your orders</a>
+<div class="container-site pt-10">
+  <a href="/account" class="inline-flex items-center gap-2 text-[12px] uppercase tracking-label text-muted hover:text-maroon">&larr; Your orders</a>
 
-{% if not order %}
-<div class="bg-white border border-stone-200 rounded-lg p-6 mt-4 max-w-xl">
-  <h1 class="text-xl font-semibold">Order not found</h1>
-  <p class="text-sm text-stone-600 mt-2">It may belong to a different account.</p>
-</div>
-{% else %}
-<div class="grid gap-6 md:grid-cols-3 mt-4">
-  <section class="md:col-span-2 bg-white border border-stone-200 rounded-lg p-6">
-    <div class="flex items-start gap-3 flex-wrap">
-      <div class="flex-1 min-w-0">
-        <h1 class="text-2xl font-semibold">Order #{{ order.order_id }}</h1>
-        <p class="text-sm text-stone-500 mt-1">
-          Placed {{ order.created_at.strftime('%d %b %Y, %I:%M %p') }}
-          on {{ "WhatsApp" if order.channel == "bot" else "the website" }}
-        </p>
-      </div>
-      {% if order.status == "captured" %}
-      <span class="bg-emerald-100 text-emerald-800 text-xs font-medium px-2.5 py-1 rounded">Paid</span>
-      {% elif order.status == "failed" %}
-      <span class="bg-stone-100 text-stone-600 text-xs font-medium px-2.5 py-1 rounded">Cancelled</span>
-      {% else %}
-      <span class="bg-amber-100 text-amber-800 text-xs font-medium px-2.5 py-1 rounded">Awaiting payment</span>
-      {% endif %}
+  {% if not order %}
+  <div class="panel mt-6 max-w-xl px-6 py-10">
+    <h1 class="display text-3xl">Order not found</h1>
+    <p class="mt-2 text-sm text-muted">It may belong to a different account.</p>
+  </div>
+  {% else %}
+  {% set paid = order.status == "captured" %}
+  <div class="mt-5 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="display text-4xl sm:text-5xl">Order #{{ order.order_id }}</h1>
+      <p class="mt-2 text-sm text-muted">
+        Placed {{ order.created_at.strftime('%d %b %Y, %I:%M %p') }} {{ "on WhatsApp" if order.channel == "bot" else "on the website" }}
+      </p>
     </div>
+    {% if paid %}<span class="pill-paid">Paid</span>
+    {% elif order.status == "failed" %}<span class="pill-cancelled">Cancelled</span>
+    {% else %}<span class="pill-waiting">Awaiting payment</span>{% endif %}
+  </div>
 
-    {# Progress: placed -> paid -> arriving #}
-    <ol class="mt-6 grid grid-cols-3 text-xs text-center gap-2">
-      {% set paid = order.status == "captured" %}
-      <li class="border-t-4 pt-2 border-emerald-600">Placed</li>
-      <li class="border-t-4 pt-2 {{ 'border-emerald-600' if paid else 'border-stone-200 text-stone-400' }}">Paid</li>
-      <li class="border-t-4 pt-2 {{ 'border-emerald-300' if paid else 'border-stone-200 text-stone-400' }}">
-        {% if order.deliver_by %}Arriving by {{ order.deliver_by.strftime('%d %b') }}{% else %}Delivery{% endif %}
-      </li>
-    </ol>
+  {# Placed -> Paid -> Arriving #}
+  <ol class="mt-10 grid grid-cols-3 gap-3 text-center text-[12px] uppercase tracking-label">
+    <li class="border-t-2 border-maroon pt-3">Placed</li>
+    <li class="border-t-2 pt-3 {{ 'border-maroon' if paid else 'border-line text-muted/60' }}">Paid</li>
+    <li class="border-t-2 pt-3 {{ 'border-gold' if paid else 'border-line text-muted/60' }}">
+      {% if order.deliver_by %}Arriving by {{ order.deliver_by.strftime('%d %b') }}{% else %}Delivery{% endif %}
+    </li>
+  </ol>
 
-    <ul class="mt-6 divide-y divide-stone-100">
-      {% for item in order["items"] %}
-      <li class="py-3 flex gap-4 items-center">
-        {% if item.image_url %}
-        <img src="{{ item.image_url }}" alt="{{ item.product_name }}" class="w-14 h-16 object-cover rounded">
-        {% endif %}
-        <div class="flex-1 min-w-0 text-sm">
-          <a href="/product/{{ item.product_id }}" class="font-medium hover:underline">{{ item.product_name }}</a>
-          <div class="text-stone-500">
-            {% if item.size %}Size {{ item.size }} &middot; {% endif %}Qty {{ item.quantity }}
+  <div class="mt-10 grid gap-10 lg:grid-cols-12">
+    <section class="lg:col-span-8">
+      <ul class="divide-y divide-line border-y border-line">
+        {% for item in order["items"] %}
+        <li class="flex items-center gap-5 py-5">
+          <a href="/product/{{ item.product_id }}" class="block w-20 shrink-0">
+            <div class="aspect-[4/5] overflow-hidden bg-sand">
+              {% if item.image_url %}<img src="{{ item.image_url }}" alt="{{ item.product_name }}" class="h-full w-full object-cover">{% endif %}
+            </div>
+          </a>
+          <div class="min-w-0 flex-1">
+            <a href="/product/{{ item.product_id }}" class="font-serif text-xl font-medium hover:text-maroon">{{ item.product_name }}</a>
+            <p class="mt-1 text-sm text-muted">{% if item.size %}Size {{ item.size }} · {% endif %}Qty {{ item.quantity }}</p>
           </div>
+          <p class="font-medium">{{ (item.price_inr * item.quantity) | inr }}</p>
+        </li>
+        {% endfor %}
+      </ul>
+
+      <div class="mt-10">
+        <h2 class="display text-2xl">Delivering to</h2>
+        {% if order.shipping %}
+        <p class="mt-3 text-sm leading-relaxed">
+          <span class="font-medium">{{ order.shipping.name }}</span><br>{{ address_line }}<br>
+          <span class="text-muted">+91 {{ order.shipping.phone }}</span>
+        </p>
+        {% else %}
+        {# Chat orders can be placed before we have an address #}
+        {% set draft = draft or {} %}
+        <p class="mt-2 text-sm text-muted">This order was placed on WhatsApp. Tell us where to send it.</p>
+        <form method="post" action="/orders/{{ order.order_id }}/address" class="panel mt-4 grid gap-4 p-5 sm:grid-cols-2" novalidate>
+          {% for name, label, auto in [("name","Full name","name"),("phone","Mobile number","tel"),("line1","House / flat and street","address-line1"),("line2","Area or landmark (optional)","address-line2"),("city","Town / city","address-level2"),("pincode","PIN code","postal-code")] %}
+          <div class="{{ 'sm:col-span-2' if name in ('line1','line2') else '' }}">
+            <label for="a-{{ name }}" class="label">{{ label }}</label>
+            <input id="a-{{ name }}" name="{{ name }}" value="{{ draft[name] or '' }}" autocomplete="{{ auto }}" class="field {% if errors[name] %}field-error{% endif %}">
+            {% if errors[name] %}<p class="error-text">{{ errors[name] }}</p>{% endif %}
+          </div>
+          {% endfor %}
+          <div>
+            <label for="a-state" class="label">State</label>
+            <select id="a-state" name="state" class="field {% if errors.state %}field-error{% endif %}">
+              <option value="">Choose…</option>
+              {% for state in states %}<option {% if state == draft.state %}selected{% endif %}>{{ state }}</option>{% endfor %}
+            </select>
+            {% if errors.state %}<p class="error-text">{{ errors.state }}</p>{% endif %}
+          </div>
+          <div class="flex items-end"><button class="btn-primary w-full">Save address</button></div>
+        </form>
+        {% endif %}
+      </div>
+    </section>
+
+    <aside class="lg:col-span-4">
+      <div class="panel p-6 text-sm">
+        <div class="flex items-baseline justify-between">
+          <span class="font-medium">Total</span><span class="font-serif text-3xl font-medium">{{ order.total_inr | inr }}</span>
         </div>
-        <div class="text-sm font-medium">&#8377;{{ '{:,.0f}'.format(item.price_inr * item.quantity) }}</div>
-      </li>
-      {% endfor %}
-    </ul>
-  </section>
-
-  <aside class="bg-white border border-stone-200 rounded-lg p-5 h-fit text-sm">
-    <div class="flex justify-between font-semibold text-lg">
-      <span>Total</span><span>&#8377;{{ '{:,.0f}'.format(order.total_inr) }}</span>
-    </div>
-
-    {% if order.status == "captured" %}
-    <p class="text-stone-600 mt-3">
-      Paid {{ order.captured_at.strftime('%d %b, %I:%M %p') }}.
-      Delivery within {{ order.delivery_days }} days of payment.
-    </p>
-    {% if order.razorpay_payment_id %}
-    <p class="text-xs text-stone-400 mt-2 break-all">Payment ID {{ order.razorpay_payment_id }}</p>
-    {% endif %}
-    {% elif order.status == "failed" %}
-    <p class="text-stone-600 mt-3">This order was cancelled before payment. Nothing was charged.</p>
-    {% else %}
-    <p class="text-stone-600 mt-3">This order is not paid yet.</p>
-    {% if order.payment_link_url %}
-    <a href="{{ order.payment_link_url }}"
-       class="mt-4 block text-center bg-stone-900 text-white py-2.5 rounded-md hover:bg-stone-700 font-medium">
-      Pay now
-    </a>
-    {% endif %}
-    {% endif %}
-  </aside>
+        {% if paid %}
+        <p class="mt-4 text-muted">Paid {{ order.captured_at.strftime('%d %b, %I:%M %p') }}. Delivery within {{ order.delivery_days }} days of payment.</p>
+        {% if order.razorpay_payment_id %}<p class="mt-3 break-all text-[12px] text-muted/80">Payment ID {{ order.razorpay_payment_id }}</p>{% endif %}
+        {% elif order.status == "failed" %}
+        <p class="mt-4 text-muted">This order was cancelled before payment. Nothing was charged.</p>
+        {% else %}
+        <p class="mt-4 text-muted">This order is not paid yet.</p>
+        {% if order.payment_link_url %}<a href="{{ order.payment_link_url }}" class="btn-primary mt-5 w-full">Pay now</a>{% endif %}
+        {% endif %}
+      </div>
+    </aside>
+  </div>
+  {% endif %}
 </div>
-{% endif %}
 {% endblock %}

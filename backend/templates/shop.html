@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% import "partials/icons.html" as icon %}
+{% block title %}{{ heading }} — Kurta &amp; Co.{% endblock %}
+
+{# One sidebar, rendered twice: a column on desktop, a collapsible panel on phones.
+   Every option is a plain link, so filters work without JavaScript and every
+   filtered view has a URL that can be shared. #}
+{% macro filter_group(title, key, options) %}
+<div class="border-b border-line py-5 first:pt-0">
+  <p class="label !mb-3">{{ title }}</p>
+  <ul class="space-y-2 text-[14px]">
+    {% for value, label, count in options %}
+    {% set active = filters[key] == value %}
+    <li>
+      {% if count == 0 and not active %}
+      <span class="flex justify-between text-muted/50">{{ label }}<span>0</span></span>
+      {% else %}
+      <a href="{{ base_path }}{{ qs(**{key: '' if active else value}) }}"
+         class="group flex items-center justify-between gap-3 {{ 'font-medium text-maroon' if active else 'hover:text-maroon' }}"
+         {% if active %}aria-current="true"{% endif %}>
+        <span class="flex items-center gap-2.5">
+          <span class="flex h-4 w-4 items-center justify-center border {{ 'border-maroon bg-maroon text-white' if active else 'border-line bg-white group-hover:border-maroon' }}">
+            {% if active %}{{ icon.check("h-3 w-3") }}{% endif %}
+          </span>{{ label }}
+        </span>
+        <span class="text-[12px] text-muted">{{ count }}</span>
+      </a>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endmacro %}
+
+{% macro sidebar() %}
+{{ filter_group("Shop for", "gender", facets.gender) }}
+{{ filter_group("Category", "category", facets.category) }}
+{{ filter_group("Price", "price", facets.price) }}
+{{ filter_group("Occasion", "occasion", facets.occasion) }}
+{% endmacro %}
+
+{% block content %}
+{% set active_count = filters.values() | select | list | length %}
+<div class="container-site pt-8">
+  <nav class="text-[12px] text-muted" aria-label="Breadcrumb">
+    <a href="/" class="hover:text-maroon">Home</a> <span class="mx-1.5">/</span>
+    <span class="text-ink">{{ 'Search' if is_search else 'Shop' }}</span>
+  </nav>
+
+  <div class="mt-4 flex flex-wrap items-end justify-between gap-4 border-b border-line pb-6">
+    <div>
+      <h1 class="display text-4xl sm:text-5xl">{{ heading }}</h1>
+      <p class="mt-2 text-sm text-muted">{{ products | length }} {{ 'piece' if products | length == 1 else 'pieces' }}</p>
+    </div>
+
+    {# Sorting: a GET form, submitted on change; the button is the no-JS fallback #}
+    <form method="get" action="{{ base_path }}" class="flex items-center gap-3">
+      {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+      {% for key, value in filters.items() %}{% if value %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endif %}{% endfor %}
+      <label for="sort" class="label !mb-0">Sort</label>
+      <select id="sort" name="sort" onchange="this.form.submit()" class="field !w-auto !py-2 pr-8 text-sm">
+        {% for key, label in sorts.items() %}<option value="{{ key }}" {% if key == sort %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+      <noscript><button class="btn-outline !py-2">Apply</button></noscript>
+    </form>
+  </div>
+
+  {% if active_count %}
+  <div class="mt-5 flex flex-wrap items-center gap-2">
+    {% for key, value in filters.items() %}{% if value %}
+    {% set label = value %}
+    {% if key == 'price' %}{% set label = facets.price | selectattr(0, 'equalto', value) | map(attribute=1) | first %}{% endif %}
+    {% if key == 'occasion' %}{% set label = facets.occasion | selectattr(0, 'equalto', value) | map(attribute=1) | first %}{% endif %}
+    <a href="{{ base_path }}{{ qs(**{key: ''}) }}" class="flex items-center gap-2 border border-line bg-white px-3 py-1.5 text-[13px] hover:border-maroon hover:text-maroon">
+      {{ label }} {{ icon.close("h-3.5 w-3.5") }}<span class="sr-only">Remove filter</span>
+    </a>
+    {% endif %}{% endfor %}
+    <a href="{{ base_path }}{{ '?q=' ~ (query | urlencode) if query else '' }}" class="ml-1 text-[13px] link">Clear all</a>
+  </div>
+  {% endif %}
+
+  <div class="mt-8 grid gap-10 lg:grid-cols-[15rem_1fr]">
+    <aside class="hidden lg:block" aria-label="Filters">{{ sidebar() }}</aside>
+
+    <details class="lg:hidden border border-line bg-white">
+      <summary class="flex items-center justify-between px-4 py-3 text-[12px] font-medium uppercase tracking-label">
+        Filters{% if active_count %} ({{ active_count }}){% endif %} {{ icon.chevron() }}
+      </summary>
+      <div class="px-4 pb-2">{{ sidebar() }}</div>
+    </details>
+
+    <section aria-label="Products">
+      {% if products %}
+      <div class="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-3 lg:gap-x-6">
+        {% for product in products %}{% include "partials/product_card.html" %}{% endfor %}
+      </div>
+      {% else %}
+      <div class="panel px-6 py-16 text-center">
+        <p class="display text-3xl">
+          {% if is_search and not query %}What are you looking for?{% else %}Nothing matches that yet{% endif %}
+        </p>
+        <p class="mx-auto mt-3 max-w-md text-muted">
+          {% if is_search and query %}
+          Try describing the occasion or the fabric — “festive kurta”, “silk saree for a wedding”.
+          {% elif is_search %}
+          Search by occasion, fabric or colour — our search understands what you mean, not just the words.
+          {% else %}
+          Remove a filter or two to see more of the collection.
+          {% endif %}
+        </p>
+        <div class="mt-8 flex flex-wrap justify-center gap-3">
+          {% for label, url in NAV %}<a href="{{ url }}" class="btn-outline">{{ label }}</a>{% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

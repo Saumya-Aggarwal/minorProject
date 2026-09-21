@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% import "partials/icons.html" as icon %}
+{% block title %}Checkout — Kurta &amp; Co.{% endblock %}
+{% block whatsapp_fab %}{% endblock %}
+
+{% macro text_field(name, label, value, autocomplete, type="text", attrs="", hint="") %}
+<div>
+  <label for="{{ name }}" class="label">{{ label }}</label>
+  <input id="{{ name }}" name="{{ name }}" type="{{ type }}" value="{{ value or '' }}" autocomplete="{{ autocomplete }}"
+         class="field {% if errors[name] %}field-error{% endif %}" {{ attrs | safe }}
+         {% if errors[name] %}aria-invalid="true" aria-describedby="{{ name }}-error"{% endif %}>
+  {% if errors[name] %}<p id="{{ name }}-error" class="error-text">{{ errors[name] }}</p>
+  {% elif hint %}<p class="mt-1 text-[12px] text-muted">{{ hint }}</p>{% endif %}
+</div>
+{% endmacro %}
+
+{% block content %}
+<div class="container-site pt-10">
+  <nav class="flex items-center gap-2 text-[12px] uppercase tracking-label text-muted" aria-label="Checkout steps">
+    {% if single %}<a href="/product/{{ single.product }}" class="hover:text-maroon">Product</a>{% else %}<a href="/cart" class="hover:text-maroon">Bag</a>{% endif %}
+    <span>—</span><span class="text-ink">Delivery</span><span>—</span><span>Payment</span>
+  </nav>
+  <h1 class="display mt-4 text-4xl sm:text-5xl">Checkout</h1>
+
+  {% if errors %}
+  <p class="mt-6 border-l-2 border-maroon bg-maroon-tint px-4 py-3 text-sm text-maroon" role="alert">
+    Please check the {{ 'field' if errors | length == 1 else errors | length ~ ' fields' }} marked below.
+  </p>
+  {% endif %}
+
+  <form method="post" action="/checkout" class="mt-10 grid gap-10 lg:grid-cols-12" novalidate>
+    {% if single %}
+    <input type="hidden" name="product" value="{{ single.product }}">
+    <input type="hidden" name="size" value="{{ single.size }}">
+    <input type="hidden" name="quantity" value="{{ single.quantity }}">
+    {% endif %}
+
+    <section class="space-y-8 lg:col-span-7">
+      <div>
+        <h2 class="display text-2xl">Contact</h2>
+        <p class="mt-1 text-sm text-muted">Signed in as {{ user.email or user.display_name }}. Order updates also reach your WhatsApp when it is connected.</p>
+        <div class="mt-5 grid gap-5 sm:grid-cols-2">
+          {{ text_field("name", "Full name", address.name, "name", attrs='required maxlength="100"') }}
+          {{ text_field("phone", "Mobile number", address.phone, "tel", "tel", 'required inputmode="numeric"', "10 digits, for the delivery partner") }}
+        </div>
+      </div>
+
+      <div class="rule pt-8">
+        <h2 class="display text-2xl">Delivery address</h2>
+        <div class="mt-5 grid gap-5">
+          {{ text_field("line1", "House / flat and street", address.line1, "address-line1", attrs='required maxlength="200"') }}
+          {{ text_field("line2", "Area or landmark (optional)", address.line2, "address-line2", attrs='maxlength="200"') }}
+          <div class="grid gap-5 sm:grid-cols-3">
+            {{ text_field("city", "Town / city", address.city, "address-level2", attrs='required maxlength="100"') }}
+            <div>
+              <label for="state" class="label">State</label>
+              <select id="state" name="state" autocomplete="address-level1" required
+                      class="field {% if errors.state %}field-error{% endif %}"
+                      {% if errors.state %}aria-invalid="true" aria-describedby="state-error"{% endif %}>
+                <option value="">Choose…</option>
+                {% for state in states %}<option {% if state == address.state %}selected{% endif %}>{{ state }}</option>{% endfor %}
+              </select>
+              {% if errors.state %}<p id="state-error" class="error-text">{{ errors.state }}</p>{% endif %}
+            </div>
+            {{ text_field("pincode", "PIN code", address.pincode, "postal-code", attrs='required inputmode="numeric" maxlength="6"') }}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="lg:col-span-5" aria-label="Order summary">
+      <div class="panel p-6 lg:sticky lg:top-28">
+        <h2 class="display text-2xl">Your order</h2>
+        <ul class="mt-5 space-y-4">
+          {% for item in summary["items"] %}
+          <li class="flex gap-4">
+            <div class="relative w-16 shrink-0">
+              <div class="aspect-[4/5] overflow-hidden bg-sand">
+                {% if item.image_url %}<img src="{{ item.image_url }}" alt="" class="h-full w-full object-cover">{% endif %}
+              </div>
+              <span class="absolute -right-2 -top-2 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-ink px-1 text-[11px] text-ivory">{{ item.quantity }}</span>
+            </div>
+            <div class="min-w-0 flex-1 text-sm">
+              <p class="font-medium leading-snug">{{ item.name }}</p>
+              {% if item.size %}<p class="text-muted">Size {{ item.size }}</p>{% endif %}
+            </div>
+            <p class="text-sm">{{ item.line_total | inr }}</p>
+          </li>
+          {% endfor %}
+        </ul>
+        <dl class="mt-6 space-y-2.5 border-t border-line pt-5 text-[15px]">
+          <div class="flex justify-between"><dt class="text-muted">Price</dt><dd>{{ summary.mrp_total_inr | inr }}</dd></div>
+          {% if summary.savings_inr %}<div class="flex justify-between text-maroon"><dt>You save</dt><dd>−{{ summary.savings_inr | inr }}</dd></div>{% endif %}
+          <div class="flex justify-between"><dt class="text-muted">Delivery</dt><dd>Free</dd></div>
+        </dl>
+        <div class="mt-5 flex items-baseline justify-between border-t border-line pt-5">
+          <span class="font-medium">To pay</span>
+          <span class="font-serif text-3xl font-medium">{{ summary.total_inr | inr }}</span>
+        </div>
+        <button type="submit" class="btn-primary mt-6 w-full">{{ icon.lock("h-4 w-4") }} Pay {{ summary.total_inr | inr }} securely</button>
+        <p class="mt-4 text-center text-[12px] leading-relaxed text-muted">
+          You'll complete payment on Razorpay's page with UPI or a card. Test mode: no money is taken.
+        </p>
+      </div>
+    </aside>
+  </form>
+</div>
+{% endblock %}

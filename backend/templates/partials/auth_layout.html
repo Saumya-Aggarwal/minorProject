@@ -1,0 +1,19 @@
+{# Shared frame for sign-in and sign-up: photograph on the left, form on the right.
+   Usage:  {% import "partials/auth_layout.html" as auth %}
+           {% call auth.frame() %} ...form... {% endcall %} #}
+{% macro frame() %}
+<div class="container-site pt-10">
+  <div class="grid overflow-hidden border border-line bg-white lg:grid-cols-2">
+    <div class="relative hidden min-h-[36rem] bg-sand lg:block">
+      <img src="{{ side_image() }}" alt="" class="absolute inset-0 h-full w-full object-cover">
+      <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/80 to-transparent p-10 pt-24 text-ivory">
+        <p class="font-serif text-3xl font-medium leading-snug">One account for the website and WhatsApp.</p>
+        <p class="mt-2 text-sm text-ivory/80">Your bag, your orders and your address — the same wherever you shop.</p>
+      </div>
+    </div>
+    <div class="px-6 py-12 sm:px-12 lg:px-16 lg:py-16">
+      {{ caller() }}
+    </div>
+  </div>
+</div>
+{% endmacro %}
