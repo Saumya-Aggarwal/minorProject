@@ -2,7 +2,7 @@
 //   npx -y tailwindcss@3.4.17 -c tailwind/tailwind.config.js -i tailwind/input.css -o static/css/site.css --minify
 // The output is committed, so the running app needs neither Node nor a CDN.
 module.exports = {
-  content: ["./templates/**/*.html", "./static/live.js"],
+  content: ["./templates/**/*.html", "./static/live.js", "./static/admin_training.js"],
   theme: {
     extend: {
       colors: {

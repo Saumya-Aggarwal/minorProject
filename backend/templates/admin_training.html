@@ -23,6 +23,7 @@
     <a href="/admin/training?tab=learned" class="-mb-px border-b-2 pb-3 {% if tab == 'learned' %}border-maroon text-maroon{% else %}border-transparent hover:text-maroon{% endif %}">What it has learned</a>
   </nav>
 
+  <div id="training-tab">
   {% if tab == "replies" %}
     {% if not replies %}
     <div class="panel mt-8 px-6 py-12 text-center">
@@ -143,6 +144,8 @@
     </table>
     {% endif %}
   {% endif %}
+  </div>
+  <script src="/static/admin_training.js?v={{ asset_version() }}" defer></script>
   {% endif %}
 </div>
 {% endblock %}
