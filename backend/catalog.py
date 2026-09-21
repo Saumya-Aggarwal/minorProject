@@ -53,11 +53,15 @@ PRICE_BANDS: dict[str, tuple[str, int, Optional[int]]] = {
 
 # The catalogue tags 27 distinct occasions; customers think in four
 OCCASION_GROUPS: dict[str, tuple[str, set[str]]] = {
-    "wedding": ("Weddings", {"Wedding", "Groom", "Bridal", "Reception", "Engagement",
-                             "Summer wedding", "Winter wedding"}),
-    "festive": ("Festive", {"Festive", "Diwali", "Eid", "Navratri", "Puja", "Haldi",
-                            "Mehendi", "Traditional", "Temple"}),
+    # One entry per function, in the order they happen; a product can be in several
+    "haldi": ("Haldi", {"Haldi"}),
+    "mehendi": ("Mehendi", {"Mehendi"}),
     "party": ("Sangeet & parties", {"Sangeet", "Party", "Cocktail", "Evening", "Formal evening"}),
+    "wedding": ("Wedding", {"Wedding", "Groom", "Bridal", "Baraat", "Engagement",
+                            "Summer wedding", "Winter wedding"}),
+    "reception": ("Reception", {"Reception"}),
+    "festive": ("Festive", {"Festive", "Diwali", "Eid", "Navratri", "Garba", "Puja", "Traditional",
+                            "Temple", "Onam", "Vishu", "Lohri"}),
     "everyday": ("Everyday & office", {"Casual", "Daytime", "Office", "Everyday",
                                        "Everyday ethnic", "Family function"}),
 }

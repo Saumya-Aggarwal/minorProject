@@ -75,7 +75,14 @@ def parse_selection(text: str, count: int) -> Optional[int]:
 
 # Only tokens that look like a garment size count as one. This is what keeps
 # "add a red dupatta" from being read as ADD with size "a red dupatta".
-_SIZE_TOKEN = re.compile(r"^(?:xxs|xs|s|m|l|xl|xxl|xxxl|\d{2}|free|free size|one size)$")
+# Shoes are UK sizes: "8", "uk 8" and "UK8" all mean "UK 8" (single digits from 3,
+# so "add 2" is not taken as a size).
+_SIZE_TOKEN = re.compile(r"^(?:xxs|xs|s|m|l|xl|xxl|xxxl|\d{2}|[3-9]|uk ?\d{1,2}|free|free size|one size)$")
+
+
+def _shoe(size: str) -> str:
+    """'UK 8', 'uk8' and '8' all compare as '8'."""
+    return re.sub(r"^uk\s*", "", size.lower())
 
 
 def match_size(token: str, sizes_available: list[str]) -> Optional[str]:
@@ -84,7 +91,7 @@ def match_size(token: str, sizes_available: list[str]) -> Optional[str]:
     if token in ("free", "one size"):
         token = "free size"
     for size in sizes_available:
-        if size.lower() == token:
+        if size.lower() == token or (size.lower().startswith("uk") and _shoe(size) == _shoe(token)):
             return size
     return None
 

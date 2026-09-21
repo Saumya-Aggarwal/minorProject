@@ -60,6 +60,34 @@ QUERIES = {
     "EW031": "woman teal salwar kameez", "EW032": "woman green kurta",
     # Not products: the home page hero and the sign-in page photo
     "hero": "indian groom sherwani", "side": "indian bride",
+    # Second collection (22 Sep): pieces for each function, footwear, accessories.
+    # Product text is written after the photo is chosen, to match it.
+    "EW033": "man yellow kurta haldi", "EW034": "man white kurta pajama",
+    "EW035": "man mint green kurta", "EW036": "man printed kurta",
+    "EW037": "man kurta with jacket", "EW038": "man black indo western",
+    "EW039": "man navy sherwani", "EW040": "man dhoti kurta",
+    "EW041": "groom maroon sherwani", "EW042": "groom pink sherwani",
+    "EW043": "man grey bandhgala suit", "EW044": "man green nehru jacket",
+    "EW045": "man orange kurta", "EW046": "man pathani eid",
+    "EW047": "man green silk kurta", "EW048": "man saffron kurta",
+    "EW049": "man linen kurta", "EW050": "man cotton kurta casual",
+    "EW051": "groom safa turban", "EW052": "mojari shoes",
+    "EW053": "kolhapuri chappal", "EW054": "groom dupatta stole",
+    "EW055": "woman yellow sharara", "EW056": "woman yellow lehenga",
+    "EW057": "woman green lehenga mehendi", "EW058": "woman chaniya choli",
+    "EW059": "woman gharara", "EW060": "woman pink saree",
+    "EW061": "woman sequin saree", "EW062": "woman indo western outfit",
+    "EW063": "bride red lehenga", "EW064": "woman banarasi saree",
+    "EW065": "woman golden saree", "EW066": "kerala saree woman",
+    "EW067": "woman pastel anarkali", "EW068": "woman blue salwar suit",
+    "EW069": "woman white anarkali", "EW070": "navratri garba dress",
+    "EW071": "woman cotton saree", "EW072": "woman kurta set office",
+    "EW073": "woman white kurta palazzo", "EW074": "woman teal lehenga",
+    "EW075": "woman pink gown indian", "EW076": "woman mustard kurti",
+    "EW077": "embroidered juttis", "EW078": "woman kolhapuri sandals",
+    "EW079": "potli bag", "EW080": "embroidered clutch indian",
+    "EW081": "phulkari dupatta", "EW082": "mirror work dupatta",
+    "EW083": "men ethnic shoes wedding", "EW084": "woman ethnic sandals heels",
 }
 
 

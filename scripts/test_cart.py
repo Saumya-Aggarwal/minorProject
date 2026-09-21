@@ -333,6 +333,15 @@ def bot_conversation_checks() -> None:
         check("a normal search is not mistaken for a command",
               "CART to see your cart" in say(client, "add a red dupatta"))
 
+        # Shoes are UK sizes; customers type the number
+        say(client, "EW052")
+        shoes = say(client, "ADD 8")
+        check("ADD 8 on shoes picks the size UK 8", "Added Silver Paisley Mojari" in shoes
+              and "UK 8" in shoes, shoes[:90])
+        resized = say(client, "SIZE 1 uk10")
+        check("SIZE 1 uk10 sets UK 10", "set to size UK 10" in resized, resized[:80])
+        check("a size a shoe does not come in is refused", "comes in" in say(client, "SIZE 1 4"))
+
 
 def web_cart_checks() -> None:
     from fastapi.testclient import TestClient

@@ -90,6 +90,12 @@ open a small PR for them to review.
 > `scripts/eval_retrieval.py` and `scripts/test_assistant.py` after any change.
 > **Catalogue edits** (`data/products.json`) are A's, but tell B, because the
 > Chroma index must be rebuilt with `scripts/ingest_catalog.py` afterwards.
+> **Changed on 22 Sep — 52 more products and bot training (A).** The catalogue is
+> now 84 products with new categories (Footwear, Bags, Headwear, Indo-Western,
+> Dhoti Kurta Set, Sharara & Gharara, Co-ord Set); `bot/retrieval.py` knows
+> their words. New, all A's: `backend/training.py`, `routers/admin.py`,
+> `templates/admin_training.html`, tables `bot_replies` and `feedback`,
+> `scripts/test_training.py`. B: re-run `scripts/ingest_catalog.py` after pulling.
 
 **Shared — append-only, small commits, pull before editing:**
 `main.py` (router registration), `templates/base.html` (A adds a Cart link,

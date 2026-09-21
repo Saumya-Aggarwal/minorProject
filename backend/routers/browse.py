@@ -28,6 +28,10 @@ CATEGORY_TILES = [
     ("Women", "/shop?gender=Women", "EW017"),
     ("Sarees", "/shop?category=Saree", "EW020"),
     ("The Wedding Edit", "/shop?occasion=wedding", "EW018"),
+    ("Lehengas", "/shop?category=Lehenga", "EW057"),
+    ("Kurta Sets", "/shop?category=Kurta+Set", "EW033"),
+    ("Footwear", "/shop?category=Footwear", "EW077"),
+    ("Bags", "/shop?category=Bags", "EW079"),
 ]
 
 
@@ -50,6 +54,10 @@ def _clean_filters(gender: str, category: str, price: str, occasion: str) -> dic
     }
 
 
+# Mass nouns and names that take no plural "s"
+_NO_PLURAL = {"Bottomwear", "Footwear", "Headwear", "Indo-Western", "Sharara & Gharara"}
+
+
 def _heading(filters: dict[str, str]) -> str:
     parts = []
     if filters["occasion"]:
@@ -59,7 +67,7 @@ def _heading(filters: dict[str, str]) -> str:
     if filters["category"]:
         category = filters["category"]
         # "Bottomwear" and similar mass nouns take no plural
-        parts.append(category if category in ("Bottomwear",) or category.endswith("s") else category + "s")
+        parts.append(category if category in _NO_PLURAL or category.endswith("s") else category + "s")
     return " · ".join(parts) or "All products"
 
 

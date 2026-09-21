@@ -60,7 +60,7 @@ class ProductMatch(BaseModel):
 - [x] POST /webhook receiving and processing incoming messages
 - [x] send_whatsapp_message() confirmed delivering to a real phone
 - [x] Docker Compose (Postgres + ChromaDB)
-- [x] ChromaDB populated with catalog (32 products, 384 dims, local MiniLM)
+- [x] ChromaDB populated with catalog (84 products, 384 dims, local MiniLM)
 - [x] get_product_recommendations() implemented
 - [x] Postgres models + CRUD (models.py, db.py, repository.py)
 - [x] Webhook wired to persistence (user upsert + session turn recording)
@@ -82,8 +82,10 @@ class ProductMatch(BaseModel):
       pages re-render in place, toasts) via 2-second polling of /api/live
 - [x] Storefront redesign: heritage-luxe design system, real Pexels photos,
       /shop filters + sort, /search, "You may also like", checkout with address
-- [x] Retrieval rebuilt (bot/retrieval.py): eval 26/26
+- [x] Retrieval rebuilt (bot/retrieval.py): eval 46/46
 - [x] Conversational assistant with tools, memory and fallbacks (bot/assistant.py)
+- [x] Second collection: 52 more products by function, plus footwear and bags (84 total)
+- [x] Owner training (/admin/training) and customers' personal "Not for me"
 
 ## Storefront (redesign, 21 Sep — the whole website UI is now Dev A's)
 - Tailwind is COMPILED, not the CDN script, so the site styles with no internet.
@@ -177,12 +179,18 @@ gender, category, budget and stock are then applied in Python from the
 catalogue. Garment words map onto categories that exist (checked at import:
 "jacket" -> Nehru Jacket/Waistcoat, "kurta" for a woman -> Kurti/Salwar Suit).
 A garment after "my" is context, not the request ("jacket over my kurta").
+So is one after "match"/"with" ("bag to match a lehenga"); it still sets the
+gender ("shoes to go with my sherwani" -> men's). Shoes, bags and safas appear
+only when asked for, never in an open "haldi outfit" request. A function word
+(haldi, garba, reception...) puts products tagged for it first.
 "Me and my wife"/"couple" shows both genders. If nothing passes, filters relax
 (budget, then category) and the reply says so. Open-ended gibberish returns
 nothing (MAX_DISTANCE). Embeddings alone never respect hard constraints: "groom
 outfit" once ranked a women's kurta set first.
-Verify: scripts/eval_retrieval.py (26 phrasings, every result must fit; the
-first RAG version scored 8/10 on an easier 10-case set).
+Chroma's HNSW index is approximate: asked for all 84 items it skipped EW080, so
+rank() scores any skipped item exactly from its stored vector.
+Verify: scripts/eval_retrieval.py (46 phrasings, every result must fit, plus
+every owner ✓/✕ rating; the first RAG version scored 8/10 on an easier 10-case set).
 
 ## Assistant (bot/assistant.py)
 Free text goes to an LLM with tools (Groq, OpenAI-compatible): search_products,
@@ -218,6 +226,21 @@ Products it names in its own words get the real list/photo attached.
 Verify: scripts/test_assistant.py (55 checks, scripted fake model, no quota).
 Other suites blank LLM_API_KEY so they stay deterministic.
 
+## Training (backend/training.py, /admin/training)
+Not fine-tuning: the model never changes; what it is shown does.
+- Every free-text answer is logged (bot_replies: question, reply, product ids).
+- The store owner (email in ADMIN_EMAILS in backend/.env; anyone else gets 403)
+  rates on /admin/training: ✓/✕ per product re-ranks that product for questions
+  whose embedding is similar (cosine >= 0.75; "saree for office" ~ "office
+  saree for work", not "sherwani for my wedding"), in the bot AND site search.
+  👍 on a reply makes it a few-shot example for similar questions; a note on
+  👎 becomes a rule in the prompt. "What it has learned" lists all, with Undo.
+- Customers only hide items for THEMSELVES: the "Not for me" button under a
+  WhatsApp photo, or typed ("not the second one") via the hide_product tool.
+  Never affects other customers. "Choose" = typing the number.
+- The feedback table stores the question's embedding; owner rules cache 30 s.
+Verify: scripts/test_training.py (28 checks; deletes its own ratings).
+
 ## Follow-up handling
 backend/selection.py parses a reply against last_products_shown. It requires the
 WHOLE message to match a selector pattern, never a substring: "2 piece kurta set"
@@ -229,7 +252,7 @@ means; starting a new search clears it. Razorpay's Pay Now button will read the
 same field.
 
 ## Catalog
-data/products.json — 32 products, men's and women's Indian ethnic wear, 32 fields
+data/products.json — 84 products, men's and women's Indian ethnic wear, 32 fields
 each (title, brand, mrp, price, discount, rating, rating_count, highlights,
 stock per size, seller, delivery/return days, image_url). Schema follows the
 field set real scraped e-commerce datasets use.
@@ -243,6 +266,14 @@ data/photo_choices.json → fetch_photos.py apply, which also writes image_credi
 Where the best photo's colour differed, the product TEXT was changed to match
 the photo (EW005, EW009, EW010, EW018, EW026, EW027, EW032), so the page, the
 photo and the bot agree. The SVG placeholders remain as a fallback only.
+
+Second collection (22 Sep): EW033-EW084, 52 pieces chosen by function (haldi,
+mehendi, sangeet, wedding, reception, festive incl. garba/Onam, office) plus
+footwear (UK sizes; "ADD 8" matches "UK 8"), bags and a safa. New categories:
+Indo-Western, Dhoti Kurta Set, Sharara & Gharara, Co-ord Set, Footwear, Bags,
+Headwear. Text was written after choosing each photo (e.g. EW039 is midnight
+teal, not the navy searched for). catalog.OCCASION_GROUPS are these functions
+and drive the shop's "Function" filter and the home page row.
 
 After editing the catalog, re-run scripts/ingest_catalog.py.
 

@@ -39,6 +39,7 @@ NAV = [
     ("Women", "/shop?gender=Women"),
     ("Sarees", "/shop?category=Saree"),
     ("Wedding Edit", "/shop?occasion=wedding"),
+    ("Footwear", "/shop?category=Footwear"),
 ]
 
 STATIC = Path(__file__).resolve().parent / "static"

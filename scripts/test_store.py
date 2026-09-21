@@ -103,7 +103,9 @@ def main() -> int:
     prices = [p["price"] for p in catalog.sort_products(everything, "price-asc")]
     check("price low to high", prices == sorted(prices))
     facets = catalog.facets(everything, "Women", "", "", "")
-    check("gender facet ignores its own filter", dict((v, c) for v, _, c in facets["gender"]) == {"Men": 16, "Women": 16})
+    by_gender = {g: sum(p["gender"] == g for p in everything) for g in ("Men", "Women")}
+    check("gender facet ignores its own filter", dict((v, c) for v, _, c in facets["gender"]) == by_gender,
+          by_gender)
     check("category facet respects the gender filter",
           all(label in {p["category"] for p in everything if p["gender"] == "Women"} for _, label, _ in facets["category"]))
 
