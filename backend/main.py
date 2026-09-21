@@ -19,7 +19,7 @@ from starlette.middleware.sessions import SessionMiddleware  # noqa: E402
 
 from auth import session_secret  # noqa: E402
 from db import init_db  # noqa: E402
-from routers import api, browse, store, webhook  # noqa: E402
+from routers import api, browse, payments, store, webhook  # noqa: E402
 from whatsapp import send_whatsapp_message  # noqa: E402
 
 
@@ -52,6 +52,7 @@ app.mount(
 )
 
 app.include_router(webhook.router)
+app.include_router(payments.router)
 app.include_router(api.router)
 app.include_router(store.router)
 app.include_router(browse.router)

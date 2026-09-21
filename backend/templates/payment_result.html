@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Payment{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto bg-white border border-stone-200 rounded-lg p-6">
+  {% if state == "paid" %}
+    <div class="text-emerald-700 text-sm font-medium uppercase tracking-wide">Payment received</div>
+    <h1 class="text-2xl font-semibold mt-1">Thank you — order #{{ order.order_id }} is confirmed</h1>
+    <p class="text-stone-600 mt-2 text-sm">
+      {% if order.whatsapp_number %}A confirmation is on its way to you on WhatsApp.{% endif %}
+    </p>
+  {% elif state == "pending" %}
+    <div class="text-amber-700 text-sm font-medium uppercase tracking-wide">Payment not confirmed yet</div>
+    <h1 class="text-2xl font-semibold mt-1">We are waiting on the payment</h1>
+    <p class="text-stone-600 mt-2 text-sm">
+      If you completed the payment, it will be confirmed shortly
+      {%- if order and order.whatsapp_number %} and you will get a message on WhatsApp{% endif %}.
+      If you cancelled, you can pay again from your account.
+    </p>
+  {% else %}
+    <h1 class="text-2xl font-semibold">We could not find that payment</h1>
+    <p class="text-stone-600 mt-2 text-sm">The link may be incomplete. Your orders are listed in your account.</p>
+  {% endif %}
+
+  {% if order %}
+  <ul class="mt-5 divide-y divide-stone-100 text-sm border-t border-stone-100">
+    {% for item in order["items"] %}
+    <li class="py-2 flex gap-2">
+      <span class="flex-1">{{ item.quantity }} &times; {{ item.product_name }}{% if item.size %} ({{ item.size }}){% endif %}</span>
+      <span>&#8377;{{ '{:,.0f}'.format(item.price_inr * item.quantity) }}</span>
+    </li>
+    {% endfor %}
+    <li class="py-2 flex font-semibold">
+      <span class="flex-1">Total</span><span>&#8377;{{ '{:,.0f}'.format(order.total_inr) }}</span>
+    </li>
+  </ul>
+  {% if state == "pending" and order.payment_link_url %}
+  <a href="{{ order.payment_link_url }}"
+     class="mt-5 inline-block bg-stone-900 text-white px-5 py-2.5 rounded-md hover:bg-stone-700 font-medium">
+    Pay now
+  </a>
+  {% endif %}
+  {% endif %}
+
+  <div class="mt-6 text-sm flex gap-4">
+    <a href="/account" class="underline">Your orders</a>
+    <a href="/" class="underline">Continue shopping</a>
+  </div>
+</div>
+{% endblock %}

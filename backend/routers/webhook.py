@@ -1,10 +1,13 @@
 import asyncio
 import inspect
 import os
+from dataclasses import dataclass
 
 from fastapi import APIRouter, HTTPException, Request, Response
 
 import catalog
+import checkout
+import payments
 import repository as repo
 from bot.chat import get_product_recommendations
 from common.schemas import ProductMatch
@@ -17,9 +20,27 @@ from selection import (
     parse_selection,
     results_footer,
 )
-from whatsapp import send_whatsapp_message
+from whatsapp import send_cta_url, send_whatsapp_message
 
 router = APIRouter()
+
+
+@dataclass
+class Reply:
+    """A reply that carries a button, not just text — used for Pay Now.
+
+    Handlers return a plain str for text, or a Reply when there is a link to tap.
+    """
+
+    text: str
+    cta_url: str | None = None
+    cta_label: str = "Pay Now"
+
+
+PAYMENT_UNAVAILABLE = (
+    "I could not create the payment link just now, so nothing has been charged "
+    "and your cart is unchanged. Please try again in a minute."
+)
 
 
 @router.get("/webhook")
@@ -53,15 +74,26 @@ def _recommend(query: str, user_context: str | None):
     return get_product_recommendations(query)
 
 
-async def _safe_send(to: str, body: str) -> None:
+async def _safe_send(to: str, reply: "Reply") -> None:
     """Send without letting a failure escape into the webhook response.
 
     A failed send must not 500: Meta would treat the delivery as failed and
     redeliver the same inbound message, which fails identically. One lost reply
     beats an infinite retry loop.
+
+    A Pay Now button falls back to plain text with the link in it, so a rejected
+    interactive message still leaves the customer a way to pay.
     """
     try:
-        await send_whatsapp_message(to, body)
+        if reply.cta_url:
+            try:
+                await send_cta_url(to, reply.text, reply.cta_label, reply.cta_url)
+                return
+            except Exception as exc:
+                print(f"[webhook] Pay Now button rejected, sending the link as text: {exc!r}")
+                await send_whatsapp_message(to, f"{reply.text}\n\n{reply.cta_url}")
+                return
+        await send_whatsapp_message(to, reply.text)
     except Exception as exc:
         print(f"[webhook] reply to {to} not delivered: {exc!r}")
 
@@ -282,22 +314,31 @@ async def _handle_cart_command(
         if missing:
             return _ask_for_sizes(missing)
 
-        placed = await asyncio.to_thread(repo.create_order_from_cart, user_id, "bot")
+        try:
+            placed = await checkout.checkout_cart(user_id, "bot")
+        except payments.PaymentError as exc:
+            print(f"[webhook] payment link failed: {exc}")
+            return PAYMENT_UNAVAILABLE
         if placed is None:
             return "Your cart is empty. Tell me what you are looking for, then reply ADD."
-        print(f"[webhook] order {placed['order_id']} created from cart for user {user_id}")
+        print(f"[webhook] order {placed['order_id']} ready to pay for user {user_id}")
         noun = "item" if placed["item_count"] == 1 else "items"
-        return (
-            f"Order #{placed['order_id']} created — {placed['item_count']} {noun}, "
-            f"total Rs. {placed['total_inr']:,.0f}.\n"
-            "You will get a payment link here shortly."
+        summary = f"{placed['item_count']} {noun}, total Rs. {placed['total_inr']:,.0f}"
+        headline = (
+            f"Order #{placed['order_id']} is still waiting for payment — {summary}."
+            if placed["reused"]
+            else f"Order #{placed['order_id']} created — {summary}."
+        )
+        return Reply(
+            text=f"{headline}\nTap Pay Now to pay securely by UPI or card.",
+            cta_url=placed["url"],
         )
 
     return "Sorry, I did not understand that. Reply CART to see your cart."
 
 
-async def _place_order(user_id: int, product: dict, size_token: str = "") -> str:
-    """Single-item BUY. Placeholder until Razorpay: records the order, no payment.
+async def _place_order(user_id: int, product: dict, size_token: str = "") -> "str | Reply":
+    """Single-item BUY: create the order and send a Pay Now button for it.
 
     Refuses to create an order without a size for products that have several —
     an unsized order for a kurta is not something a shop can fulfil.
@@ -317,18 +358,22 @@ async def _place_order(user_id: int, product: dict, size_token: str = "") -> str
         return f"Which size? {name} comes in {', '.join(sizes)}. Reply BUY {example}, for example."
 
     try:
-        order_id = await asyncio.to_thread(
-            repo.create_order_for_product, user_id, product_id, size, 1, "bot"
-        )
+        placed = await checkout.checkout_single(user_id, product_id, size, 1, "bot")
+    except payments.PaymentError as exc:
+        print(f"[webhook] payment link failed: {exc}")
+        return PAYMENT_UNAVAILABLE
     except Exception as exc:
         print(f"[webhook] order creation failed: {exc!r}")
         return "Sorry, I could not place that order just now. Please try again in a moment."
 
-    print(f"[webhook] order {order_id} created for user {user_id}")
+    print(f"[webhook] order {placed['order_id']} ready to pay for user {user_id}")
     size_note = f" (size {size})" if size else ""
-    return (
-        f"Order #{order_id} placed — {name}{size_note} for Rs. {price:,.0f}.\n"
-        "You will get a payment link here shortly. Anything else I can help you find?"
+    return Reply(
+        text=(
+            f"Order #{placed['order_id']} created — {name}{size_note} for Rs. {price:,.0f}.\n"
+            "Tap Pay Now to pay securely by UPI or card."
+        ),
+        cta_url=placed["url"],
     )
 
 
@@ -431,7 +476,11 @@ async def receive_message(request: Request):
                         text = message["text"]["body"]
                         print(f"[webhook] message from {sender}: {text}")
                         reply = await _handle_text(sender, text, names.get(sender))
-                        responses.append({"to": sender, "body": reply})
+                        if isinstance(reply, str):
+                            reply = Reply(reply)
+                        responses.append(
+                            {"to": sender, "body": reply.text, "cta_url": reply.cta_url}
+                        )
                         if not local_test:
                             await _safe_send(sender, reply)
                     else:

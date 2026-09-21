@@ -21,8 +21,29 @@ load_dotenv(ROOT / "backend" / ".env")
 
 from sqlmodel import select  # noqa: E402
 
+import checkout  # noqa: E402
+import payments  # noqa: E402
 import repository as repo  # noqa: E402
 from auth import create_web_user  # noqa: E402
+
+# Razorpay and WhatsApp are faked here: these tests are about the cart, and must
+# not depend on network access or valid keys. test_payments.py covers payments.
+FAKE_PAY_URL = "https://rzp.io/test/"
+_fake_links = 0
+
+
+async def _fake_create_payment_link(order_id, amount_inr, description, **_):
+    global _fake_links
+    _fake_links += 1
+    return {"id": f"plink_cart{order_id}n{_fake_links}", "short_url": f"{FAKE_PAY_URL}{order_id}"}
+
+
+async def _no_whatsapp(to, body):
+    return {}
+
+
+payments.create_payment_link = _fake_create_payment_link
+checkout.send_whatsapp_message = _no_whatsapp
 from db import init_db, session_scope  # noqa: E402
 from models import CartItem, LinkToken, Order, OrderItem, Session, User  # noqa: E402
 
@@ -278,6 +299,11 @@ def bot_conversation_checks() -> None:
         done = say(client, "CHECKOUT")
         check("CHECKOUT creates one order", "created" in done and len(repo.get_order_history(user)) == 1,
               done[:80])
+        check("CHECKOUT order carries a payment link",
+              (repo.get_order_history(user)[0]["payment_link_url"] or "").startswith(FAKE_PAY_URL))
+        again = say(client, "CHECKOUT")
+        check("CHECKOUT twice reuses the unpaid order",
+              "still waiting" in again and len(repo.get_order_history(user)) == 1, again[:80])
         order = repo.get_order_history(user)[0]
         check("order has both lines, all sized",
               len(order["items"]) == 2 and all(i["size"] for i in order["items"]),
@@ -355,13 +381,15 @@ def web_cart_checks() -> None:
 
         done = web.post("/checkout", follow_redirects=False)
         location = done.headers.get("location", "")
-        check("web checkout redirects to the new order", location.startswith("/account?order="), location)
+        check("web checkout sends the browser to the payment page", location.startswith(FAKE_PAY_URL),
+              location)
         order = repo.get_order_history(web_user)[0]
         check("web order has both channels' items",
               {i["product_id"] for i in order["items"]} == {MULTI_SIZE, SINGLE_SIZE}, f"got {order['items']}")
         check("web order is tagged web", order["channel"] == "web")
-        check("account page shows the confirmation", f"Order #{order['order_id']} created"
-              in web.get(location).text)
+        account = web.get("/account").text
+        check("account page offers Pay now for the unpaid order",
+              "awaiting payment" in account and location in account)
 
         repo.clear_cart(web_user)
         check("checkout of an empty cart is refused",
@@ -370,7 +398,8 @@ def web_cart_checks() -> None:
 
         buy = web.post(f"/buy/{MULTI_SIZE}", data={"size": "M", "quantity": "2"}, follow_redirects=False)
         latest = repo.get_order_history(web_user)[0]
-        check("Buy now with quantity", buy.headers.get("location", "").startswith("/account?order=")
+        check("Buy now goes to the payment page, with quantity",
+              buy.headers.get("location", "").startswith(FAKE_PAY_URL)
               and latest["items"][0]["quantity"] == 2)
         check("unsized Buy now is refused",
               web.post(f"/buy/{MULTI_SIZE}", follow_redirects=False).headers.get("location")

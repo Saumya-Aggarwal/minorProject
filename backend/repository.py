@@ -120,7 +120,7 @@ def close_session(session_id: int, status: str = "closed") -> None:
 
 
 def create_order_from_items(
-    user_id: int, items: list[dict[str, Any]], channel: str = "bot"
+    user_id: int, items: list[dict[str, Any]], channel: str = "bot", from_cart: bool = False
 ) -> int:
     """Create an order header plus one line per item. Returns order_id.
 
@@ -132,7 +132,7 @@ def create_order_from_items(
 
     total = sum(_money(item["price_inr"]) * int(item["quantity"]) for item in items)
     with session_scope() as db:
-        order = Order(user_id=user_id, channel=channel, total_inr=total)
+        order = Order(user_id=user_id, channel=channel, total_inr=total, from_cart=from_cart)
         db.add(order)
         db.flush()
         for item in items:
@@ -199,6 +199,7 @@ def create_order_from_cart(user_id: int, channel: str) -> Optional[dict[str, Any
             for item in lines
         ],
         channel,
+        from_cart=True,
     )
     return {
         "order_id": order_id,
@@ -226,6 +227,142 @@ def mark_order_captured(razorpay_order_id: str, razorpay_payment_id: str) -> boo
         order.status = "captured"
         order.razorpay_payment_id = razorpay_payment_id
         order.captured_at = datetime.now(timezone.utc)
+        return True
+
+
+def attach_payment_link(order_id: int, payment_link_id: str, payment_link_url: str) -> None:
+    with session_scope() as db:
+        order = db.get(Order, order_id)
+        if order is None:
+            raise ValueError(f"unknown order {order_id}")
+        order.payment_link_id = payment_link_id
+        order.payment_link_url = payment_link_url
+
+
+def get_order(order_id: int) -> Optional[dict[str, Any]]:
+    """One order with its lines and the customer's contact details."""
+    with session_scope() as db:
+        order = db.get(Order, order_id)
+        if order is None:
+            return None
+        user = db.get(User, order.user_id)
+        lines = db.exec(
+            select(OrderItem)
+            .where(OrderItem.order_id == order_id)
+            .order_by(OrderItem.order_item_id)
+        ).all()
+        return {
+            "order_id": order.order_id,
+            "user_id": order.user_id,
+            "channel": order.channel,
+            "status": order.status,
+            "total_inr": float(order.total_inr),
+            "from_cart": order.from_cart,
+            "payment_link_id": order.payment_link_id,
+            "payment_link_url": order.payment_link_url,
+            "razorpay_payment_id": order.razorpay_payment_id,
+            "customer_name": user.display_name if user else None,
+            "customer_email": user.email if user else None,
+            "whatsapp_number": user.whatsapp_number if user else None,
+            "items": [
+                {
+                    "product_id": line.product_id,
+                    "product_name": line.product_name,
+                    "price_inr": float(line.price_inr),
+                    "size": line.size,
+                    "quantity": line.quantity,
+                }
+                for line in lines
+            ],
+        }
+
+
+def get_pending_cart_order(user_id: int) -> Optional[dict[str, Any]]:
+    """The newest unpaid cart order that already has a payment link, if any."""
+    with session_scope() as db:
+        order = db.exec(
+            select(Order)
+            .where(
+                Order.user_id == user_id,
+                Order.status == "created",
+                Order.from_cart.is_(True),
+                Order.payment_link_url.is_not(None),
+            )
+            .order_by(Order.created_at.desc(), Order.order_id.desc())
+        ).first()
+        order_id = order.order_id if order else None
+    return get_order(order_id) if order_id else None
+
+
+def cancel_order(order_id: int) -> None:
+    """Mark an order that never reached payment as failed.
+
+    Used when the payment link cannot be created: the customer never had a way
+    to pay, so the order must not linger as "created" in their history.
+    """
+    with session_scope() as db:
+        order = db.get(Order, order_id)
+        if order is not None and order.status == "created":
+            order.status = "failed"
+
+
+def get_order_id_by_payment_link(payment_link_id: str) -> Optional[int]:
+    with session_scope() as db:
+        order = db.exec(
+            select(Order).where(Order.payment_link_id == payment_link_id)
+        ).first()
+        return order.order_id if order else None
+
+
+def mark_order_paid(
+    order_id: int, razorpay_payment_id: str, razorpay_order_id: Optional[str] = None
+) -> bool:
+    """Record a captured payment. True only the first time for an order.
+
+    Both confirmation paths — the customer's redirect back to us and Razorpay's
+    webhook — call this, often seconds apart and sometimes more than once each.
+    Only the first call may send a confirmation, so the caller checks the result.
+
+    The row is locked (SELECT ... FOR UPDATE) because the two paths can arrive
+    at the same moment: without the lock both could read "created" and both
+    report a first capture, sending the customer two confirmations.
+
+    For a cart checkout, the ordered quantities leave the cart in the same
+    transaction. Only those quantities: anything added to the cart after
+    checkout stays there.
+    """
+    with session_scope() as db:
+        order = db.exec(
+            select(Order).where(Order.order_id == order_id).with_for_update()
+        ).first()
+        if order is None:
+            print(f"[repository] payment for unknown order {order_id}")
+            return False
+        if order.status == "captured":
+            return False
+
+        order.status = "captured"
+        order.razorpay_payment_id = razorpay_payment_id
+        if razorpay_order_id and not order.razorpay_order_id:
+            order.razorpay_order_id = razorpay_order_id
+        order.captured_at = datetime.now(timezone.utc)
+
+        if order.from_cart:
+            lines = db.exec(select(OrderItem).where(OrderItem.order_id == order_id)).all()
+            for line in lines:
+                cart_line = db.exec(
+                    select(CartItem).where(
+                        CartItem.user_id == order.user_id,
+                        CartItem.product_id == line.product_id,
+                        CartItem.size == line.size,
+                    )
+                ).first()
+                if cart_line is None:
+                    continue
+                if cart_line.quantity > line.quantity:
+                    cart_line.quantity -= line.quantity
+                else:
+                    db.delete(cart_line)
         return True
 
 
@@ -265,6 +402,7 @@ def get_order_history(user_id: int, limit: int = 5) -> list[dict[str, Any]]:
                 "status": order.status,
                 "total_inr": float(order.total_inr),
                 "created_at": order.created_at.isoformat(),
+                "payment_link_url": order.payment_link_url,
                 "items": by_order.get(order.order_id, []),
             }
             for order in orders

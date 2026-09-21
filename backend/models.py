@@ -105,6 +105,14 @@ class Order(SQLModel, table=True):
     total_inr: Decimal = Field(sa_column=Column(Numeric(10, 2), nullable=False))
     razorpay_order_id: Optional[str] = Field(default=None, max_length=100, unique=True)
     razorpay_payment_id: Optional[str] = Field(default=None, max_length=100)
+    # The Razorpay Payment Link the customer pays through. Both confirmation
+    # paths (the redirect back to us, and Razorpay's webhook) identify the order
+    # by this id, so it is unique and indexed.
+    payment_link_id: Optional[str] = Field(default=None, max_length=100, unique=True, index=True)
+    payment_link_url: Optional[str] = Field(default=None, max_length=300)
+    # True for cart checkouts: on payment, exactly the ordered quantities come
+    # out of the cart. A single-item Buy now leaves the cart alone.
+    from_cart: bool = Field(default=False)
     # created | captured | failed
     status: str = Field(default="created", max_length=20)
     created_at: datetime = Field(default_factory=utcnow, sa_column=_tstz(nullable=False))

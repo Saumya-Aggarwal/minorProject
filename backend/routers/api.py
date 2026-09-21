@@ -13,6 +13,8 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
 import catalog
+import checkout as checkout_flow
+import payments
 import repository as repo
 from auth import current_user
 from repository import LINK_PREFIX
@@ -144,9 +146,12 @@ async def delete_cart_item(request: Request, cart_item_id: int):
 async def checkout(request: Request):
     user = _signed_in(request)
     try:
-        placed = await asyncio.to_thread(repo.create_order_from_cart, user["user_id"], "web")
+        placed = await checkout_flow.checkout_cart(user["user_id"], "web")
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except payments.PaymentError as exc:
+        raise HTTPException(status_code=502, detail="Payment provider unavailable") from exc
     if placed is None:
         raise HTTPException(status_code=422, detail="Cart is empty")
-    return placed
+    # payment_url is where a client sends the customer to pay
+    return {**placed, "payment_url": placed["url"]}

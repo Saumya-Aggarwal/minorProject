@@ -5,7 +5,7 @@
 
 {% if just_ordered %}
 <p class="bg-emerald-50 text-emerald-800 text-sm rounded px-3 py-2 mb-6">
-  Order #{{ just_ordered }} created. Payment is coming soon — for now it is recorded below.
+  Order #{{ just_ordered }} — see its status below.
 </p>
 {% endif %}
 
@@ -47,7 +47,14 @@
         <li class="py-3">
           <div class="flex items-baseline gap-2">
             <span class="font-medium flex-1">Order #{{ order.order_id }}</span>
-            <span class="text-xs text-stone-400">{{ order.channel }} &middot; {{ order.status }}</span>
+            <span class="text-xs text-stone-400">{{ order.channel }} &middot;
+              {%- if order.status == "captured" %} <span class="text-emerald-700">paid</span>
+              {%- elif order.status == "failed" %} cancelled
+              {%- else %} <span class="text-amber-700">awaiting payment</span>{% endif %}
+            </span>
+            {% if order.status == "created" and order.payment_link_url %}
+            <a href="{{ order.payment_link_url }}" class="text-xs underline font-medium">Pay now</a>
+            {% endif %}
             <span class="font-medium">&#8377;{{ '{:,.0f}'.format(order.total_inr) }}</span>
           </div>
           <ul class="mt-1 text-stone-500 text-xs space-y-0.5">

@@ -20,8 +20,23 @@ load_dotenv(ROOT / "backend" / ".env")
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+import checkout  # noqa: E402
+import payments  # noqa: E402
 import repository as repo  # noqa: E402
 from db import session_scope  # noqa: E402
+
+
+# Linking is under test here, not payments: fake Razorpay so Buy now works offline
+async def _fake_create_payment_link(order_id, amount_inr, description, **_):
+    return {"id": f"plink_link{order_id}", "short_url": f"https://rzp.io/test/{order_id}"}
+
+
+async def _no_whatsapp(to, body):
+    return {}
+
+
+payments.create_payment_link = _fake_create_payment_link
+checkout.send_whatsapp_message = _no_whatsapp
 from main import app  # noqa: E402
 from models import CartItem, LinkToken, Order, OrderItem, Session, User  # noqa: E402
 

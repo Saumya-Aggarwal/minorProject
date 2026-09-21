@@ -71,9 +71,21 @@ class ProductMatch(BaseModel):
 - [x] BUY places an order from the selected item (placeholder until Razorpay)
 - [x] A1: orders split into header + order_items; shared cart_items; C2 get_purchased_product_ids
 - [x] A2: cart on WhatsApp (ADD, CART, REMOVE n, SIZE n x, CHECKOUT) and on the web (/cart, /api/cart)
-- [ ] A3: Razorpay (checkout currently creates the order without taking payment)
-- [ ] Razorpay order creation + Pay Now interactive message
-- [ ] Razorpay payment.captured webhook
+- [x] A3: Razorpay Payment Links for both channels; Pay Now cta_url button in chat;
+      confirmation by redirect (verified against Razorpay's API) and by signed webhook
+- [ ] A3 live check: blocked on valid test keys (current pair returns 401)
+
+## Payments
+checkout.py orchestrates; payments.py is a thin httpx wrapper over three Razorpay
+endpoints (no SDK: it is synchronous). Payment Links serve both channels.
+Two confirmation paths, either sufficient: GET /payments/callback (customer's
+browser; confirmed by fetching the link from Razorpay, never by trusting query
+params) and POST /razorpay/webhook (event payment_link.paid, HMAC over the RAW
+body). mark_order_paid is idempotent and row-locked (SELECT ... FOR UPDATE), so
+both paths together send exactly one WhatsApp confirmation.
+On payment, only the ordered quantities leave the cart. If Razorpay is down, the
+order just created is cancelled. CHECKOUT twice reuses the unpaid order.
+Verify with: backend/.venv/Scripts/python scripts/test_payments.py
 
 ## Account linking
 A browser session cannot reach the bot: Meta's webhook delivers only a phone

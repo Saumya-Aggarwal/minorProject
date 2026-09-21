@@ -15,6 +15,8 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 import catalog
+import checkout as checkout_flow
+import payments
 import repository as repo
 from auth import (
     create_web_user,
@@ -120,7 +122,7 @@ async def account(request: Request, order: int | None = None):
 async def buy(
     request: Request, product_id: str, size: str = Form(""), quantity: int = Form(1)
 ):
-    """Single-item Buy now. Placeholder until Razorpay: records the order, no payment."""
+    """Single-item Buy now: create the order, then send the browser to pay for it."""
     user = current_user(request)
     if user is None:
         return RedirectResponse("/login", status_code=303)
@@ -130,19 +132,18 @@ async def buy(
         return RedirectResponse("/", status_code=303)
 
     try:
-        order_id = await asyncio.to_thread(
-            repo.create_order_for_product,
-            user["user_id"],
-            product["id"],
-            size,
-            _clamp_quantity(quantity),
-            "web",
+        placed = await checkout_flow.checkout_single(
+            user["user_id"], product["id"], size, _clamp_quantity(quantity), "web"
         )
     except ValueError:
         # Missing or invalid size. The form requires one, so this is a tampered
         # request: send them back to choose.
         return RedirectResponse(f"/product/{product_id}", status_code=303)
-    return RedirectResponse(f"/account?order={order_id}", status_code=303)
+    except payments.PaymentError as exc:
+        print(f"[store] payment link failed: {exc}")
+        return RedirectResponse("/cart?error=payment", status_code=303)
+    # 303 to an external URL: the browser leaves for Razorpay's hosted page
+    return RedirectResponse(placed["url"], status_code=303)
 
 
 # --- cart -----------------------------------------------------------------------
@@ -154,6 +155,7 @@ CART_ERRORS = {
     "size": "Choose a size for every item before checking out.",
     "invalid": "That size is not available.",
     "empty": "Your cart is empty.",
+    "payment": "Payments are unavailable for a moment, so nothing was charged. Please try again.",
 }
 
 
@@ -233,14 +235,17 @@ async def cart_remove(request: Request, cart_item_id: int = Form(...)):
 
 @router.post("/checkout")
 async def checkout(request: Request):
-    """Placeholder until Razorpay: creates the order; payment comes in A3."""
+    """Order the cart and send the browser to Razorpay's payment page."""
     user = current_user(request)
     if user is None:
         return RedirectResponse("/login", status_code=303)
     try:
-        placed = await asyncio.to_thread(repo.create_order_from_cart, user["user_id"], "web")
+        placed = await checkout_flow.checkout_cart(user["user_id"], "web")
     except ValueError:
         return RedirectResponse("/cart?error=size", status_code=303)
+    except payments.PaymentError as exc:
+        print(f"[store] payment link failed: {exc}")
+        return RedirectResponse("/cart?error=payment", status_code=303)
     if placed is None:
         return RedirectResponse("/cart?error=empty", status_code=303)
-    return RedirectResponse(f"/account?order={placed['order_id']}", status_code=303)
+    return RedirectResponse(placed["url"], status_code=303)
