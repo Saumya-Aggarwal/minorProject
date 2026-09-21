@@ -137,6 +137,9 @@ TOOLS = [
             {"product_id": {"type": "string"}, "size": _TEXT}, ["product_id"]),
     _schema("remove_from_cart", "Remove a product from this customer's cart, when they ask to.",
             {"product_id": {"type": "string"}}, ["product_id"]),
+    _schema("hide_product", "The customer does not like a product shown to them ('not the second one', "
+            "'too flashy'): never show it to them again. Then offer alternatives.",
+            {"product_id": {"type": "string"}, "reason": _TEXT}, ["product_id"]),
     _schema("send_reply",
             "Send your reply and end the turn. product_ids adds a numbered product list. attach is 'orders' or "
             "'cart' ONLY when the customer asked to see their orders or cart; otherwise leave it out.",
@@ -171,7 +174,7 @@ def tool_search_products(user_id: int, query: str = "", gender: Any = None, cate
         min_price=given.min_price or parsed.min_price,
         occasion=parsed.occasion,
     )
-    result = retrieval.search(query, filters, k=6)
+    result = retrieval.search(query, filters, k=6, user_id=user_id)
     if not result.products:
         return "No matches. Ask the customer for more detail, or search more broadly."
     lines = [_product_line(p) for p in result.products]
@@ -279,7 +282,27 @@ def tool_remove_from_cart(user_id: int, product_id: str = "", *, customer_text: 
             f"total Rs {after['total_inr']:.0f}.")
 
 
+_DISLIKES = re.compile(
+    r"\b(not\s+for\s+me|don'?t\s+(?:like|love|want|show)|do\s+not\s+(?:like|want|show)|dislike|hate|"
+    r"not\s+(?:the|that|this)|no\s+to|hide|not\s+interested|too\s+\w+|ugly|boring)\b", re.I)
+
+
+def tool_hide_product(user_id: int, product_id: str = "", reason: str = "", *, customer_text: str = "",
+                      customer_recent: str = "", **_: Any) -> str:
+    """The typed version of the "Not for me" button: personal, never global."""
+    if not _DISLIKES.search(customer_text):
+        return "ERROR: the customer has not said they dislike anything."
+    product = catalog.get_by_id(str(product_id).strip().upper())
+    if product is None:
+        return f"ERROR: no product with id {product_id!r}."
+    import training
+    training.rate("customer", -1, customer_recent[-300:], product["id"], None, user_id,
+                  f"Typed: {str(reason or customer_text)[:200]}")
+    return f"Hidden {product['name']} from this customer's future results."
+
+
 TOOL_FUNCTIONS: dict[str, Callable[..., str]] = {
+    "hide_product": tool_hide_product,
     "remove_from_cart": tool_remove_from_cart,
     "search_products": tool_search_products,
     "get_product_details": tool_get_product_details,
@@ -574,6 +597,27 @@ def _attach_mentioned(reply: AssistantReply, changed_cart: bool = False) -> Assi
     return reply
 
 
+def _owner_guidance(text: str) -> str:
+    """What the store owner taught for questions like this one (training.py).
+
+    Replies the owner rated good become examples to imitate; notes on replies
+    rated bad become rules. Only the closest two of each, to spare tokens.
+    """
+    try:
+        import training
+        taught = training.guidance(text)
+    except Exception:
+        return ""
+    lines = []
+    if taught["examples"]:
+        lines.append("\n\nREPLIES THE OWNER APPROVED FOR SIMILAR QUESTIONS (match this style):")
+        lines += [f"---\n{example}" for example in taught["examples"]]
+    if taught["notes"]:
+        lines.append("\nOWNER'S NOTES FOR SIMILAR QUESTIONS (follow these):")
+        lines += [f"- {note}" for note in taught["notes"]]
+    return "\n".join(lines)
+
+
 def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
     """Answer one customer message. Synchronous (network I/O): call via a thread."""
     if not enabled():
@@ -592,7 +636,7 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
     if parsed.categories:
         hint = (f"\n- This message already names what they want ({', '.join(parsed.categories)}"
                 f"{', for ' + parsed.gender if parsed.gender else ''}): search now, do not ask first.")
-    context_text = _context_block(context) + hint
+    context_text = _context_block(context) + hint + _owner_guidance(text)
     messages: list[dict[str, Any]] = [
         {"role": "system", "content": SYSTEM_PROMPT + "\n\n" + context_text},
         *history,
@@ -670,7 +714,7 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
                     # user_id and the customer's words are ours, never the model's
                     for key in ("user_id", "customer_text", "customer_recent"):
                         args.pop(key, None)
-                    if name in ("add_to_cart", "remove_from_cart"):
+                    if name in ("add_to_cart", "remove_from_cart", "hide_product"):
                         args.update(customer_text=text, customer_recent=customer_recent)
                     result = TOOL_FUNCTIONS[name](user_id, **args)
                 except Exception as exc:

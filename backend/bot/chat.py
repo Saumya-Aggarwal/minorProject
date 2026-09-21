@@ -108,10 +108,14 @@ def get_product_recommendations(
     query: str,
     top_k: int = 3,
     user_context: str | None = None,
+    user_id: int | None = None,
 ) -> tuple[str, list[dict[str, Any]]]:
-    """Retrieve catalogue matches and turn them into a customer-facing reply."""
+    """Retrieve catalogue matches and turn them into a customer-facing reply.
+
+    user_id (optional) applies that customer's "Not for me" choices.
+    """
     try:
-        result = retrieval.search(query, k=top_k)
+        result = retrieval.search(query, k=top_k, user_id=user_id)
     except Exception as exc:
         print(f"[bot] retrieval failed: {exc!r}")
         return ("Our catalogue search is having a moment. Please try again shortly.", [])

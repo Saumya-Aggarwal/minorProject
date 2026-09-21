@@ -208,6 +208,54 @@ class LinkToken(SQLModel, table=True):
     used_at: Optional[datetime] = Field(default=None, sa_column=_tstz(nullable=True))
 
 
+class BotReply(SQLModel, table=True):
+    """One answer the bot gave to a free-text message, kept for training.
+
+    The store owner rates these on /admin/training. sessions.messages is only
+    the last few messages for the model's memory; this is the full record.
+    """
+
+    __tablename__ = "bot_replies"
+
+    reply_id: Optional[int] = Field(default=None, primary_key=True)
+    # CASCADE: deleting a customer (tests, or a GDPR-style request) takes their log too
+    user_id: int = Field(foreign_key="users.user_id", index=True, ondelete="CASCADE")
+    question: str
+    answer: str
+    # Product ids shown, in the order they were numbered
+    product_ids: list[str] = Field(default_factory=list, sa_column=Column(JSONB, nullable=False))
+    # assistant | search | lookup — which path produced the answer
+    path: str = Field(default="assistant", max_length=20)
+    created_at: datetime = Field(default_factory=utcnow, sa_column=_tstz(nullable=False, index=True))
+
+
+class Feedback(SQLModel, table=True):
+    """A rating that changes what the bot shows.
+
+    scope "owner": the store owner's judgement, applied to everyone asking a
+    similar question (by embedding similarity). scope "customer": "Not for me",
+    applied to that customer only — one customer can never skew the shop.
+    product_id empty = a rating of the whole reply (used as a good example).
+    """
+
+    __tablename__ = "feedback"
+
+    feedback_id: Optional[int] = Field(default=None, primary_key=True)
+    scope: str = Field(max_length=10, index=True)          # owner | customer
+    rating: int                                            # +1 | -1
+    product_id: str = Field(default="", max_length=20)
+    question: str = ""
+    # The question's embedding, so similar future questions find this rating
+    embedding: Optional[list[float]] = Field(default=None, sa_column=Column(JSONB))
+    note: str = ""
+    reply_id: Optional[int] = Field(default=None, foreign_key="bot_replies.reply_id", index=True,
+                                    ondelete="SET NULL")
+    # Customer feedback: whose results it changes. Owner feedback: who gave it.
+    user_id: Optional[int] = Field(default=None, foreign_key="users.user_id", index=True,
+                                   ondelete="CASCADE")
+    created_at: datetime = Field(default_factory=utcnow, sa_column=_tstz(nullable=False))
+
+
 # Lookups go by razorpay_order_id rather than our own primary key; the unique
 # constraint on that column already provides the index.
 

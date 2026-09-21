@@ -15,7 +15,7 @@ from sqlmodel import select
 
 import catalog
 from db import session_scope
-from models import CartItem, LinkToken, Order, OrderItem, Session, User, utcnow
+from models import BotReply, CartItem, Feedback, LinkToken, Order, OrderItem, Session, User, utcnow
 
 LINK_TOKEN_TTL_MINUTES = 10
 LINK_PREFIX = "LINK-"
@@ -861,6 +861,10 @@ def consume_link_token(token: str, whatsapp_number: str) -> Optional[dict[str, A
                 select(LinkToken).where(LinkToken.user_id == existing.user_id)
             ).all():
                 old_token.user_id = target.user_id
+            # Their chat history and "Not for me" choices come along too
+            for model in (BotReply, Feedback):
+                for owned in db.exec(select(model).where(model.user_id == existing.user_id)).all():
+                    owned.user_id = target.user_id
 
             # The cart follows the customer. Where both carts hold the same
             # item and size, quantities are added: re-pointing that row instead

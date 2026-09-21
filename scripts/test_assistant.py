@@ -327,15 +327,21 @@ def main() -> int:
                 raise RuntimeError("upload refused")
             sent.append(("image", path.name))
 
-        webhook.send_whatsapp_message, webhook.send_image = fake_text, fake_image
+        async def fake_card(to, path, caption, buttons):
+            if "EW007" in str(path):
+                raise RuntimeError("buttons refused")
+            sent.append(("card", f"{path.name} {[b[0] for b in buttons]}"))
+
+        # Never reach Meta from a test: every sender is replaced
+        webhook.send_whatsapp_message, webhook.send_image, webhook.send_product_card = fake_text, fake_image, fake_card
         import asyncio
         reply = webhook._list_reply("Two for the ceremony.", [repo.catalog.get_by_id("EW006"),
                                                                repo.catalog.get_by_id("EW007")], "Reply 1–2 to choose")
         asyncio.run(webhook._safe_send(PHONE, reply))
         kinds = [k for k, _ in sent]
-        check("sent as intro, photo, (caption for a failed photo), footer",
-              kinds == ["text", "image", "text", "text"] and sent[0][1] == "Two for the ceremony."
-              and sent[1][1] == "EW006.jpg" and "Champagne Gold Sherwani" in sent[2][1]
+        check("sent as intro, photo card with buttons, (caption for a failed photo), footer",
+              kinds == ["text", "card", "text", "text"] and sent[0][1] == "Two for the ceremony."
+              and sent[1][1] == "EW006.jpg ['pick:EW006', 'hide:EW006']" and "Champagne Gold Sherwani" in sent[2][1]
               and sent[3][1] == "Reply 1–2 to choose", sent)
         check("captions carry the catalogue price", "Rs. 11,499" in sent[2][1], sent[2][1])
 

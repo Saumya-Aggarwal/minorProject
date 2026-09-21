@@ -129,3 +129,25 @@ async def send_image(to: str, path: Path, caption: str = "") -> dict:
     """Send a product photo with a caption (WhatsApp formatting works in captions)."""
     media_id = await media_id_for(path)
     return await _post(to, {"type": "image", "image": {"id": media_id, "caption": caption[:MAX_CAPTION]}})
+
+
+async def send_product_card(to: str, path: Path, caption: str, buttons: list[tuple[str, str]]) -> dict:
+    """A product photo with up to three reply buttons under it.
+
+    buttons: (id, title) pairs. When tapped, Meta sends an "interactive"
+    message whose button_reply.id is that id (e.g. "hide:EW020"). Titles are
+    capped at 20 characters and ids at 256 by WhatsApp.
+    """
+    media_id = await media_id_for(path)
+    return await _post(to, {
+        "type": "interactive",
+        "interactive": {
+            "type": "button",
+            "header": {"type": "image", "image": {"id": media_id}},
+            "body": {"text": caption[:MAX_CAPTION]},
+            "action": {"buttons": [
+                {"type": "reply", "reply": {"id": button_id[:256], "title": title[:MAX_CTA_BUTTON]}}
+                for button_id, title in buttons[:3]
+            ]},
+        },
+    })

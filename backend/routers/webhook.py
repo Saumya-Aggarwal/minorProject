@@ -26,7 +26,8 @@ from selection import (
     parse_selection,
     results_footer,
 )
-from whatsapp import send_cta_url, send_image, send_whatsapp_message
+import training
+from whatsapp import send_cta_url, send_image, send_product_card, send_whatsapp_message
 
 router = APIRouter()
 
@@ -40,6 +41,8 @@ class Card:
 
     product_id: str
     caption: str
+    # "Choose" and "Not for me" under the photo (lists only)
+    buttons: bool = False
 
 
 @dataclass
@@ -62,7 +65,7 @@ class Reply:
 def _list_reply(message: str, products: list[dict], footer: str) -> Reply:
     """Numbered products as photos: the intro, a captioned photo each, the hints."""
     text = "\n\n".join(part for part in (message, format_product_lines(products), footer) if part)
-    cards = [Card(p["id"], product_caption(p, n)) for n, p in enumerate(products, 1)]
+    cards = [Card(p["id"], product_caption(p, n), buttons=True) for n, p in enumerate(products, 1)]
     return Reply(text=text, cards=cards, lead=message, tail=footer)
 
 
@@ -97,18 +100,18 @@ async def verify_webhook(request: Request):
     raise HTTPException(status_code=403, detail="Verification failed")
 
 
-def _recommend(query: str, user_context: str | None):
+def _recommend(query: str, user_context: str | None, user_id: int | None = None):
     """Call the RAG contract, passing user_context only if it accepts one.
 
     The shared contract is get_product_recommendations(query, top_k). Adding
     user_context is agreed but not yet implemented on the RAG side, so this
     checks the signature instead of assuming — the bot keeps working either way.
     """
-    if user_context and "user_context" in inspect.signature(
-        get_product_recommendations
-    ).parameters:
-        return get_product_recommendations(query, user_context=user_context)
-    return get_product_recommendations(query)
+    parameters = inspect.signature(get_product_recommendations).parameters
+    extra = {"user_id": user_id} if "user_id" in parameters else {}
+    if user_context and "user_context" in parameters:
+        return get_product_recommendations(query, user_context=user_context, **extra)
+    return get_product_recommendations(query, **extra)
 
 
 async def _safe_send(to: str, reply: "Reply") -> None:
@@ -128,6 +131,15 @@ async def _safe_send(to: str, reply: "Reply") -> None:
             for card in reply.cards:
                 photo = PRODUCT_PHOTOS / f"{card.product_id}.jpg"
                 try:
+                    if card.buttons:
+                        try:
+                            await send_product_card(to, photo, card.caption, [
+                                (f"pick:{card.product_id}", "Choose"),
+                                (f"hide:{card.product_id}", "Not for me"),
+                            ])
+                            continue
+                        except Exception as exc:
+                            print(f"[webhook] button card for {card.product_id} refused, plain photo: {exc!r}")
                     await send_image(to, photo, card.caption)
                 except Exception as exc:
                     # No photo (or upload refused): the caption alone still reads fine
@@ -546,6 +558,16 @@ async def _remember(user_id: int | None, text: str, answer: str) -> None:
         print(f"[webhook] could not remember the exchange: {exc!r}")
 
 
+async def _log(user_id: int | None, question: str, answer: "str | Reply", product_ids: list[str], path: str) -> None:
+    """Keep the exchange for the owner to rate on /admin/training. Never blocks a reply."""
+    if user_id is None:
+        return
+    try:
+        await asyncio.to_thread(training.log_reply, user_id, question, _reply_text(answer), product_ids, path)
+    except Exception as exc:
+        print(f"[webhook] could not log the reply: {exc!r}")
+
+
 async def _record_shown(user_id: int | None, text: str, products: list[dict]) -> list[ProductMatch]:
     """Store the numbered list so "2", ADD and BUY refer to it next turn."""
     # Chroma metadata and catalogue records use other keys; normalise first
@@ -581,25 +603,31 @@ async def _assistant_reply(user_id: int, text: str, context: dict) -> "str | Rep
             cart = await asyncio.to_thread(repo.get_cart, user_id)
             in_cart = any(item["product_id"] == product["id"] for item in cart["items"])
             hint = "Already in your cart · CART to review · CHECKOUT to pay" if in_cart else _add_hint(product)
-            return _detail_reply(answer.message, product["id"], hint)
-        return _list_reply(answer.message, answer.products, results_footer(len(answer.products)))
+            result: "str | Reply" = _detail_reply(answer.message, product["id"], hint)
+        else:
+            result = _list_reply(answer.message, answer.products, results_footer(len(answer.products)))
+        await _log(user_id, text, result, [p["id"] for p in answer.products], "assistant")
+        return result
 
     parts = [answer.message] if answer.message else []
     if answer.attach == "orders":
         parts.append(await _format_orders(user_id))
     elif answer.attach == "cart":
         parts.append(_format_cart(await asyncio.to_thread(repo.get_cart, user_id)))
-    return "\n\n".join(parts)
+    result = "\n\n".join(parts)
+    await _log(user_id, text, result, [], "assistant")
+    return result
 
 
 async def _search_reply(user_id: int | None, text: str, user_context: str | None) -> "str | Reply":
     """The plain path: retrieval plus a one-line intro. Always answers."""
     # get_product_recommendations is synchronous and does network I/O
-    reply, raw_matches = await asyncio.to_thread(_recommend, text, user_context)
+    reply, raw_matches = await asyncio.to_thread(_recommend, text, user_context, user_id)
     matches = await _record_shown(user_id, text, raw_matches)
 
     shown = "; ".join(f"{n}. {m.product_id} {m.name}" for n, m in enumerate(matches, 1))
     await _remember(user_id, text, f"{reply.split(chr(10))[0]}\n[Showed: {shown}]" if shown else reply)
+    await _log(user_id, text, reply, [m.product_id for m in matches], "search")
 
     # Contract C1: the RAG side returns intro + numbered list; the command hints
     # belong to whoever owns the commands
@@ -661,6 +689,7 @@ async def _handle_text(sender: str, text: str, display_name: str | None) -> "str
             else:
                 answer = await _format_orders(user_id)
             await _remember(user_id, text, answer)
+            await _log(user_id, text, answer, [], "lookup")
             return answer
         except Exception as exc:
             print(f"[webhook] orders/cart lookup failed: {exc!r}")
@@ -749,10 +778,43 @@ def _first_delivery(message_id: str | None) -> bool:
     return True
 
 
-async def _answer_and_send(sender: str, text: str, display_name: str | None) -> None:
+async def _handle_button(sender: str, button_id: str, display_name: str | None) -> "str | Reply":
+    """A tap on "Choose" or "Not for me" under a product photo."""
+    action, _, product_id = button_id.partition(":")
+    product = catalog.get_by_id(product_id)
+    if product is None or action not in ("pick", "hide"):
+        return "That item is no longer available. Tell me what you are looking for."
+    user_id = await asyncio.to_thread(repo.get_or_create_user, sender, display_name)
+
+    if action == "pick":
+        chosen = ProductMatch.from_raw(product).model_dump()
+        await asyncio.to_thread(repo.record_selection, user_id, chosen)
+        reply = _detail_reply(describe_choice(chosen, 0, product.get("sizes_available") or []), product["id"])
+        await _remember(user_id, f"[tapped Choose on {product['name']}]", reply.text)
+        return reply
+
+    # "Not for me": personal only. It hides the item from this customer's future
+    # results; the owner's training on /admin/training is what changes everyone's.
+    previous = await asyncio.to_thread(repo.get_active_session, user_id)
+    question = (previous or {}).get("last_query") or ""
+    await asyncio.to_thread(training.rate, "customer", -1, question, product["id"], None, user_id,
+                            "Not for me (button)")
+    answer = (f"Got it — I won't show you the {product['name']} again. "
+              "Pick another from the list, or tell me what you'd prefer instead.")
+    await _remember(user_id, f"[tapped Not for me on {product['name']}]", answer)
+    return answer
+
+
+async def _handle_incoming(sender: str, text: str, display_name: str | None, button_id: str = "") -> "str | Reply":
+    if button_id:
+        return await _handle_button(sender, button_id, display_name)
+    return await _handle_text(sender, text, display_name)
+
+
+async def _answer_and_send(sender: str, text: str, display_name: str | None, button_id: str = "") -> None:
     """Background work for a real message: the LLM may take a few seconds."""
     try:
-        reply = await _handle_text(sender, text, display_name)
+        reply = await _handle_incoming(sender, text, display_name, button_id)
     except Exception as exc:
         print(f"[webhook] could not answer {sender}: {exc!r}")
         reply = "Sorry, something went wrong on our side. Please send that again."
@@ -785,19 +847,22 @@ async def receive_message(request: Request, background: BackgroundTasks):
 
                 for message in value.get("messages", []):
                     sender = message["from"]
-                    if message["type"] != "text":
+                    button = (message.get("interactive") or {}).get("button_reply") \
+                        if message["type"] == "interactive" else None
+                    if message["type"] != "text" and not button:
                         print(f"[webhook] unhandled {message['type']!r} message from {sender}")
                         continue
                     # Local tests reuse one fake id; only Meta's real ids are unique
                     if not local_test and not _first_delivery(message.get("id")):
                         print(f"[webhook] duplicate delivery of {message.get('id')} ignored")
                         continue
-                    text = message["text"]["body"]
-                    print(f"[webhook] message from {sender}: {text}")
+                    button_id = (button or {}).get("id", "")
+                    text = message["text"]["body"] if not button else button.get("title", "")
+                    print(f"[webhook] {'button ' + button_id if button else 'message'} from {sender}: {text}")
                     if not local_test:
-                        background.add_task(_answer_and_send, sender, text, names.get(sender))
+                        background.add_task(_answer_and_send, sender, text, names.get(sender), button_id)
                         continue
-                    reply = await _handle_text(sender, text, names.get(sender))
+                    reply = await _handle_incoming(sender, text, names.get(sender), button_id)
                     if isinstance(reply, str):
                         reply = Reply(reply)
                     responses.append({"to": sender, "body": reply.text, "cta_url": reply.cta_url,

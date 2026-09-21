@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Train the assistant — Kurta &amp; Co.{% endblock %}
+{% block whatsapp_fab %}{% endblock %}
+{% block content %}
+<div class="container-site pt-10">
+  <p class="eyebrow">Store owner</p>
+  <h1 class="display mt-3 text-4xl sm:text-5xl">Train the assistant</h1>
+
+  {% if forbidden %}
+  <div class="panel mt-8 px-6 py-12 text-center">
+    <p class="display text-2xl">This page is for the store owner</p>
+    <p class="mt-2 text-sm text-muted">Signed in as {{ user.email or user.display_name }}. Add this email to ADMIN_EMAILS in backend/.env to get access.</p>
+  </div>
+  {% else %}
+  <p class="mt-3 max-w-2xl text-sm text-muted">
+    Rate what the WhatsApp assistant said. <strong>✕ Wrong for this question</strong> pushes that product down for every
+    similar question; <strong>✓ Good match</strong> lifts it. <strong>👍 Good reply</strong> becomes an example the assistant imitates;
+    a note on <strong>👎 Bad reply</strong> becomes a rule it follows. Customers' "Not for me" only ever affects themselves.
+  </p>
+
+  <nav class="mt-8 flex gap-6 border-b border-line text-[12px] font-medium uppercase tracking-label" aria-label="Sections">
+    <a href="/admin/training" class="-mb-px border-b-2 pb-3 {% if tab == 'replies' %}border-maroon text-maroon{% else %}border-transparent hover:text-maroon{% endif %}">Recent replies</a>
+    <a href="/admin/training?tab=learned" class="-mb-px border-b-2 pb-3 {% if tab == 'learned' %}border-maroon text-maroon{% else %}border-transparent hover:text-maroon{% endif %}">What it has learned</a>
+  </nav>
+
+  {% if tab == "replies" %}
+    {% if not replies %}
+    <div class="panel mt-8 px-6 py-12 text-center">
+      <p class="display text-2xl">No conversations yet</p>
+      <p class="mt-2 text-sm text-muted">Message the assistant on WhatsApp; its replies appear here to rate.</p>
+    </div>
+    {% endif %}
+    <ul class="mt-8 space-y-6">
+      {% for reply in replies %}
+      {% set whole = reply.ratings.get("") %}
+      <li id="reply-{{ reply.reply_id }}" class="panel p-5 sm:p-6">
+        <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-[12px] text-muted">
+          <span class="font-medium text-ink">{{ reply.customer }}</span>
+          <span>{{ reply.created_at.strftime("%d %b, %H:%M") }}</span>
+          <span class="uppercase tracking-label">{{ reply.path }}</span>
+          {% if whole %}<span class="{{ 'pill-paid' if whole.rating > 0 else 'pill-cancelled' }}">{{ "good reply" if whole.rating > 0 else "bad reply" }}</span>{% endif %}
+        </div>
+        <p class="mt-3 font-serif text-xl">“{{ reply.question }}”</p>
+        <details class="mt-3 text-sm">
+          <summary class="cursor-pointer text-muted hover:text-maroon">What the bot replied</summary>
+          <pre class="mt-2 whitespace-pre-wrap font-sans text-[13px] leading-relaxed">{{ reply.answer }}</pre>
+        </details>
+
+        {% if reply.products %}
+        <ul class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {% for product in reply.products %}
+          {% set mark = reply.ratings.get(product.id) %}
+          <li class="text-sm">
+            <div class="relative aspect-[4/5] overflow-hidden bg-sand {% if mark and mark.rating < 0 %}opacity-40{% endif %}">
+              <img src="{{ product.image_url }}" alt="" loading="lazy" class="h-full w-full object-cover">
+              <span class="absolute left-2 top-2 bg-white/90 px-1.5 text-[11px]">{{ loop.index }}</span>
+            </div>
+            <p class="mt-2 leading-snug">{{ product.name }}</p>
+            <p class="text-[12px] text-muted">{{ product.price | inr }}</p>
+            <div class="mt-2 flex gap-2">
+              {% for value, label in [(1, "✓ Good match"), (-1, "✕ Wrong")] %}
+              <form method="post" action="/admin/training/rate">
+                <input type="hidden" name="reply_id" value="{{ reply.reply_id }}">
+                <input type="hidden" name="question" value="{{ reply.question }}">
+                <input type="hidden" name="product_id" value="{{ product.id }}">
+                <input type="hidden" name="rating" value="{{ value }}">
+                <button class="border px-2 py-1 text-[12px] {% if mark and mark.rating == value %}{{ 'border-maroon bg-maroon text-ivory' if value < 0 else 'border-ink bg-ink text-ivory' }}{% else %}border-line hover:border-ink{% endif %}">{{ label }}</button>
+              </form>
+              {% endfor %}
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        <form method="post" action="/admin/training/rate" class="mt-5 flex flex-wrap items-center gap-3">
+          <input type="hidden" name="reply_id" value="{{ reply.reply_id }}">
+          <input type="hidden" name="question" value="{{ reply.question }}">
+          <label class="sr-only" for="note-{{ reply.reply_id }}">Note</label>
+          <input id="note-{{ reply.reply_id }}" name="note" value="{{ whole.note if whole else '' }}" maxlength="300"
+                 placeholder="Optional note, e.g. “ask the budget first”" class="field min-w-[14rem] flex-1 py-2 text-sm">
+          <button name="rating" value="1" class="btn-outline py-2">👍 Good reply</button>
+          <button name="rating" value="-1" class="btn-outline py-2">👎 Bad reply</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    {% if not rules %}
+    <div class="panel mt-8 px-6 py-12 text-center">
+      <p class="display text-2xl">Nothing learned yet</p>
+      <p class="mt-2 text-sm text-muted">Rate a reply under “Recent replies” and it shows up here.</p>
+    </div>
+    {% else %}
+    <table class="mt-8 w-full text-left text-sm">
+      <thead class="border-b border-line text-[12px] uppercase tracking-label text-muted">
+        <tr><th class="py-3 pr-4">For questions like</th><th class="py-3 pr-4">It learned</th><th class="py-3 pr-4">When</th><th class="py-3"></th></tr>
+      </thead>
+      <tbody class="divide-y divide-line">
+        {% for rule in rules %}
+        <tr>
+          <td class="py-3 pr-4 font-serif text-lg">“{{ rule.question }}”</td>
+          <td class="py-3 pr-4">
+            {% if rule.product %}
+              {{ "Show first:" if rule.rating > 0 else "Push down:" }} <span class="font-medium">{{ rule.product.name }}</span>
+            {% else %}
+              {{ "Good reply — used as an example" if rule.rating > 0 else "Bad reply" }}
+            {% endif %}
+            {% if rule.note %}<span class="block text-[12px] text-muted">Note: {{ rule.note }}</span>{% endif %}
+          </td>
+          <td class="py-3 pr-4 text-[12px] text-muted">{{ rule.created_at.strftime("%d %b, %H:%M") }}</td>
+          <td class="py-3 text-right">
+            <form method="post" action="/admin/training/undo/{{ rule.id }}">
+              <input type="hidden" name="back" value="learned">
+              <button class="text-[12px] font-medium uppercase tracking-label text-maroon hover:underline">Undo</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

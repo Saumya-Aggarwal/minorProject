@@ -375,7 +375,17 @@ def _interleave(products: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return mixed
 
 
-def search(query: str, filters: Optional[Filters] = None, k: int = 3) -> SearchResult:
+def _learned(query: str, user_id: Optional[int]) -> tuple[dict[str, int], set[str]]:
+    """The owner's ratings for questions like this, and this customer's hidden items."""
+    try:
+        import training   # needs Postgres; retrieval must still work without it
+    except Exception:
+        return {}, set()
+    return training.ranking_adjustments(query), training.hidden_for(user_id)
+
+
+def search(query: str, filters: Optional[Filters] = None, k: int = 3,
+           user_id: Optional[int] = None, learn: bool = True) -> SearchResult:
     """The best k in-stock products for a request, never silently empty.
 
     filters=None parses them from the text. If nothing passes, the filters are
@@ -391,6 +401,9 @@ def search(query: str, filters: Optional[Filters] = None, k: int = 3) -> SearchR
 
     ranked, _ = rank(meaning)
     ranked = [(p, d) for p, d in ranked if _in_stock(p)]
+    adjust, hidden = _learned(query or meaning, user_id) if learn else ({}, set())
+    if hidden:
+        ranked = [(p, d) for p, d in ranked if p["id"] not in hidden]
 
     attempts = [(f, [])]
     if f.max_price or f.min_price:
@@ -410,6 +423,10 @@ def search(query: str, filters: Optional[Filters] = None, k: int = 3) -> SearchR
             # Nearest to what they wanted to spend, not the most similar at any price
             target = f.max_price or f.min_price or 0
             products.sort(key=lambda p: abs(p["price"] - target))
+        if adjust:
+            # Owner training: good matches first, wrong ones last (stable sort,
+            # so everything else keeps its meaning-based order)
+            products.sort(key=lambda p: -max(-1, min(1, adjust.get(p["id"], 0))))
         if current.both_genders:
             products = _interleave(products)
         return SearchResult(products=products[:k], filters=f, relaxed=relaxed)
