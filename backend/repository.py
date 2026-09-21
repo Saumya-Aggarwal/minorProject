@@ -120,8 +120,26 @@ def close_session(session_id: int, status: str = "closed") -> None:
             session.updated_at = utcnow()
 
 
+SHIPPING_FIELDS = ("name", "phone", "line1", "line2", "city", "state", "pincode")
+
+
+def _apply_shipping(order: Order, shipping: Optional[dict[str, str]]) -> None:
+    for field in SHIPPING_FIELDS:
+        setattr(order, f"ship_{field}", (shipping or {}).get(field) or None)
+
+
+def _shipping_of(order: Order) -> Optional[dict[str, str]]:
+    if not order.ship_line1:
+        return None
+    return {field: getattr(order, f"ship_{field}") or "" for field in SHIPPING_FIELDS}
+
+
 def create_order_from_items(
-    user_id: int, items: list[dict[str, Any]], channel: str = "bot", from_cart: bool = False
+    user_id: int,
+    items: list[dict[str, Any]],
+    channel: str = "bot",
+    from_cart: bool = False,
+    shipping: Optional[dict[str, str]] = None,
 ) -> int:
     """Create an order header plus one line per item. Returns order_id.
 
@@ -134,6 +152,7 @@ def create_order_from_items(
     total = sum(_money(item["price_inr"]) * int(item["quantity"]) for item in items)
     with session_scope() as db:
         order = Order(user_id=user_id, channel=channel, total_inr=total, from_cart=from_cart)
+        _apply_shipping(order, shipping)
         db.add(order)
         db.flush()
         for item in items:
@@ -151,7 +170,12 @@ def create_order_from_items(
 
 
 def create_order_for_product(
-    user_id: int, product_id: str, size: str = "", quantity: int = 1, channel: str = "bot"
+    user_id: int,
+    product_id: str,
+    size: str = "",
+    quantity: int = 1,
+    channel: str = "bot",
+    shipping: Optional[dict[str, str]] = None,
 ) -> int:
     """Single-item "Buy now", priced from the catalogue rather than by the caller."""
     product = catalog.get_by_id(product_id)
@@ -171,10 +195,13 @@ def create_order_for_product(
             }
         ],
         channel,
+        shipping=shipping,
     )
 
 
-def create_order_from_cart(user_id: int, channel: str) -> Optional[dict[str, Any]]:
+def create_order_from_cart(
+    user_id: int, channel: str, shipping: Optional[dict[str, str]] = None
+) -> Optional[dict[str, Any]]:
     """Turn the cart into an order. Returns None when the cart is empty.
 
     The cart is NOT cleared here. It is cleared when payment is captured, so a
@@ -201,6 +228,7 @@ def create_order_from_cart(user_id: int, channel: str) -> Optional[dict[str, Any
         ],
         channel,
         from_cart=True,
+        shipping=shipping,
     )
     return {
         "order_id": order_id,
@@ -278,6 +306,7 @@ def get_order(order_id: int) -> Optional[dict[str, Any]]:
             "payment_link_id": order.payment_link_id,
             "payment_link_url": order.payment_link_url,
             "razorpay_payment_id": order.razorpay_payment_id,
+            "shipping": _shipping_of(order),
             "customer_name": user.display_name if user else None,
             "customer_email": user.email if user else None,
             "whatsapp_number": user.whatsapp_number if user else None,
@@ -327,6 +356,30 @@ def get_unpaid_link_orders(max_age_minutes: int, limit: int) -> list[tuple[int, 
             .limit(limit)
         ).all()
     return [(order_id, link_id) for order_id, link_id in rows]
+
+
+def get_last_shipping(user_id: int) -> Optional[dict[str, str]]:
+    """The address on the customer's most recent order, to pre-fill checkout.
+
+    "Remembered for next time" without an addresses table: the orders already
+    hold every address the customer has used.
+    """
+    with session_scope() as db:
+        order = db.exec(
+            select(Order)
+            .where(Order.user_id == user_id, Order.ship_line1.is_not(None))
+            .order_by(Order.created_at.desc(), Order.order_id.desc())
+        ).first()
+        return _shipping_of(order) if order else None
+
+
+def set_order_shipping(order_id: int, shipping: dict[str, str]) -> None:
+    """Attach or change the address on an order that has not shipped."""
+    with session_scope() as db:
+        order = db.get(Order, order_id)
+        if order is None:
+            raise ValueError(f"unknown order {order_id}")
+        _apply_shipping(order, shipping)
 
 
 def cancel_order(order_id: int) -> None:
@@ -564,6 +617,7 @@ def get_cart(user_id: int) -> dict[str, Any]:
                 "product_id": product_id,
                 "name": product["name"] if product else product_id,
                 "price_inr": price,
+                "mrp_inr": float(product.get("mrp") or price) if product else 0.0,
                 "size": size,
                 "sizes_available": product.get("sizes_available", []) if product else [],
                 "image_url": product.get("image_url") if product else None,
@@ -574,9 +628,13 @@ def get_cart(user_id: int) -> dict[str, Any]:
         )
 
     available = [item for item in items if item["available"]]
+    total = sum(item["line_total"] for item in available)
+    mrp_total = sum(item["mrp_inr"] * item["quantity"] for item in available)
     return {
         "items": items,
-        "total_inr": sum(item["line_total"] for item in available),
+        "total_inr": total,
+        "mrp_total_inr": mrp_total,
+        "savings_inr": max(mrp_total - total, 0),
         "count": sum(item["quantity"] for item in available),
     }
 

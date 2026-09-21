@@ -236,3 +236,17 @@ _GREETING = re.compile(
 
 def is_greeting(text: str) -> bool:
     return bool(_GREETING.match(_clean(text)))
+
+
+# --- product codes -------------------------------------------------------------
+
+# "Ask about this on WhatsApp" on the website pre-fills a message ending in the
+# product code, e.g. "Tell me about the Royal Blue Wedding Sherwani (EW006)".
+# A code never occurs in a natural search, so here a substring match is safe.
+_PRODUCT_CODE = re.compile(r"\b(EW\d{3})\b", re.IGNORECASE)
+
+
+def find_product_code(text: str) -> Optional[str]:
+    match = _PRODUCT_CODE.search(text)
+    return match.group(1).upper() if match else None
+

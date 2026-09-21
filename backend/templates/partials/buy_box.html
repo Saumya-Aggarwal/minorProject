@@ -1,41 +1,49 @@
-{# Buy controls for the product page. Owned by Dev A; included by Dev B's product.html.
-   Expects `product` and `user` in the context. Posts to /cart/add (contract C5),
-   or to /buy for a single-item order via the second button's formaction. #}
+{# Size, quantity, Add to bag and Buy now. Expects `product` and `user`.
+   Add to bag posts to /cart/add (contract C5). Buy now sends the same fields to
+   the checkout page as a GET, for a single-item order. #}
+{% import "partials/icons.html" as icon %}
 {% set sizes = product.sizes_available %}
-<form method="post" action="/cart/add/{{ product.id }}" class="mt-6 space-y-4">
-  {% if sizes|length > 1 %}
-  <div>
-    <label for="size" class="block text-sm text-stone-600 mb-1.5">Size</label>
-    <select id="size" name="size" required
-            class="border border-stone-300 rounded-md px-3 py-2 text-sm bg-white">
-      <option value="" disabled selected>Select a size</option>
+<form method="post" action="/cart/add/{{ product.id }}" class="mt-8">
+  <input type="hidden" name="product" value="{{ product.id }}">
+
+  {% if sizes | length > 1 %}
+  <fieldset>
+    <legend class="label flex w-full items-center justify-between">
+      <span>Select size</span>
+      <span class="normal-case tracking-normal text-muted/80">{{ sizes | join(' · ') }}</span>
+    </legend>
+    <div class="mt-1 flex flex-wrap gap-2">
       {% for size in sizes %}
       {% set sold_out = product.stock.get(size, 0) == 0 %}
-      <option value="{{ size }}" {% if sold_out %}disabled{% endif %}>
-        {{ size }}{% if sold_out %} — sold out{% endif %}
-      </option>
+      <label class="relative">
+        <input type="radio" name="size" value="{{ size }}" class="peer sr-only"
+               {% if sold_out %}disabled{% else %}required{% endif %}>
+        <span class="flex h-11 min-w-[3rem] cursor-pointer items-center justify-center border px-3 text-[14px] transition-colors
+                     {% if sold_out %}cursor-not-allowed border-line text-muted/40 line-through
+                     {% else %}border-line bg-white hover:border-ink peer-checked:border-maroon peer-checked:bg-maroon peer-checked:text-white
+                     peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-maroon{% endif %}">
+          {{ size }}
+        </span>
+      </label>
       {% endfor %}
-    </select>
-  </div>
+    </div>
+  </fieldset>
   {% else %}
   <input type="hidden" name="size" value="{{ sizes[0] if sizes else '' }}">
+  <p class="text-sm text-muted">One size: {{ sizes[0] if sizes else 'Free size' }}</p>
   {% endif %}
 
-  <div class="flex items-center gap-3 flex-wrap">
-    <label for="quantity" class="text-sm text-stone-600">Qty</label>
+  <div class="mt-6 flex flex-wrap items-stretch gap-3">
+    <label class="sr-only" for="quantity">Quantity</label>
     <input id="quantity" name="quantity" type="number" min="1" max="10" value="1"
-           class="w-16 border border-stone-300 rounded-md px-2 py-2 text-sm">
-    <button type="submit"
-            class="bg-stone-900 text-white px-5 py-2.5 rounded-md hover:bg-stone-700 font-medium">
-      Add to cart
+           class="field !w-20 text-center">
+    <button type="submit" class="btn-primary flex-1 sm:flex-none sm:min-w-[11rem]">
+      {{ icon.bag("h-4 w-4") }} Add to bag
     </button>
-    <button type="submit" formaction="/buy/{{ product.id }}"
-            class="border border-stone-900 px-5 py-2.5 rounded-md hover:bg-stone-100 font-medium">
-      Buy now
-    </button>
+    <button type="submit" formaction="/checkout" formmethod="get"
+            class="btn-outline flex-1 sm:flex-none sm:min-w-[9rem]">Buy now</button>
   </div>
-
   {% if not user %}
-  <p class="text-xs text-stone-500">You'll be asked to sign in first.</p>
+  <p class="mt-3 text-[13px] text-muted">You'll be asked to sign in first — your bag is saved to your account.</p>
   {% endif %}
 </form>

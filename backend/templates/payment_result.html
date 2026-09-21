@@ -1,57 +1,53 @@
 {% extends "base.html" %}
+{% import "partials/icons.html" as icon %}
 {% block live_attr %}data-live-refresh{% endblock %}
-{% block title %}Payment{% endblock %}
+{% block title %}Payment — Kurta &amp; Co.{% endblock %}
 {% block content %}
-<div class="max-w-lg mx-auto bg-white border border-stone-200 rounded-lg p-6">
-  {% if state == "paid" %}
-    <div class="text-emerald-700 text-sm font-medium uppercase tracking-wide">Payment received</div>
-    <h1 class="text-2xl font-semibold mt-1">Thank you — order #{{ order.order_id }} is confirmed</h1>
-    <p class="text-stone-600 mt-2 text-sm">
-      {% if order.whatsapp_number %}A confirmation is on its way to you on WhatsApp.{% endif %}
-    </p>
-  {% elif state == "pending" %}
-    <div class="text-amber-700 text-sm font-medium uppercase tracking-wide">Payment not confirmed yet</div>
-    <h1 class="text-2xl font-semibold mt-1">We are waiting on the payment</h1>
-    <p class="text-stone-600 mt-2 text-sm">
-      If you completed the payment, it will be confirmed shortly
-      {%- if order and order.whatsapp_number %} and you will get a message on WhatsApp{% endif %}.
-      If you cancelled, you can pay again from your account.
-    </p>
-  {% else %}
-    <h1 class="text-2xl font-semibold">We could not find that payment</h1>
-    <p class="text-stone-600 mt-2 text-sm">The link may be incomplete. Your orders are listed in your account.</p>
-  {% endif %}
+<div class="container-site pt-12">
+  <div class="panel mx-auto max-w-xl p-8 sm:p-10">
+    {% if state == "paid" %}
+      <span class="flex h-12 w-12 items-center justify-center rounded-full bg-[#E8F0E6] text-[#2F5A2A]">{{ icon.check("h-6 w-6") }}</span>
+      <p class="eyebrow mt-6">Payment received</p>
+      <h1 class="display mt-3 text-4xl">Thank you — order #{{ order.order_id }} is confirmed</h1>
+      {% if order.whatsapp_number %}<p class="mt-3 text-muted">A confirmation is on its way to you on WhatsApp.</p>{% endif %}
+    {% elif state == "pending" %}
+      <p class="eyebrow">Payment not confirmed yet</p>
+      <h1 class="display mt-3 text-4xl">We are waiting on the payment</h1>
+      <p class="mt-3 text-muted">
+        If you completed the payment, it will be confirmed shortly{% if order and order.whatsapp_number %} and you will get a message on WhatsApp{% endif %}.
+        If you cancelled, you can pay again below.
+      </p>
+    {% else %}
+      <h1 class="display text-4xl">We could not find that payment</h1>
+      <p class="mt-3 text-muted">The link may be incomplete. Your orders are listed in your account.</p>
+    {% endif %}
 
-  {% if order %}
-  <ul class="mt-5 divide-y divide-stone-100 text-sm border-t border-stone-100">
-    {% for item in order["items"] %}
-    <li class="py-2 flex gap-2">
-      <span class="flex-1">{{ item.quantity }} &times; {{ item.product_name }}{% if item.size %} ({{ item.size }}){% endif %}</span>
-      <span>&#8377;{{ '{:,.0f}'.format(item.price_inr * item.quantity) }}</span>
-    </li>
-    {% endfor %}
-    <li class="py-2 flex font-semibold">
-      <span class="flex-1">Total</span><span>&#8377;{{ '{:,.0f}'.format(order.total_inr) }}</span>
-    </li>
-  </ul>
-  {% if state == "pending" and order.payment_link_url %}
-  <a href="{{ order.payment_link_url }}"
-     class="mt-5 inline-block bg-stone-900 text-white px-5 py-2.5 rounded-md hover:bg-stone-700 font-medium">
-    Pay now
-  </a>
-  {% endif %}
-  {% endif %}
+    {% if order %}
+    <ul class="mt-8 divide-y divide-line border-y border-line text-sm">
+      {% for item in order["items"] %}
+      <li class="flex gap-3 py-3">
+        <span class="flex-1">{{ item.quantity }} × {{ item.product_name }}{% if item.size %} ({{ item.size }}){% endif %}</span>
+        <span>{{ (item.price_inr * item.quantity) | inr }}</span>
+      </li>
+      {% endfor %}
+      <li class="flex py-3 font-medium"><span class="flex-1">Total</span><span>{{ order.total_inr | inr }}</span></li>
+    </ul>
+    {% if state == "pending" and order.payment_link_url %}
+    <a href="{{ order.payment_link_url }}" class="btn-primary mt-6 w-full">Pay now</a>
+    {% endif %}
+    {% endif %}
 
-  {% if whatsapp_url %}
-  <a href="{{ whatsapp_url }}"
-     class="mt-6 flex items-center justify-center gap-2 w-full bg-emerald-600 text-white py-3 rounded-md hover:bg-emerald-700 font-medium">
-    Back to WhatsApp
-  </a>
-  {% endif %}
+    {# whatsapp_url is the template global (a function), not a page variable #}
+    {% if whatsapp_url() %}
+    <a href="{{ whatsapp_url() }}" class="mt-6 flex w-full items-center justify-center gap-2 bg-[#25D366] px-6 py-3 text-[12px] font-medium uppercase tracking-label text-white hover:bg-[#1EBE5A]">
+      {{ icon.whatsapp("h-4 w-4") }} Back to WhatsApp
+    </a>
+    {% endif %}
 
-  <div class="mt-6 text-sm flex gap-4">
-    <a href="/account" class="underline">Your orders</a>
-    <a href="/" class="underline">Continue shopping</a>
+    <div class="mt-6 flex justify-center gap-6 text-[12px] font-medium uppercase tracking-label">
+      {% if order %}<a href="/orders/{{ order.order_id }}" class="hover:text-maroon">Track order</a>{% endif %}
+      <a href="/shop" class="hover:text-maroon">Continue shopping</a>
+    </div>
   </div>
 </div>
 {% endblock %}

@@ -83,11 +83,28 @@ def _lines(items: list[dict[str, Any]]) -> set[tuple[str, str, int]]:
     return {(item["product_id"], item["size"], item["quantity"]) for item in items}
 
 
-async def checkout_cart(user_id: int, channel: str) -> Optional[dict[str, Any]]:
+async def _address_for(
+    user_id: int, channel: str, shipping: Optional[dict[str, str]]
+) -> Optional[dict[str, str]]:
+    """The address to ship to. The website always supplies one from its form.
+
+    WhatsApp cannot collect an address reliably, so a chat order reuses the
+    customer's last address when they have one; otherwise the order page asks
+    for it after payment.
+    """
+    if shipping or channel != "bot":
+        return shipping
+    return await asyncio.to_thread(repo.get_last_shipping, user_id)
+
+
+async def checkout_cart(
+    user_id: int, channel: str, shipping: Optional[dict[str, str]] = None
+) -> Optional[dict[str, Any]]:
     """Order the cart and return a payment link. None if the cart is empty.
 
     Typing CHECKOUT twice must not create two orders: if an unpaid order for
-    exactly this cart already has a link, that link is sent again.
+    exactly this cart already has a link, that link is sent again (with the
+    newly entered address, if one was given).
 
     Raises ValueError when a line still needs a size, and payments.PaymentError
     when Razorpay cannot create the link — in which case the new order is
@@ -98,8 +115,11 @@ async def checkout_cart(user_id: int, channel: str) -> Optional[dict[str, Any]]:
     if not current:
         return None
 
+    shipping = await _address_for(user_id, channel, shipping)
     pending = await asyncio.to_thread(repo.get_pending_cart_order, user_id)
     if pending and _lines(pending["items"]) == _lines(current):
+        if shipping:
+            await asyncio.to_thread(repo.set_order_shipping, pending["order_id"], shipping)
         return {
             "order_id": pending["order_id"],
             "total_inr": pending["total_inr"],
@@ -108,7 +128,7 @@ async def checkout_cart(user_id: int, channel: str) -> Optional[dict[str, Any]]:
             "reused": True,
         }
 
-    placed = await asyncio.to_thread(repo.create_order_from_cart, user_id, channel)
+    placed = await asyncio.to_thread(repo.create_order_from_cart, user_id, channel, shipping)
     if placed is None:
         return None
     try:
@@ -120,11 +140,17 @@ async def checkout_cart(user_id: int, channel: str) -> Optional[dict[str, Any]]:
 
 
 async def checkout_single(
-    user_id: int, product_id: str, size: str, quantity: int, channel: str
+    user_id: int,
+    product_id: str,
+    size: str,
+    quantity: int,
+    channel: str,
+    shipping: Optional[dict[str, str]] = None,
 ) -> dict[str, Any]:
     """Buy one product now, bypassing the cart. Same error contract as checkout_cart."""
+    shipping = await _address_for(user_id, channel, shipping)
     order_id = await asyncio.to_thread(
-        repo.create_order_for_product, user_id, product_id, size, quantity, channel
+        repo.create_order_for_product, user_id, product_id, size, quantity, channel, shipping
     )
     try:
         url = await start_payment(order_id)

@@ -53,6 +53,8 @@ from models import CartItem, LinkToken, Order, OrderItem, Session, User  # noqa:
 TEST_PHONES = ["910000000001", "910000000002", "910000000003"]
 TEST_EMAILS = ["test-cart-a@example.com", "test-cart-b@example.com"]
 
+ADDRESS = {"name": "Test Buyer", "phone": "9876543210", "line1": "12 MG Road", "line2": "", "city": "Pune", "state": "Maharashtra", "pincode": "411001"}
+
 MULTI_SIZE = "EW001"   # Brocade Silk Kurta, S-XXL, Rs 2499
 SINGLE_SIZE = "EW012"  # Cream Silk Stole, Free Size only, Rs 899
 OTHER = "EW003"        # Pastel Chikankari Kurta
@@ -339,7 +341,7 @@ def web_cart_checks() -> None:
 
     with TestClient(app) as anonymous:
         check("cart page needs sign-in",
-              anonymous.get("/cart", follow_redirects=False).headers.get("location") == "/login")
+              anonymous.get("/cart", follow_redirects=False).headers.get("location", "").startswith("/login"))
         check("cart API needs sign-in", anonymous.get("/api/cart").status_code == 401)
 
     # Something added in chat BEFORE the customer ever signs up on the website
@@ -352,7 +354,7 @@ def web_cart_checks() -> None:
         web_user = web.get("/api/me").json()["user_id"]
 
         page = web.get(f"/product/{MULTI_SIZE}")
-        check("product page shows the size selector", 'name="size"' in page.text and "Add to cart" in page.text)
+        check("product page shows the size selector", 'name="size"' in page.text and "Add to bag" in page.text)
 
         unsized = web.post(f"/cart/add/{MULTI_SIZE}", data={"quantity": "1"}, follow_redirects=False)
         check("web add without a size is sent back to choose",
@@ -389,7 +391,14 @@ def web_cart_checks() -> None:
         check("HEADLINE: item added in chat appears in the website cart",
               "Cream Silk Stole" in page.text and "Brocade Silk Kurta" in page.text)
 
-        done = web.post("/checkout", follow_redirects=False)
+        page = web.get("/checkout")
+        check("checkout page shows the bag and an address form",
+              page.status_code == 200 and "Delivery address" in page.text and "Brocade Silk Kurta" in page.text)
+        missing = web.post("/checkout", data={}, follow_redirects=False)
+        check("checkout without an address is refused with errors",
+              missing.status_code == 400 and "Enter a 6-digit PIN code" in missing.text)
+        check("...and creates no order", not repo.get_order_history(web_user))
+        done = web.post("/checkout", data=ADDRESS, follow_redirects=False)
         location = done.headers.get("location", "")
         check("web checkout sends the browser to the payment page", location.startswith(FAKE_PAY_URL),
               location)
@@ -397,6 +406,10 @@ def web_cart_checks() -> None:
         check("web order has both channels' items",
               {i["product_id"] for i in order["items"]} == {MULTI_SIZE, SINGLE_SIZE}, f"got {order['items']}")
         check("web order is tagged web", order["channel"] == "web")
+        shipped_to = repo.get_order(order["order_id"])["shipping"]
+        check("address saved on the order", shipped_to and shipped_to["pincode"] == "411001"
+              and shipped_to["city"] == "Pune", f"got {shipped_to}")
+        check("next checkout is pre-filled with that address", "12 MG Road" in web.get("/account").text)
         account = web.get("/account").text
         check("account page offers Pay now for the unpaid order",
               "awaiting payment" in account and location in account)
@@ -407,13 +420,20 @@ def web_cart_checks() -> None:
         check("API checkout of an empty cart is 422", web.post("/api/checkout").status_code == 422)
 
         buy = web.post(f"/buy/{MULTI_SIZE}", data={"size": "M", "quantity": "2"}, follow_redirects=False)
+        check("Buy now goes to the checkout page first",
+              buy.headers.get("location", "").startswith(f"/checkout?product={MULTI_SIZE}"))
+        single = web.get(buy.headers["location"])
+        check("single-item checkout shows just that product",
+              "Brocade Silk Kurta" in single.text and "Size M" in single.text)
+        paid = web.post("/checkout", data={**ADDRESS, "product": MULTI_SIZE, "size": "M", "quantity": "2"},
+                        follow_redirects=False)
         latest = repo.get_order_history(web_user)[0]
-        check("Buy now goes to the payment page, with quantity",
-              buy.headers.get("location", "").startswith(FAKE_PAY_URL)
+        check("Buy now checkout goes to the payment page, with quantity",
+              paid.headers.get("location", "").startswith(FAKE_PAY_URL)
               and latest["items"][0]["quantity"] == 2)
-        check("unsized Buy now is refused",
-              web.post(f"/buy/{MULTI_SIZE}", follow_redirects=False).headers.get("location")
-              == f"/product/{MULTI_SIZE}")
+        unsized = web.post(f"/buy/{MULTI_SIZE}", follow_redirects=True)
+        check("unsized Buy now is sent back to choose a size",
+              unsized.url.path == f"/product/{MULTI_SIZE}", str(unsized.url))
 
 
 if __name__ == "__main__":

@@ -17,12 +17,15 @@ import httpx  # noqa: E402
 from fastapi import FastAPI, HTTPException  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
+from fastapi.exception_handlers import http_exception_handler  # noqa: E402
+from starlette.exceptions import HTTPException as StarletteHTTPException  # noqa: E402
 from starlette.middleware.sessions import SessionMiddleware  # noqa: E402
 
 import checkout  # noqa: E402
-from auth import session_secret  # noqa: E402
+from auth import current_user, session_secret  # noqa: E402
 from db import init_db  # noqa: E402
 from routers import api, browse, payments, store, webhook  # noqa: E402
+from templating import templates  # noqa: E402
 from whatsapp import send_whatsapp_message  # noqa: E402
 
 
@@ -72,6 +75,19 @@ app.include_router(payments.router)
 app.include_router(api.router)
 app.include_router(store.router)
 app.include_router(browse.router)
+
+
+# Machine-facing paths keep FastAPI's JSON errors; people get the branded page
+_JSON_PATHS = ("/api/", "/static/", "/webhook", "/razorpay", "/payments/", "/dev/", "/health")
+
+
+@app.exception_handler(StarletteHTTPException)
+async def not_found_page(request, exc):
+    if exc.status_code == 404 and not request.url.path.startswith(_JSON_PATHS):
+        return templates.TemplateResponse(
+            request, "404.html", {"user": current_user(request)}, status_code=404
+        )
+    return await http_exception_handler(request, exc)
 
 
 @app.get("/health")

@@ -16,6 +16,7 @@ import catalog
 import checkout as checkout_flow
 import payments
 import repository as repo
+import shipping
 from auth import current_user
 from repository import LINK_PREFIX
 
@@ -142,11 +143,26 @@ async def delete_cart_item(request: Request, cart_item_id: int):
     return await asyncio.to_thread(repo.get_cart, user["user_id"])
 
 
+class CheckoutBody(BaseModel):
+    """Delivery address; validated by shipping.validate, same as the checkout page."""
+
+    name: str = ""
+    phone: str = ""
+    line1: str = ""
+    line2: str = ""
+    city: str = ""
+    state: str = ""
+    pincode: str = ""
+
+
 @router.post("/checkout", status_code=201)
-async def checkout(request: Request):
+async def checkout(request: Request, body: CheckoutBody | None = None):
     user = _signed_in(request)
+    address, errors = shipping.validate((body or CheckoutBody()).model_dump())
+    if errors:
+        raise HTTPException(status_code=422, detail={"address": errors})
     try:
-        placed = await checkout_flow.checkout_cart(user["user_id"], "web")
+        placed = await checkout_flow.checkout_cart(user["user_id"], "web", address)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except payments.PaymentError as exc:

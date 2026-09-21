@@ -1,65 +1,110 @@
 {% extends "base.html" %}
-{% block title %}{{ product.name }}{% endblock %}
+{% import "partials/icons.html" as icon %}
+{% block title %}{{ product.name }} — {{ product.brand }} — Kurta &amp; Co.{% endblock %}
+{% block description %}{{ product.description }}{% endblock %}
 {% block content %}
-<a href="/" class="text-sm text-stone-500 hover:underline">&larr; All products</a>
+<div class="container-site pt-8">
+  <nav class="text-[12px] text-muted" aria-label="Breadcrumb">
+    <a href="/" class="hover:text-maroon">Home</a><span class="mx-1.5">/</span>
+    <a href="/shop?gender={{ product.gender }}" class="hover:text-maroon">{{ product.gender }}</a><span class="mx-1.5">/</span>
+    <a href="/shop?gender={{ product.gender }}&category={{ product.category | urlencode }}" class="hover:text-maroon">{{ product.category }}</a><span class="mx-1.5">/</span>
+    <span class="text-ink">{{ product.name }}</span>
+  </nav>
 
-<div class="grid md:grid-cols-2 gap-8 mt-4">
-  <div class="bg-white border border-stone-200 rounded-lg overflow-hidden">
-    <img src="{{ product.image_url }}" alt="{{ product.name }}" class="w-full object-cover">
-  </div>
-
-  <div>
-    <div class="text-xs uppercase tracking-wide text-stone-400">{{ product.brand }}</div>
-    <h1 class="text-xl font-semibold mt-1 leading-snug">{{ product.title }}</h1>
-
-    <div class="flex items-center gap-2 mt-3 text-sm">
-      <span class="bg-green-700 text-white px-2 py-0.5 rounded font-medium">{{ product.rating }} &#9733;</span>
-      <span class="text-stone-500">{{ '{:,}'.format(product.rating_count) }} ratings</span>
+  <div class="mt-6 grid gap-10 lg:grid-cols-12 lg:gap-16">
+    <div class="lg:col-span-7">
+      <div class="aspect-[4/5] overflow-hidden bg-sand lg:sticky lg:top-28">
+        <img src="{{ product.image_url }}" alt="{{ product.title }}" class="h-full w-full object-cover" fetchpriority="high">
+      </div>
+      {% if product.image_credit %}
+      <p class="mt-2 text-[11px] text-muted">Photo: {{ product.image_credit.photographer }} on
+        <a href="{{ product.image_credit.url }}" class="link" rel="noopener">Pexels</a></p>
+      {% endif %}
     </div>
 
-    <div class="flex items-baseline gap-3 mt-4 flex-wrap">
-      <span class="text-2xl font-semibold">&#8377;{{ '{:,.0f}'.format(product.price) }}</span>
-      <span class="text-stone-400 line-through">&#8377;{{ '{:,.0f}'.format(product.mrp) }}</span>
-      <span class="text-green-700 font-medium">{{ product.discount_percent }}% off</span>
-    </div>
-    <p class="text-xs text-stone-500 mt-1">Inclusive of all taxes</p>
+    <div class="lg:col-span-5">
+      <p class="eyebrow">{{ product.brand }}</p>
+      <h1 class="display mt-3 text-4xl leading-tight sm:text-[44px]">{{ product.name }}</h1>
+      <p class="mt-3 text-[15px] text-muted">{{ product.title }}</p>
 
-    <div class="mt-5">
-      <div class="text-sm text-stone-600 mb-1.5">Sizes</div>
-      <div class="flex gap-2 flex-wrap">
-        {% for size in product.sizes_available %}
-        <span class="border border-stone-300 rounded px-3 py-1 text-sm
-                     {% if product.stock.get(size, 0) == 0 %}text-stone-300 line-through{% endif %}">
-          {{ size }}
+      <div class="mt-4 flex items-center gap-3 text-sm">
+        <span class="flex items-center gap-1 bg-ink px-2 py-0.5 text-[12px] font-medium text-ivory">
+          {{ product.rating }} <span class="text-gold">{{ icon.star("h-3 w-3") }}</span>
         </span>
-        {% endfor %}
+        <span class="text-muted">{{ '{:,}'.format(product.rating_count) }} ratings</span>
+      </div>
+
+      {% with price_size = "lg" %}{% include "partials/price.html" %}{% endwith %}
+      <p class="mt-1 text-[12px] text-muted">Inclusive of all taxes</p>
+
+      {% include "partials/buy_box.html" %}
+
+      {% if whatsapp_url() %}
+      <a href="{{ whatsapp_url(ask_text) }}" rel="noopener"
+         class="mt-4 flex w-full items-center justify-center gap-2 border border-line bg-white px-6 py-3 text-[12px] font-medium uppercase tracking-label transition-colors hover:border-[#25D366] hover:text-[#128C7E]">
+        <span class="text-[#25D366]">{{ icon.whatsapp("h-4 w-4") }}</span> Ask about this on WhatsApp
+      </a>
+      {% endif %}
+
+      <ul class="mt-8 space-y-3 border-y border-line py-6 text-[14px]">
+        <li class="flex gap-3"><span class="text-gold">{{ icon.truck("h-5 w-5") }}</span>Free delivery in {{ product.delivery_days }} days</li>
+        <li class="flex gap-3"><span class="text-gold">{{ icon.returns("h-5 w-5") }}</span>Returns within {{ product.return_days }} days</li>
+        <li class="flex gap-3"><span class="text-gold">{{ icon.lock("h-5 w-5") }}</span>Secure UPI and card payments by Razorpay</li>
+      </ul>
+
+      <div class="mt-8">
+        <h2 class="label">Highlights</h2>
+        <ul class="mt-3 space-y-2 text-[15px] leading-relaxed">
+          {% for point in product.highlights %}
+          <li class="flex gap-3"><span class="mt-2.5 h-1 w-1 shrink-0 bg-gold"></span>{{ point }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <div class="mt-8 divide-y divide-line border-y border-line">
+        <details open class="group py-4">
+          <summary class="flex items-center justify-between text-[12px] font-medium uppercase tracking-label">
+            Description <span class="transition-transform group-open:rotate-180">{{ icon.chevron() }}</span>
+          </summary>
+          <p class="mt-3 text-[15px] leading-relaxed text-muted">{{ product.description }}</p>
+        </details>
+        <details class="group py-4">
+          <summary class="flex items-center justify-between text-[12px] font-medium uppercase tracking-label">
+            Fabric, fit &amp; care <span class="transition-transform group-open:rotate-180">{{ icon.chevron() }}</span>
+          </summary>
+          <dl class="mt-4 grid grid-cols-[8rem_1fr] gap-y-2 text-[14px]">
+            <dt class="text-muted">Fabric</dt><dd>{{ product.fabric }}</dd>
+            <dt class="text-muted">Colour</dt><dd>{{ product.color }}</dd>
+            <dt class="text-muted">Pattern</dt><dd>{{ product.pattern }}</dd>
+            <dt class="text-muted">Fit</dt><dd>{{ product.fit }}</dd>
+            {% if product.sleeve != 'Not applicable' %}<dt class="text-muted">Sleeve</dt><dd>{{ product.sleeve }}</dd>{% endif %}
+            {% if product.neck != 'Not applicable' %}<dt class="text-muted">Neckline</dt><dd>{{ product.neck }}</dd>{% endif %}
+            <dt class="text-muted">Care</dt><dd>{{ product.care }}</dd>
+            <dt class="text-muted">Occasion</dt><dd>{{ product.occasion | join(', ') }}</dd>
+          </dl>
+        </details>
+        <details class="group py-4">
+          <summary class="flex items-center justify-between text-[12px] font-medium uppercase tracking-label">
+            Seller &amp; origin <span class="transition-transform group-open:rotate-180">{{ icon.chevron() }}</span>
+          </summary>
+          <dl class="mt-4 grid grid-cols-[8rem_1fr] gap-y-2 text-[14px]">
+            <dt class="text-muted">Sold by</dt><dd>{{ product.seller }}</dd>
+            <dt class="text-muted">Made in</dt><dd>{{ product.country_of_origin }}</dd>
+            <dt class="text-muted">SKU</dt><dd>{{ product.sku }}</dd>
+          </dl>
+        </details>
       </div>
     </div>
-
-    {# Buying controls are owned by Dev A — see WORK_SPLIT.md #}
-    {% include "partials/buy_box.html" %}
-
-    <div class="mt-6 text-sm">
-      <h2 class="font-medium mb-2">About this item</h2>
-      <ul class="list-disc pl-5 space-y-1 text-stone-600">
-        {% for point in product.highlights %}<li>{{ point }}</li>{% endfor %}
-      </ul>
-    </div>
-
-    <p class="text-sm text-stone-600 mt-5">{{ product.description }}</p>
-
-    <dl class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm mt-6 text-stone-600 border-t border-stone-200 pt-5">
-      <dt class="text-stone-400">Fabric</dt><dd>{{ product.fabric }}</dd>
-      <dt class="text-stone-400">Colour</dt><dd>{{ product.color }}</dd>
-      <dt class="text-stone-400">Pattern</dt><dd>{{ product.pattern }}</dd>
-      <dt class="text-stone-400">Fit</dt><dd>{{ product.fit }}</dd>
-      <dt class="text-stone-400">Occasion</dt><dd>{{ product.occasion|join(', ') }}</dd>
-      <dt class="text-stone-400">Care</dt><dd>{{ product.care }}</dd>
-      <dt class="text-stone-400">Sold by</dt><dd>{{ product.seller }}</dd>
-      <dt class="text-stone-400">Delivery</dt><dd>{{ product.delivery_days }} days</dd>
-      <dt class="text-stone-400">Returns</dt><dd>{{ product.return_days }} days</dd>
-      <dt class="text-stone-400">Origin</dt><dd>{{ product.country_of_origin }}</dd>
-    </dl>
   </div>
+
+  {% if similar %}
+  <section class="mt-24">
+    <p class="eyebrow">Complete the look</p>
+    <h2 class="display mt-3 text-3xl sm:text-4xl">You may also like</h2>
+    <div class="mt-8 grid grid-cols-2 gap-x-4 gap-y-10 lg:grid-cols-4 lg:gap-x-6">
+      {% for product in similar %}{% include "partials/product_card.html" %}{% endfor %}
+    </div>
+  </section>
+  {% endif %}
 </div>
 {% endblock %}

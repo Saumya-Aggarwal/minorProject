@@ -36,7 +36,11 @@
     "seller": "Vastra Studio Retail LLP",
     "delivery_days": 4,
     "return_days": 7,
-    "image_url": "/static/products/EW001.svg"
+    "image_url": "/static/products/EW001.jpg",
+    "image_credit": {
+      "photographer": "Souhityo Das",
+      "url": "https://www.pexels.com/photo/young-man-in-traditional-indian-attire-at-event-38614254/"
+    }
   },
   {
     "id": "EW002",
@@ -75,7 +79,11 @@
     "seller": "Mitti Handlooms Pvt Ltd",
     "delivery_days": 3,
     "return_days": 10,
-    "image_url": "/static/products/EW002.svg"
+    "image_url": "/static/products/EW002.jpg",
+    "image_credit": {
+      "photographer": "Adnan Mughal Photographer",
+      "url": "https://www.pexels.com/photo/man-wearing-a-kurta-standing-in-front-of-a-hay-stack-8692315/"
+    }
   },
   {
     "id": "EW003",
@@ -114,7 +122,11 @@
     "seller": "Anaya Ethnics",
     "delivery_days": 5,
     "return_days": 7,
-    "image_url": "/static/products/EW003.svg"
+    "image_url": "/static/products/EW003.jpg",
+    "image_credit": {
+      "photographer": "Muhammad  Khawar Nazir",
+      "url": "https://www.pexels.com/photo/man-in-white-traditional-attire-outdoors-36697919/"
+    }
   },
   {
     "id": "EW004",
@@ -153,19 +165,23 @@
     "seller": "Rivaaz Menswear",
     "delivery_days": 4,
     "return_days": 7,
-    "image_url": "/static/products/EW004.svg"
+    "image_url": "/static/products/EW004.jpg",
+    "image_credit": {
+      "photographer": "Abhishek  Shekhawat",
+      "url": "https://www.pexels.com/photo/man-with-sunglasses-at-a-historic-courtyard-39126580/"
+    }
   },
   {
     "id": "EW005",
-    "sku": "RVZ-NJK-005-TEA",
-    "name": "Teal Printed Nehru Jacket",
-    "title": "Rivaaz Men's Teal Printed Cotton Silk Nehru Jacket - Festive Layering Jacket",
+    "sku": "RVZ-NJK-005-BLK",
+    "name": "Black Printed Nehru Jacket",
+    "title": "Rivaaz Men's Black Printed Cotton Silk Nehru Jacket - Festive Layering Jacket",
     "brand": "Rivaaz",
     "gender": "Men",
     "category": "Nehru Jacket",
     "subcategory": "Ethnic Jacket",
     "fabric": "Cotton silk",
-    "color": "Teal",
+    "color": "Black multicolour",
     "pattern": "Geometric print",
     "occasion": ["Festive", "Sangeet", "Party"],
     "fit": "Tailored",
@@ -181,18 +197,22 @@
     "stock": {"M": 7, "L": 11, "XL": 6, "XXL": 2},
     "in_stock": true,
     "highlights": [
-      "All-over geometric print in teal and antique gold",
+      "All-over geometric print in black, rust and antique gold",
       "Cotton silk blend that breathes better than pure silk",
       "Sleeveless jacket layer for kurtas and even plain shirts",
       "Bold enough to carry an otherwise simple outfit"
     ],
-    "description": "A teal cotton-silk Nehru jacket carrying an all-over geometric print in antique gold. It is the statement layer for sangeet nights and festive parties, adding pattern and colour over a plain kurta without extra bulk.",
+    "description": "A black cotton-silk Nehru jacket carrying an all-over geometric print in rust, ivory and antique gold. It is the statement layer for sangeet nights and festive parties, adding pattern and colour over a plain kurta without extra bulk.",
     "care": "Dry clean recommended",
     "country_of_origin": "India",
     "seller": "Rivaaz Menswear",
     "delivery_days": 4,
     "return_days": 7,
-    "image_url": "/static/products/EW005.svg"
+    "image_url": "/static/products/EW005.jpg",
+    "image_credit": {
+      "photographer": "𝖆𝖒𝖆𝖓 𝖆𝖏𝖎𝖒𝖆𝖑 𝕱𝖆𝖘𝖍𝖎𝖔𝖓 𝕾𝖙𝖞𝖑𝖎𝖘𝖙",
+      "url": "https://www.pexels.com/photo/old-bearded-man-in-traditional-costume-14847105/"
+    }
   },
   {
     "id": "EW006",
@@ -231,7 +251,11 @@
     "seller": "Zari Lane Couture",
     "delivery_days": 7,
     "return_days": 5,
-    "image_url": "/static/products/EW006.svg"
+    "image_url": "/static/products/EW006.jpg",
+    "image_credit": {
+      "photographer": "Captian Jayu",
+      "url": "https://www.pexels.com/photo/a-groom-in-traditional-wedding-attire-7051198/"
+    }
   },
   {
     "id": "EW007",
@@ -270,7 +294,11 @@
     "seller": "Zari Lane Couture",
     "delivery_days": 7,
     "return_days": 5,
-    "image_url": "/static/products/EW007.svg"
+    "image_url": "/static/products/EW007.jpg",
+    "image_credit": {
+      "photographer": "Legacy Shots by Sharan Sathya",
+      "url": "https://www.pexels.com/photo/elegant-indian-groom-in-traditional-wedding-attire-29497169/"
+    }
   },
   {
     "id": "EW008",
@@ -309,19 +337,23 @@
     "seller": "Vastra Studio Retail LLP",
     "delivery_days": 6,
     "return_days": 7,
-    "image_url": "/static/products/EW008.svg"
+    "image_url": "/static/products/EW008.jpg",
+    "image_credit": {
+      "photographer": "dhiraj jain",
+      "url": "https://www.pexels.com/photo/a-model-in-a-black-outfit-on-a-runway-12515243/"
+    }
   },
   {
     "id": "EW009",
-    "sku": "MIT-PTH-009-OLV",
+    "sku": "MIT-PTH-009-SND",
     "name": "Linen Blend Pathani Suit",
-    "title": "Mitti and Co. Men's Olive Linen Blend Pathani Kurta Set with Salwar - Casual Ethnic Wear",
+    "title": "Mitti and Co. Men's Sand Linen Blend Pathani Kurta Set with Salwar - Casual Ethnic Wear",
     "brand": "Mitti and Co.",
     "gender": "Men",
     "category": "Pathani Suit",
     "subcategory": "Pathani Set",
     "fabric": "Linen blend",
-    "color": "Olive",
+    "color": "Sand",
     "pattern": "Solid",
     "occasion": ["Casual", "Eid", "Daytime"],
     "fit": "Regular",
@@ -340,27 +372,31 @@
       "Two-piece set with matching straight-cut salwar",
       "Linen blend keeps the set cool and structured",
       "Four-button band collar with chest pocket",
-      "Olive is an easy alternative to black or white"
+      "Sand is an easy alternative to plain white"
     ],
-    "description": "An olive linen-blend Pathani suit with a band-collared kurta and matching straight salwar. Linen keeps the set crisp in heat, making it an easy daytime choice for Eid, family lunches and casual ethnic occasions.",
+    "description": "A sand linen-blend Pathani suit with a band-collared kurta and matching straight salwar. Linen keeps the set crisp in heat, making it an easy daytime choice for Eid, family lunches and casual ethnic occasions.",
     "care": "Machine wash gentle, warm iron",
     "country_of_origin": "India",
     "seller": "Mitti Handlooms Pvt Ltd",
     "delivery_days": 4,
     "return_days": 10,
-    "image_url": "/static/products/EW009.svg"
+    "image_url": "/static/products/EW009.jpg",
+    "image_credit": {
+      "photographer": "Nishant Aneja",
+      "url": "https://www.pexels.com/photo/traditional-indian-outfit-in-green-park-setting-28758558/"
+    }
   },
   {
     "id": "EW010",
-    "sku": "RVZ-WST-010-WNE",
-    "name": "Wine Velvet Waistcoat",
-    "title": "Rivaaz Men's Wine Velvet Ethnic Waistcoat with Front Buttons - Winter Layering",
+    "sku": "RVZ-WST-010-CHS",
+    "name": "Chestnut Velvet Waistcoat",
+    "title": "Rivaaz Men's Chestnut Brown Velvet Ethnic Waistcoat with Front Buttons - Winter Layering",
     "brand": "Rivaaz",
     "gender": "Men",
     "category": "Waistcoat",
     "subcategory": "Ethnic Waistcoat",
     "fabric": "Velvet",
-    "color": "Wine",
+    "color": "Chestnut brown",
     "pattern": "Textured solid",
     "occasion": ["Winter wedding", "Evening", "Festive"],
     "fit": "Tailored",
@@ -376,18 +412,22 @@
     "stock": {"38": 5, "40": 9, "42": 7, "44": 4},
     "in_stock": true,
     "highlights": [
-      "Rich wine velvet with a soft textured finish",
+      "Rich chestnut velvet with a soft textured finish",
       "Five-button front with a tailored V-neck opening",
       "Shorter cut than a Nehru jacket, sits at the hip",
       "Adds warmth over a kurta without a full jacket"
     ],
-    "description": "A wine velvet waistcoat with a textured finish and a tailored V-neck front. Cut shorter than a Nehru jacket, it layers over a kurta for winter weddings and evening celebrations where a full jacket would feel heavy.",
+    "description": "A chestnut brown velvet waistcoat with a textured finish and a tailored V-neck front. Cut shorter than a Nehru jacket, it layers over a kurta for winter weddings and evening celebrations where a full jacket would feel heavy.",
     "care": "Dry clean only",
     "country_of_origin": "India",
     "seller": "Rivaaz Menswear",
     "delivery_days": 4,
     "return_days": 7,
-    "image_url": "/static/products/EW010.svg"
+    "image_url": "/static/products/EW010.jpg",
+    "image_credit": {
+      "photographer": "Hamza Awan",
+      "url": "https://www.pexels.com/photo/traditional-fashion-in-rural-setting-35491620/"
+    }
   },
   {
     "id": "EW011",
@@ -426,7 +466,11 @@
     "seller": "Vastra Studio Retail LLP",
     "delivery_days": 4,
     "return_days": 10,
-    "image_url": "/static/products/EW011.svg"
+    "image_url": "/static/products/EW011.jpg",
+    "image_credit": {
+      "photographer": "Animesh Srivastava",
+      "url": "https://www.pexels.com/photo/portrait-of-a-smiling-man-7270137/"
+    }
   },
   {
     "id": "EW012",
@@ -465,7 +509,11 @@
     "seller": "Anaya Ethnics",
     "delivery_days": 3,
     "return_days": 7,
-    "image_url": "/static/products/EW012.svg"
+    "image_url": "/static/products/EW012.jpg",
+    "image_credit": {
+      "photographer": "𝖆𝖒𝖆𝖓 𝖆𝖏𝖎𝖒𝖆𝖑 𝕱𝖆𝖘𝖍𝖎𝖔𝖓 𝕾𝖙𝖞𝖑𝖎𝖘𝖙",
+      "url": "https://www.pexels.com/photo/elegant-man-in-traditional-outfit-12643001/"
+    }
   },
   {
     "id": "EW013",
@@ -504,7 +552,11 @@
     "seller": "Vastra Studio Retail LLP",
     "delivery_days": 3,
     "return_days": 10,
-    "image_url": "/static/products/EW013.svg"
+    "image_url": "/static/products/EW013.jpg",
+    "image_credit": {
+      "photographer": "Adnan Mughal Photographer",
+      "url": "https://www.pexels.com/photo/man-in-traditional-suit-posing-in-park-8621978/"
+    }
   },
   {
     "id": "EW014",
@@ -543,7 +595,11 @@
     "seller": "Mitti Handlooms Pvt Ltd",
     "delivery_days": 3,
     "return_days": 10,
-    "image_url": "/static/products/EW014.svg"
+    "image_url": "/static/products/EW014.jpg",
+    "image_credit": {
+      "photographer": "Jibin Yesudasan",
+      "url": "https://www.pexels.com/photo/traditional-attire-outdoors-portrait-of-man-33800060/"
+    }
   },
   {
     "id": "EW015",
@@ -582,7 +638,11 @@
     "seller": "Rangrez Apparel",
     "delivery_days": 4,
     "return_days": 7,
-    "image_url": "/static/products/EW015.svg"
+    "image_url": "/static/products/EW015.jpg",
+    "image_credit": {
+      "photographer": "Shazaf Zafar",
+      "url": "https://www.pexels.com/photo/a-man-wearing-sunglasses-and-black-kurta-9474564/"
+    }
   },
   {
     "id": "EW016",
@@ -621,7 +681,11 @@
     "seller": "Rangrez Apparel",
     "delivery_days": 5,
     "return_days": 10,
-    "image_url": "/static/products/EW016.svg"
+    "image_url": "/static/products/EW016.jpg",
+    "image_credit": {
+      "photographer": "Muhammad  Khawar Nazir",
+      "url": "https://www.pexels.com/photo/man-wearing-traditional-clothing-11950924/"
+    }
   },
   {
     "id": "EW017",
@@ -660,19 +724,23 @@
     "seller": "Anaya Ethnics",
     "delivery_days": 6,
     "return_days": 7,
-    "image_url": "/static/products/EW017.svg"
+    "image_url": "/static/products/EW017.jpg",
+    "image_credit": {
+      "photographer": "Tanmoy Prosad",
+      "url": "https://www.pexels.com/photo/woman-in-red-dress-holding-an-illuminated-lantern-5083428/"
+    }
   },
   {
     "id": "EW018",
     "sku": "ZRL-LEH-018-PNK",
-    "name": "Blush Pink Bridal Lehenga",
-    "title": "Zari Lane Women's Blush Pink Raw Silk Bridal Lehenga Choli with Embroidered Dupatta - Wedding",
+    "name": "Rose Pink Bridal Lehenga",
+    "title": "Zari Lane Women's Rose Pink Raw Silk Bridal Lehenga Choli with Embroidered Dupatta - Wedding",
     "brand": "Zari Lane",
     "gender": "Women",
     "category": "Lehenga",
     "subcategory": "Bridal Lehenga",
     "fabric": "Raw silk",
-    "color": "Blush pink",
+    "color": "Rose pink",
     "pattern": "Heavy zari embroidery",
     "occasion": ["Wedding", "Bridal", "Reception"],
     "fit": "Flared",
@@ -693,13 +761,17 @@
       "Canvas-lined skirt with a can-can layer for volume",
       "Choli has an adjustable back tie for fitting"
     ],
-    "description": "A blush pink raw silk bridal lehenga with hand-done zari and dori embroidery, sold as a three piece set with choli and embroidered dupatta. The canvas-lined skirt holds a full bridal volume, and the choli ties at the back for fitting adjustments.",
+    "description": "A rose pink raw silk bridal lehenga with hand-done zari and dori embroidery, sold as a three piece set with choli and embroidered dupatta. The canvas-lined skirt holds a full bridal volume, and the choli ties at the back for fitting adjustments.",
     "care": "Dry clean only",
     "country_of_origin": "India",
     "seller": "Zari Lane Couture",
     "delivery_days": 10,
     "return_days": 5,
-    "image_url": "/static/products/EW018.svg"
+    "image_url": "/static/products/EW018.jpg",
+    "image_credit": {
+      "photographer": "𝖆𝖒𝖆𝖓 𝖆𝖏𝖎𝖒𝖆𝖑 𝕱𝖆𝖘𝖍𝖎𝖔𝖓 𝕾𝖙𝖞𝖑𝖎𝖘𝖙",
+      "url": "https://www.pexels.com/photo/woman-in-traditional-indian-wedding-clothing-12791957/"
+    }
   },
   {
     "id": "EW019",
@@ -738,7 +810,11 @@
     "seller": "Zari Lane Couture",
     "delivery_days": 7,
     "return_days": 7,
-    "image_url": "/static/products/EW019.svg"
+    "image_url": "/static/products/EW019.jpg",
+    "image_credit": {
+      "photographer": "RAJESH KUMAR    VERMA",
+      "url": "https://www.pexels.com/photo/models-in-a-fashion-show-in-india-13224226/"
+    }
   },
   {
     "id": "EW020",
@@ -777,7 +853,11 @@
     "seller": "Anaya Ethnics",
     "delivery_days": 6,
     "return_days": 7,
-    "image_url": "/static/products/EW020.svg"
+    "image_url": "/static/products/EW020.jpg",
+    "image_credit": {
+      "photographer": "krishna prasad",
+      "url": "https://www.pexels.com/photo/elegant-woman-posing-in-a-traditional-saree-29105316/"
+    }
   },
   {
     "id": "EW021",
@@ -816,7 +896,11 @@
     "seller": "Mitti Handlooms Pvt Ltd",
     "delivery_days": 4,
     "return_days": 10,
-    "image_url": "/static/products/EW021.svg"
+    "image_url": "/static/products/EW021.jpg",
+    "image_credit": {
+      "photographer": "Rehman Alee",
+      "url": "https://www.pexels.com/photo/elegant-woman-in-traditional-saree-indoors-32597576/"
+    }
   },
   {
     "id": "EW022",
@@ -855,7 +939,11 @@
     "seller": "Anaya Ethnics",
     "delivery_days": 5,
     "return_days": 7,
-    "image_url": "/static/products/EW022.svg"
+    "image_url": "/static/products/EW022.jpg",
+    "image_credit": {
+      "photographer": "Pritam Paul",
+      "url": "https://www.pexels.com/photo/elegant-woman-in-black-saree-at-night-event-32519307/"
+    }
   },
   {
     "id": "EW023",
@@ -894,7 +982,11 @@
     "seller": "Rangrez Apparel",
     "delivery_days": 3,
     "return_days": 10,
-    "image_url": "/static/products/EW023.svg"
+    "image_url": "/static/products/EW023.jpg",
+    "image_credit": {
+      "photographer": "Neha Mishra",
+      "url": "https://www.pexels.com/photo/elegant-chikankari-kurti-fashion-in-lucknow-28512776/"
+    }
   },
   {
     "id": "EW024",
@@ -933,7 +1025,11 @@
     "seller": "Rangrez Apparel",
     "delivery_days": 3,
     "return_days": 10,
-    "image_url": "/static/products/EW024.svg"
+    "image_url": "/static/products/EW024.jpg",
+    "image_credit": {
+      "photographer": "TAVSI APPAREL",
+      "url": "https://www.pexels.com/photo/heritage-in-print-tavsi-s-stunning-ajrakh-kurtas-28213774/"
+    }
   },
   {
     "id": "EW025",
@@ -972,19 +1068,23 @@
     "seller": "Vastra Studio Retail LLP",
     "delivery_days": 4,
     "return_days": 10,
-    "image_url": "/static/products/EW025.svg"
+    "image_url": "/static/products/EW025.jpg",
+    "image_credit": {
+      "photographer": "Muneeb Malhotra",
+      "url": "https://www.pexels.com/photo/elegant-traditional-eastern-fashion-in-lahore-studio-33210489/"
+    }
   },
   {
     "id": "EW026",
-    "sku": "ANE-SUT-026-RBL",
-    "name": "Royal Blue Sharara Set",
-    "title": "Anaya Ethnics Women's Royal Blue Georgette Sharara Set with Short Kurta and Dupatta - Festive",
+    "sku": "ANE-SUT-026-PCK",
+    "name": "Peacock Blue Sharara Set",
+    "title": "Anaya Ethnics Women's Peacock Blue Georgette Sharara Set with Short Kurta and Dupatta - Festive",
     "brand": "Anaya Ethnics",
     "gender": "Women",
     "category": "Salwar Suit",
     "subcategory": "Sharara Set",
     "fabric": "Georgette",
-    "color": "Royal blue",
+    "color": "Peacock blue",
     "pattern": "Gota patti work",
     "occasion": ["Mehendi", "Festive", "Sangeet"],
     "fit": "Flared",
@@ -1005,26 +1105,30 @@
       "Georgette moves well and photographs with volume",
       "Dupatta included with a matching gota border"
     ],
-    "description": "A royal blue georgette sharara set with wide flared pants, a short embroidered kurta and a matching dupatta. Gold gota patti work runs along the hems, and the volume in the pants photographs well at mehendi and sangeet functions.",
+    "description": "A peacock blue georgette sharara set with wide flared pants, a short embroidered kurta and a matching dupatta. Gold gota patti work runs along the hems, and the volume in the pants photographs well at mehendi and sangeet functions.",
     "care": "Dry clean only",
     "country_of_origin": "India",
     "seller": "Anaya Ethnics",
     "delivery_days": 6,
     "return_days": 7,
-    "image_url": "/static/products/EW026.svg"
+    "image_url": "/static/products/EW026.jpg",
+    "image_credit": {
+      "photographer": "𝖆𝖒𝖆𝖓 𝖆𝖏𝖎𝖒𝖆𝖑 𝕱𝖆𝖘𝖍𝖎𝖔𝖓 𝕾𝖙𝖞𝖑𝖎𝖘𝖙",
+      "url": "https://www.pexels.com/photo/studio-shot-of-woman-in-turquoise-sari-5399874/"
+    }
   },
   {
     "id": "EW027",
-    "sku": "MIT-KUR-027-TER",
-    "name": "Terracotta Ajrakh Kurti",
-    "title": "Mitti and Co. Women's Terracotta Ajrakh Hand Block Print Cotton Kurti - Handcrafted Daywear",
+    "sku": "MIT-KUR-027-PLM",
+    "name": "Plum Block Print Kurti",
+    "title": "Mitti and Co. Women's Plum Hand Block Print Cotton Kurti - Handcrafted Daywear",
     "brand": "Mitti and Co.",
     "gender": "Women",
     "category": "Kurti",
     "subcategory": "Hand Block Print Kurti",
     "fabric": "Cotton",
-    "color": "Terracotta",
-    "pattern": "Ajrakh block print",
+    "color": "Plum",
+    "pattern": "Hand block print",
     "occasion": ["Casual", "Office", "Daytime"],
     "fit": "Straight",
     "sleeve": "Half sleeve",
@@ -1039,18 +1143,22 @@
     "stock": {"S": 8, "M": 17, "L": 14, "XL": 7},
     "in_stock": true,
     "highlights": [
-      "Traditional Ajrakh block printing using natural dyes",
+      "Traditional hand block printing using natural dyes",
       "Each piece varies slightly, as hand printing does",
       "Boat neck with a straight cut that skims rather than clings",
       "Colours soften attractively over the first few washes"
     ],
-    "description": "A terracotta cotton kurti hand block printed in the traditional Ajrakh technique with natural dyes. Because each piece is printed by hand the motifs vary slightly, and the naturally dyed colours soften over the first few washes rather than fading flat.",
+    "description": "A plum cotton kurti hand block printed in small ivory motifs using natural dyes. Because each piece is printed by hand the motifs vary slightly, and the naturally dyed colours soften over the first few washes rather than fading flat.",
     "care": "Hand wash separately, dry in shade",
     "country_of_origin": "India",
     "seller": "Mitti Handlooms Pvt Ltd",
     "delivery_days": 5,
     "return_days": 10,
-    "image_url": "/static/products/EW027.svg"
+    "image_url": "/static/products/EW027.jpg",
+    "image_credit": {
+      "photographer": "Fahad Puthawala",
+      "url": "https://www.pexels.com/photo/traditional-fashion-portrait-on-urban-street-33356916/"
+    }
   },
   {
     "id": "EW028",
@@ -1089,7 +1197,11 @@
     "seller": "Zari Lane Couture",
     "delivery_days": 7,
     "return_days": 7,
-    "image_url": "/static/products/EW028.svg"
+    "image_url": "/static/products/EW028.jpg",
+    "image_credit": {
+      "photographer": "walter Cordero",
+      "url": "https://www.pexels.com/photo/elegant-woman-celebrating-50th-birthday-in-red-dress-38795761/"
+    }
   },
   {
     "id": "EW029",
@@ -1128,7 +1240,11 @@
     "seller": "Anaya Ethnics",
     "delivery_days": 4,
     "return_days": 7,
-    "image_url": "/static/products/EW029.svg"
+    "image_url": "/static/products/EW029.jpg",
+    "image_credit": {
+      "photographer": "Samir Ali",
+      "url": "https://www.pexels.com/photo/a-beautiful-woman-wearing-a-dupatta-13860638/"
+    }
   },
   {
     "id": "EW030",
@@ -1167,7 +1283,11 @@
     "seller": "Rangrez Apparel",
     "delivery_days": 3,
     "return_days": 10,
-    "image_url": "/static/products/EW030.svg"
+    "image_url": "/static/products/EW030.jpg",
+    "image_credit": {
+      "photographer": "Azurite Has",
+      "url": "https://www.pexels.com/photo/woman-wearing-black-clothing-and-red-hijab-9398571/"
+    }
   },
   {
     "id": "EW031",
@@ -1206,19 +1326,23 @@
     "seller": "Vastra Studio Retail LLP",
     "delivery_days": 5,
     "return_days": 10,
-    "image_url": "/static/products/EW031.svg"
+    "image_url": "/static/products/EW031.jpg",
+    "image_credit": {
+      "photographer": "HEMANT SAINI",
+      "url": "https://www.pexels.com/photo/elegant-portrait-of-a-woman-in-traditional-indian-attire-33363057/"
+    }
   },
   {
     "id": "EW032",
-    "sku": "MIT-KUR-032-OLV",
-    "name": "Olive Khadi Cotton Kurti",
-    "title": "Mitti and Co. Women's Olive Khadi Cotton Kurti with Wooden Buttons - Sustainable Daywear",
+    "sku": "MIT-KUR-032-BGR",
+    "name": "Bottle Green Khadi Cotton Kurti",
+    "title": "Mitti and Co. Women's Bottle Green Khadi Cotton Kurti with Wooden Buttons - Sustainable Daywear",
     "brand": "Mitti and Co.",
     "gender": "Women",
     "category": "Kurti",
     "subcategory": "Khadi Kurti",
     "fabric": "Khadi cotton",
-    "color": "Olive",
+    "color": "Bottle green",
     "pattern": "Solid",
     "occasion": ["Casual", "Office", "Daytime"],
     "fit": "Straight",
@@ -1239,12 +1363,16 @@
       "Roll-tab sleeves for warmer afternoons",
       "Khadi keeps you cool in summer and warm in winter"
     ],
-    "description": "An olive khadi cotton kurti with a shirt collar, coconut shell buttons and roll-tab sleeves. Handspun khadi breathes in summer and insulates in winter, and the fabric develops a softer hand the longer it is worn.",
+    "description": "A bottle green khadi cotton kurti with a shirt collar, coconut shell buttons and roll-tab sleeves. Handspun khadi breathes in summer and insulates in winter, and the fabric develops a softer hand the longer it is worn.",
     "care": "Hand wash cold, line dry",
     "country_of_origin": "India",
     "seller": "Mitti Handlooms Pvt Ltd",
     "delivery_days": 5,
     "return_days": 10,
-    "image_url": "/static/products/EW032.svg"
+    "image_url": "/static/products/EW032.jpg",
+    "image_credit": {
+      "photographer": "You Ensembles",
+      "url": "https://www.pexels.com/photo/elegant-indian-woman-in-traditional-attire-31861623/"
+    }
   }
 ]

@@ -264,7 +264,9 @@ def main() -> int:
         repo.consume_link_token(token, web_phone)
 
         web.post("/cart/add/EW012", data={"size": "Free Size", "quantity": "1"}, follow_redirects=False)
-        to_pay = web.post("/checkout", follow_redirects=False).headers.get("location", "")
+        address = {"name": "Web Payer", "phone": "9876543210", "line1": "4 Park Street",
+                   "city": "Kolkata", "state": "West Bengal", "pincode": "700016"}
+        to_pay = web.post("/checkout", data=address, follow_redirects=False).headers.get("location", "")
         check("web checkout goes to the payment page", to_pay.startswith("https://rzp.io/test/"), to_pay)
         web_order = repo.get_order_history(web_user)[0]
 
