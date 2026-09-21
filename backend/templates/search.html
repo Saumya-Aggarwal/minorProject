@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Search{% endblock %}
+{% block content %}
+<form action="/search" method="get" class="flex gap-2 mb-8">
+  <label for="search-query" class="sr-only">Search products</label>
+  <input id="search-query" name="q" value="{{ query }}" required
+         placeholder="Search by occasion, style, fabric or product"
+         class="flex-1 border border-stone-300 rounded-md px-3 py-2 bg-white">
+  <button type="submit" class="bg-stone-900 text-white px-4 py-2 rounded-md hover:bg-stone-700">
+    Search
+  </button>
+</form>
+
+{% if query %}
+  <div class="flex items-baseline justify-between mb-5">
+    <h1 class="text-xl font-semibold">Results for &quot;{{ query }}&quot;</h1>
+    <span class="text-sm text-stone-500">{{ products|length }} matches</span>
+  </div>
+{% endif %}
+
+<div class="grid gap-5 grid-cols-2 lg:grid-cols-4">
+  {% for product in products %}
+  <a href="/product/{{ product.id }}"
+     class="group block bg-white border border-stone-200 rounded-lg overflow-hidden hover:border-stone-400 hover:shadow-sm transition">
+    <div class="aspect-[4/5] bg-stone-100 overflow-hidden">
+      <img src="{{ product.image_url }}" alt="{{ product.name }}"
+           class="w-full h-full object-cover group-hover:scale-[1.02] transition" loading="lazy">
+    </div>
+    <div class="p-3">
+      <div class="text-[11px] uppercase tracking-wide text-stone-400">{{ product.brand }}</div>
+      <h2 class="text-sm font-medium mt-0.5 leading-snug">{{ product.name }}</h2>
+      <div class="font-semibold mt-2">&#8377;{{ '{:,.0f}'.format(product.price) }}</div>
+    </div>
+  </a>
+  {% else %}
+  {% if query %}<p class="text-stone-500">No close matches found. Try another occasion, style or budget.</p>{% endif %}
+  {% endfor %}
+</div>
+{% endblock %}

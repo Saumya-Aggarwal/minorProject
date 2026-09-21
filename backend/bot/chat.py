@@ -1,5 +1,6 @@
 import os
 import re
+import time
 from typing import Any, Optional
 
 import chromadb
@@ -24,15 +25,29 @@ WOMENS_HINTS = {
     "herself",
 }
 
+CATEGORY_HINTS = {
+    "kurta": "Kurta",
+    "kurtas": "Kurta",
+    "saree": "Saree",
+    "sari": "Saree",
+    "sarees": "Saree",
+    "dupatta": "Dupatta",
+    "dupattas": "Dupatta",
+    "jacket": "Jacket",
+    "jackets": "Jacket",
+    "nehru": "Jacket",
+    "bandhgala": "Jacket",
+    "sherwani": "Sherwani",
+    "sherwanis": "Sherwani",
+    "lehenga": "Lehenga",
+    "lehengas": "Lehenga",
+    "gown": "Gown",
+    "gowns": "Gown",
+}
+
 
 def _gender_filter(query: str) -> Optional[dict[str, str]]:
-    """Narrow to one gender when the query names hints from exactly one set.
-
-    Known limitation: only explicit words count, so "something for me and my
-    wife" filters to Women — "wife" is a hint and "me" is not. Shopping for two
-    people at once needs intent parsing rather than keywords; the fallback of
-    showing one side is wrong but not confusing, and the customer can ask again.
-    """
+    """Narrow to one gender only when the query names exactly one side."""
     words = set(re.findall(r"[a-z]+", query.lower()))
     mens = bool(words & MENS_HINTS)
     womens = bool(words & WOMENS_HINTS)
@@ -42,6 +57,52 @@ def _gender_filter(query: str) -> Optional[dict[str, str]]:
     if womens and not mens:
         return {"gender": "Women"}
     return None
+
+
+def _category_filter(query: str) -> Optional[str]:
+    words = re.findall(r"[a-z]+", query.lower())
+    for word in words:
+        if word in CATEGORY_HINTS:
+            return CATEGORY_HINTS[word]
+    return None
+
+
+def _budget_limit(query: str) -> Optional[float]:
+    match = re.search(
+        r"\b(?:under|below|less than|up to|upto|within|budget(?: of)?)\s*"
+        r"(?:rs\.?|inr|₹)?\s*([\d,]+(?:\.\d+)?)\s*([km])?\b",
+        query.lower(),
+    )
+    if not match:
+        return None
+
+    amount = float(match.group(1).replace(",", ""))
+    suffix = match.group(2)
+    if suffix == "k":
+        amount *= 1000
+    elif suffix == "m":
+        amount *= 1_000_000
+    return amount
+
+
+def _build_where(query: str) -> Optional[dict[str, Any]]:
+    filters: list[dict[str, Any]] = []
+    gender = _gender_filter(query)
+    category = _category_filter(query)
+    budget = _budget_limit(query)
+
+    if gender:
+        filters.append({"gender": {"$eq": gender["gender"]}})
+    if category:
+        filters.append({"category": {"$eq": category}})
+    if budget is not None:
+        filters.append({"price": {"$lte": budget}})
+
+    if not filters:
+        return None
+    if len(filters) == 1:
+        return filters[0]
+    return {"$and": filters}
 
 
 def _get_collection() -> Any:
@@ -59,61 +120,90 @@ def _format_matches(matches: list[dict[str, Any]]) -> str:
             "Tell me the occasion, preferred fabric, or budget and I will search again."
         )
 
+    public_base_url = os.getenv("PUBLIC_BASE_URL", "").rstrip("/")
     lines = ["Here are a few options that may suit you:"]
     for index, product in enumerate(matches, start=1):
+        product_url = f"\n   {public_base_url}/product/{product['id']}" if public_base_url else ""
         lines.append(
             f"{index}. {product['name']} - Rs. {product['price']:.0f}\n"
-            f"   {product['description']}"
+            f"   {product['description']}{product_url}"
         )
-    lines.append("Reply with an item number or ask for more options.")
     return "\n".join(lines)
 
 
-def _polish_response(query: str, matches: list[dict[str, Any]], fallback: str) -> str:
-    api_key = os.getenv("OPENAI_API_KEY")
+def _polish_response(
+    query: str,
+    matches: list[dict[str, Any]],
+    fallback: str,
+    user_context: str | None = None,
+) -> str:
+    llm_api_key = os.getenv("LLM_API_KEY")
+    api_key = llm_api_key or os.getenv("OPENAI_API_KEY")
     if not api_key or not matches:
-        # No key: the formatted catalog list is the reply. Retrieval still works,
-        # only the conversational phrasing is missing.
         return fallback
 
     from openai import OpenAI
 
-    prompt = "\n".join(
-        f"- {item['name']} (Rs. {item['price']:.0f}): {item['description']}"
-        for item in matches
-    )
+    context = user_context or "No purchase history is available."
+    base_url = os.getenv("LLM_BASE_URL")
+    if llm_api_key and not base_url:
+        base_url = "https://api.groq.com/openai/v1"
+    client_options = {"api_key": api_key, "timeout": 8.0, "max_retries": 1}
+    if base_url:
+        client_options["base_url"] = base_url
+
     try:
-        response = OpenAI(api_key=api_key).chat.completions.create(
-            model=os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini"),
-            temperature=0.4,
-            max_tokens=250,
-            messages=[
+        started_at = time.perf_counter()
+        completion_options = {
+            "model": os.getenv("LLM_MODEL", os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")),
+            "temperature": 0.4,
+            "max_tokens": 1000,
+            "messages": [
                 {
                     "role": "system",
                     "content": (
                         "You are a concise WhatsApp shopping assistant for an ethnic wear store. "
-                        "Recommend only the supplied products, include prices, and ask one short "
-                        "follow-up question. Do not invent availability or discounts."
+                        "Write only a friendly introduction in one or two sentences. "
+                        "Do not number products, list products, include prices, or invent "
+                        "availability. Do not ask a follow-up question."
                     ),
                 },
-                {"role": "user", "content": f"Customer request: {query}\nProducts:\n{prompt}"},
+                {
+                    "role": "user",
+                    "content": (
+                        f"Customer request: {query}\n"
+                        f"Customer context: {context}\n"
+                        "The application will append the product list separately."
+                    ),
+                },
             ],
-        )
+        }
+        reasoning_effort = os.getenv("LLM_REASONING_EFFORT")
+        if reasoning_effort:
+            completion_options["reasoning_effort"] = reasoning_effort
+        response = OpenAI(**client_options).chat.completions.create(**completion_options)
+        elapsed_ms = (time.perf_counter() - started_at) * 1000
+        print(f"[bot] LLM response time: {elapsed_ms:.0f} ms")
         content = response.choices[0].message.content
-        return content.strip() if content else fallback
+        intro = content.strip() if content else ""
+        return f"{intro}\n\n{fallback}" if intro else fallback
     except Exception as exc:
-        print(f"[bot] OpenAI response failed, using catalog response: {exc!r}")
+        print(f"[bot] LLM response failed, using catalog response: {exc!r}")
         return fallback
 
 
-def get_product_recommendations(query: str, top_k: int = 3) -> tuple[str, list[dict[str, Any]]]:
+def get_product_recommendations(
+    query: str,
+    top_k: int = 3,
+    user_context: str | None = None,
+) -> tuple[str, list[dict[str, Any]]]:
     """Retrieve catalog matches and turn them into a customer-facing response."""
     try:
         collection = _get_collection()
         embedding = embeddings.embed_one(query)
-        where = _gender_filter(query)
+        where = _build_where(query)
         if where:
-            print(f"[bot] filtering to {where['gender']}")
+            print(f"[bot] applying filters: {where}")
         result = collection.query(
             query_embeddings=[embedding], n_results=top_k, where=where
         )
@@ -145,4 +235,4 @@ def get_product_recommendations(query: str, top_k: int = 3) -> tuple[str, list[d
         )
 
     fallback = _format_matches(matches)
-    return _polish_response(query, matches, fallback), matches
+    return _polish_response(query, matches, fallback, user_context), matches

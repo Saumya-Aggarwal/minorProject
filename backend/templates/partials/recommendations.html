@@ -1,0 +1,28 @@
+{% if products %}
+<section class="mt-10">
+  <div class="flex items-baseline justify-between gap-3 mb-4">
+    <h2 class="text-lg font-semibold">{{ recommendations_title|default("Recommended for you") }}</h2>
+    <a href="/" class="text-sm text-stone-500 hover:text-stone-900">View all</a>
+  </div>
+
+  <div class="grid gap-4 grid-cols-2 lg:grid-cols-4">
+    {% for product in products %}
+    <a href="/product/{{ product.id }}"
+       class="group block bg-white border border-stone-200 rounded-lg overflow-hidden hover:border-stone-400 hover:shadow-sm transition">
+      <div class="aspect-[4/5] bg-stone-100 overflow-hidden">
+        <img src="{{ product.image_url }}" alt="{{ product.name }}"
+             class="w-full h-full object-cover group-hover:scale-[1.02] transition" loading="lazy">
+      </div>
+      <div class="p-3">
+        <div class="text-[11px] uppercase tracking-wide text-stone-400">{{ product.brand }}</div>
+        <h3 class="text-sm font-medium mt-0.5 leading-snug">{{ product.name }}</h3>
+        <div class="flex items-baseline gap-2 mt-2 flex-wrap">
+          <span class="font-semibold">&#8377;{{ '{:,.0f}'.format(product.price) }}</span>
+          <span class="text-xs text-stone-400 line-through">&#8377;{{ '{:,.0f}'.format(product.mrp) }}</span>
+        </div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}

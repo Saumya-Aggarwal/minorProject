@@ -7,6 +7,27 @@
   </div>
 </div>
 
+<form action="/" method="get" class="flex flex-wrap gap-2 mb-6">
+  <label for="category" class="sr-only">Category</label>
+  <select id="category" name="category" class="border border-stone-300 rounded-md px-3 py-2 bg-white text-sm">
+    <option value="">All categories</option>
+    {% for category in categories %}
+    <option value="{{ category }}" {% if selected_category == category %}selected{% endif %}>{{ category }}</option>
+    {% endfor %}
+  </select>
+  <label for="gender" class="sr-only">Gender</label>
+  <select id="gender" name="gender" class="border border-stone-300 rounded-md px-3 py-2 bg-white text-sm">
+    <option value="">Everyone</option>
+    <option value="Men" {% if selected_gender == "Men" %}selected{% endif %}>Men</option>
+    <option value="Women" {% if selected_gender == "Women" %}selected{% endif %}>Women</option>
+  </select>
+  <label for="max_price" class="sr-only">Maximum price</label>
+  <input id="max_price" name="max_price" value="{{ selected_max_price }}" type="number" min="0"
+         placeholder="Max price" class="w-32 border border-stone-300 rounded-md px-3 py-2 bg-white text-sm">
+  <button type="submit" class="bg-stone-900 text-white px-4 py-2 rounded-md text-sm hover:bg-stone-700">Filter</button>
+  {% if selected_category or selected_gender or selected_max_price %}<a href="/" class="px-3 py-2 text-sm text-stone-500 hover:underline">Clear</a>{% endif %}
+</form>
+
 <div class="grid gap-5 grid-cols-2 lg:grid-cols-4">
   {% for product in products %}
   <a href="/product/{{ product.id }}"
@@ -35,4 +56,8 @@
   <p class="text-stone-500">No products loaded. Check data/products.json.</p>
   {% endfor %}
 </div>
+
+{% with products=recommendations, recommendations_title="Recommended for you" %}
+  {% include "partials/recommendations.html" %}
+{% endwith %}
 {% endblock %}
