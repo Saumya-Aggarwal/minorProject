@@ -65,35 +65,29 @@ open a small PR for them to review.
 | Dev A owns | Dev B owns |
 |---|---|
 | `backend/models.py`, `db.py`, `repository.py` | `backend/bot/chat.py` |
-| `backend/routers/webhook.py` | `backend/catalog.py` |
-| `backend/routers/store.py` (auth, account, cart, checkout, orders) | `backend/routers/browse.py` **(new: `/`, `/product/{id}`, `/search`)** |
-| `backend/routers/api.py` (cart, orders, link) | `common/embeddings.py` |
-| `backend/routers/payments.py` **(new)** | `scripts/ingest_catalog.py` |
-| `backend/payments.py` **(new)** | `scripts/eval_retrieval.py` **(new)** |
-| `backend/whatsapp.py`, `selection.py`, `auth.py` | `data/products.json`, `backend/static/products/` |
-| templates: account, cart, checkout, order, login, signup | templates: index, product, search |
-| `templates/partials/buy_box.html` **(new)** | `templates/partials/recommendations.html` **(new)** |
-| `scripts/test_linking.py`, `scripts/test_cart.py` **(new)** | |
+| `backend/routers/webhook.py`, `whatsapp.py`, `selection.py`, `auth.py` | `common/embeddings.py` |
+| `backend/routers/store.py`, `api.py`, `payments.py`, `browse.py` | `scripts/ingest_catalog.py` |
+| `backend/payments.py`, `checkout.py`, `shipping.py` | `scripts/eval_retrieval.py` **(new)** |
+| `backend/search.py` (site search, similar, recommended) | |
+| `backend/catalog.py` (filters, sort, facets) | |
+| **all templates**, `templating.py`, `backend/static/`, `backend/tailwind/` | |
+| `data/products.json`, `data/photo_choices.json`, `scripts/fetch_photos.py` | |
+| `scripts/test_*.py`, `scripts/test_live_js.mjs` | |
+
+> **Changed on 21 Sep — the website moved to Dev A.** The storefront redesign
+> (photos, checkout with address, search, filters) touched the home, product and
+> search pages, which were Dev B's. Dev B had not started them, so the whole
+> website UI moved to Dev A rather than split one page across two people.
+> Dev B keeps everything the bot says: `bot/chat.py`, embeddings, ingestion,
+> the LLM and retrieval tuning. B5 and B6 below are therefore already done (by
+> A, in `search.py` and `catalog.py`); B7 and the rest of Part B are unchanged.
+> **Catalogue edits** (`data/products.json`) are A's, but tell B, because the
+> Chroma index must be rebuilt with `scripts/ingest_catalog.py` afterwards.
 
 **Shared — append-only, small commits, pull before editing:**
 `main.py` (router registration), `templates/base.html` (A adds a Cart link,
 B adds a search box), `requirements.txt`, `backend/.env.example`, `CLAUDE.md`,
 `common/schemas.py` (changes need both).
-
-**First task on Sep 19, before branching:** move `/` and `/product/{id}` out of
-`store.py` into the new `routers/browse.py`, so the two people never edit the
-same router. About 10 minutes, one person, one commit, pushed before either
-branch is created.
-
-### Partials keep each template single-owner
-
-Two pages need content from both sides. Rather than both people editing one
-template, each side provides a partial and the other adds one `{% include %}` line:
-
-- **Product page** (B's `product.html`) includes A's `partials/buy_box.html` —
-  size selector, Add to cart, Buy now.
-- **Account page** (A's `account.html`) and **home page** (B's `index.html`)
-  include B's `partials/recommendations.html`.
 
 ---
 
@@ -131,15 +125,12 @@ purpose: the order tables are being restructured, and B should not depend on
 their shape. **A ships this on Sep 19**, even as a stub over the current schema —
 B needs it on Sep 20.
 
-### C3 · Similar products (B produces, A renders)
+### C3 · Similar products — done by A, no longer a contract
 
-```python
-catalog.get_similar_products(product_ids: list[str], exclude_ids: list[str],
-                             k: int = 4, gender: str | None = None) -> list[dict]
-```
-
-Full product records (same shape as `data/products.json`), ready for display. B
-also provides `partials/recommendations.html`, which takes this list.
+`search.similar_products(product_id, k=4)` and `search.recommended_for(ids, k=4)`
+read the same Chroma collection the bot uses, through `common/embeddings.py`.
+They only read the index, so B can change how it is built as long as the
+collection name ("products") and the metadata keys (`gender`, `category`) stay.
 
 ### C4 · Image description — stretch only (B produces, A calls)
 
@@ -259,13 +250,13 @@ The agreed contract addition. It goes into the intro prompt only ("pairs well
 with the kurta you bought"). `webhook.py` already passes it as soon as the
 parameter exists.
 
-**B5 · Recommended for you** — Sep 20
+**B5 · Recommended for you** — Sep 20 — **done by A (see section 1)**
 C3 `get_similar_products()` plus `partials/recommendations.html`, using C2 from
 A. On the home page for signed-in customers, falling back to top-rated products
 for everyone else. The strongest viva point per hour of work: it shows the
 retrieval engine is shared between the site and the bot.
 
-**B6 · Browse and search** — Sep 21
+**B6 · Browse and search** — Sep 21 — **done by A (see section 1)**
 `routers/browse.py`: category/gender/price filters on the grid (plain filtering
 in `catalog.py`, no vectors needed) and `/search?q=` using the **same semantic
 retrieval as the bot**, with `/api/search` as its JSON twin.
