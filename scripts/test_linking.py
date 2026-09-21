@@ -38,6 +38,9 @@ async def _no_whatsapp(to, body):
 
 payments.create_payment_link = _fake_create_payment_link
 os.environ["PAYMENT_RECONCILE_SECONDS"] = "0"  # no background confirmations racing the checks
+# Deterministic and free: no LLM calls; the assistant has its own test with a fake model
+os.environ["LLM_API_KEY"] = ""
+os.environ["OPENAI_API_KEY"] = ""
 checkout.send_whatsapp_message = _no_whatsapp
 from main import app  # noqa: E402
 from models import CartItem, LinkToken, Order, OrderItem, Session, User  # noqa: E402

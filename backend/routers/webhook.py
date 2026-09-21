@@ -1,15 +1,18 @@
 import asyncio
 import inspect
 import os
+import re
+from collections import OrderedDict
 from dataclasses import dataclass
 
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, Response
 
 import catalog
 import checkout
 import payments
 import repository as repo
-from bot.chat import get_product_recommendations
+from bot import assistant
+from bot.chat import format_product_lines, get_product_recommendations
 from common.schemas import ProductMatch
 from repository import LINK_PREFIX
 from selection import (
@@ -165,6 +168,15 @@ async def _handle_follow_up(
     command = parse_command(text)
     if command is not None:
         name, args = command
+        if name == "add" and not (previous or {}).get("selected_product"):
+            shown = (previous or {}).get("last_products_shown") or []
+            if len(shown) == 1:
+                # "add it in 42" right after a single suggestion: "it" is that one
+                await asyncio.to_thread(repo.record_selection, user_id, shown[0])
+                previous = {**previous, "selected_product": shown[0]}
+            elif assistant.enabled():
+                # "add the blue one in 42": the assistant can resolve which one
+                return None
         try:
             return await _handle_cart_command(user_id, name, args, previous)
         except Exception as exc:
@@ -470,9 +482,77 @@ def _build_user_context(user: dict | None, history: list[dict]) -> str | None:
     return "\n".join(lines)
 
 
-async def _handle_text(sender: str, text: str, display_name: str | None) -> str:
-    """Persist the contact, answer the query, and record the turn.
+def _reply_text(reply: "str | Reply") -> str:
+    return reply.text if isinstance(reply, Reply) else reply
 
+
+async def _remember(user_id: int | None, text: str, answer: str) -> None:
+    """Add this exchange to the assistant's memory. Never blocks a reply."""
+    if user_id is None:
+        return
+    try:
+        await asyncio.to_thread(
+            repo.remember_messages, user_id,
+            [{"role": "user", "content": text[:500]}, {"role": "assistant", "content": answer[:700]}],
+        )
+    except Exception as exc:
+        print(f"[webhook] could not remember the exchange: {exc!r}")
+
+
+async def _record_shown(user_id: int | None, text: str, products: list[dict]) -> list[ProductMatch]:
+    """Store the numbered list so "2", ADD and BUY refer to it next turn."""
+    # Chroma metadata and catalogue records use other keys; normalise first
+    matches = [ProductMatch.from_raw(product) for product in products]
+    if user_id is not None:
+        try:
+            await asyncio.to_thread(
+                repo.record_turn, user_id, text, [match.model_dump() for match in matches]
+            )
+        except Exception as exc:
+            print(f"[webhook] could not record turn: {exc!r}")
+    return matches
+
+
+async def _assistant_reply(user_id: int, text: str, context: dict) -> str:
+    """Let the LLM assistant answer; raises AssistantUnavailable to fall back."""
+    answer = await asyncio.to_thread(assistant.respond, user_id, text, context)
+    print(f"[webhook] assistant used {answer.tools_used or 'no tools'}")
+
+    parts = [answer.message] if answer.message else []
+    if answer.products:
+        await _record_shown(user_id, text, answer.products)
+        parts.append(format_product_lines(answer.products))
+        parts.append(results_footer(len(answer.products)))
+    if answer.attach == "orders":
+        parts.append(await _format_orders(user_id))
+    elif answer.attach == "cart":
+        parts.append(_format_cart(await asyncio.to_thread(repo.get_cart, user_id)))
+
+    await _remember(user_id, text, assistant.memory_text(answer))
+    return "\n\n".join(parts)
+
+
+async def _search_reply(user_id: int | None, text: str, user_context: str | None) -> str:
+    """The plain path: retrieval plus a one-line intro. Always answers."""
+    # get_product_recommendations is synchronous and does network I/O
+    reply, raw_matches = await asyncio.to_thread(_recommend, text, user_context)
+    matches = await _record_shown(user_id, text, raw_matches)
+
+    shown = "; ".join(f"{n}. {m.product_id} {m.name}" for n, m in enumerate(matches, 1))
+    await _remember(user_id, text, f"{reply.split(chr(10))[0]}\n[Showed: {shown}]" if shown else reply)
+
+    # Contract C1: the RAG side returns intro + numbered list; the command hints
+    # belong to whoever owns the commands
+    footer = results_footer(len(matches))
+    return f"{reply}\n\n{footer}" if footer else reply
+
+
+async def _handle_text(sender: str, text: str, display_name: str | None) -> "str | Reply":
+    """Persist the contact, answer the message, and remember the exchange.
+
+    Order matters: exact commands ("2", ADD 42, CART, CHECKOUT, a product code)
+    are instant and deterministic, and payment never depends on the LLM. Only
+    free text reaches the assistant, and if it fails the plain search answers.
     Database problems must never stop a reply going out — a dead Postgres
     costs us conversation memory, not the conversation.
     """
@@ -481,6 +561,7 @@ async def _handle_text(sender: str, text: str, display_name: str | None) -> str:
 
     user_id = None
     user = None
+    previous: dict | None = None
     history: list[dict] = []
     try:
         user_id = await asyncio.to_thread(repo.get_or_create_user, sender, display_name)
@@ -493,49 +574,101 @@ async def _handle_text(sender: str, text: str, display_name: str | None) -> str:
 
         follow_up = await _handle_follow_up(user_id, text, previous)
         if follow_up is not None:
+            await _remember(user_id, text, _reply_text(follow_up))
             return follow_up
 
         # After commands, so "hi" never shadows one; before search, so it never
         # reaches retrieval and comes back as three random products
         if is_greeting(text):
-            return _greeting(user, history)
+            greeting = _greeting(user, history)
+            await _remember(user_id, text, greeting)
+            return greeting
     except Exception as exc:
         print(f"[webhook] user lookup failed, continuing stateless: {exc!r}")
+
+    if user_id is not None and assistant.enabled():
+        try:
+            cart = await asyncio.to_thread(repo.get_cart, user_id)
+            context = {
+                "name": (user or {}).get("display_name") or display_name,
+                "purchases": [f"{h['product_name']} (Rs {h['price_inr']:.0f})" for h in history],
+                "cart_count": cart["count"],
+                "history": (previous or {}).get("messages") or [],
+                "last_products_shown": (previous or {}).get("last_products_shown") or [],
+                "selected_product": (previous or {}).get("selected_product"),
+            }
+            return await _assistant_reply(user_id, text, context)
+        except assistant.AssistantUnavailable as exc:
+            print(f"[webhook] assistant unavailable ({exc}); answering with plain search")
+        except Exception as exc:
+            print(f"[webhook] assistant failed ({exc!r}); answering with plain search")
+
+    # Without the assistant (no key, rate-limited, down), the common questions
+    # that are not searches still get a real answer instead of "no match"
+    if user_id is not None:
+        try:
+            if _ASKS_ORDERS.search(text):
+                answer = await _format_orders(user_id)
+                await _remember(user_id, text, answer)
+                return answer
+            if _ASKS_CART.search(text):
+                answer = _format_cart(await asyncio.to_thread(repo.get_cart, user_id))
+                await _remember(user_id, text, answer)
+                return answer
+        except Exception as exc:
+            print(f"[webhook] orders/cart lookup failed: {exc!r}")
 
     user_context = _build_user_context(user, history)
     if user_context:
         print(f"[webhook] personalizing for linked user {user_id}")
+    return await _search_reply(user_id, text, user_context)
 
-    # get_product_recommendations is synchronous and does network I/O.
-    # user_context is passed only when the RAG side supports it, so Dev B's
-    # current two-argument signature keeps working untouched.
-    reply, raw_matches = await asyncio.to_thread(
-        _recommend, text, user_context
-    )
 
-    # Chroma metadata is unvalidated, so normalize before anything stores it
-    matches = [ProductMatch.from_raw(match) for match in raw_matches]
+_ASKS_ORDERS = re.compile(
+    r"\b(?:my|previous|past|recent|last)\s+(?:orders?|purchases?)\b|\bwhere\s+is\s+my\s+(?:order|parcel|package)\b"
+    r"|\bwhat\s+(?:did|have)\s+i\s+(?:buy|bought|order(?:ed)?)\b|\border\s+(?:status|history)\b|\btrack\w*\s+(?:my\s+)?order",
+    re.IGNORECASE,
+)
+_ASKS_CART = re.compile(
+    r"\b(?:my|the)\s+(?:cart|bag|basket)\b|\bwhat'?s\s+in\s+(?:my|the)\b|\bshow\s+(?:me\s+)?(?:my\s+)?cart\b",
+    re.IGNORECASE,
+)
 
-    if user_id is not None:
-        try:
-            await asyncio.to_thread(
-                repo.record_turn,
-                user_id,
-                text,
-                [match.model_dump() for match in matches],
-            )
-        except Exception as exc:
-            print(f"[webhook] could not record turn: {exc!r}")
 
-    # Contract C1: the RAG side returns intro + numbered list; the command hints
-    # belong to whoever owns the commands
-    footer = results_footer(len(matches))
-    return f"{reply}\n\n{footer}" if footer else reply
+# Meta redelivers a message when our 200 is slow or lost. Answering twice would
+# send two replies (or add to the cart twice), so recent message ids are kept.
+_SEEN_MESSAGES: "OrderedDict[str, None]" = OrderedDict()
+
+
+def _first_delivery(message_id: str | None) -> bool:
+    if not message_id:
+        return True
+    if message_id in _SEEN_MESSAGES:
+        return False
+    _SEEN_MESSAGES[message_id] = None
+    while len(_SEEN_MESSAGES) > 500:
+        _SEEN_MESSAGES.popitem(last=False)
+    return True
+
+
+async def _answer_and_send(sender: str, text: str, display_name: str | None) -> None:
+    """Background work for a real message: the LLM may take a few seconds."""
+    try:
+        reply = await _handle_text(sender, text, display_name)
+    except Exception as exc:
+        print(f"[webhook] could not answer {sender}: {exc!r}")
+        reply = "Sorry, something went wrong on our side. Please send that again."
+    await _safe_send(sender, reply if isinstance(reply, Reply) else Reply(reply))
 
 
 @router.post("/webhook")
-async def receive_message(request: Request):
-    """Receives incoming messages and status updates from WhatsApp."""
+async def receive_message(request: Request, background: BackgroundTasks):
+    """Receives incoming messages and status updates from WhatsApp.
+
+    Real messages are answered in a background task, so Meta gets its 200 at
+    once however long the assistant thinks. Local tests (X-Local-Test) are
+    answered inline and the reply is returned in the response body instead.
+    """
     payload = await request.json()
     local_test = request.headers.get("X-Local-Test") == "true"
     responses = []
@@ -554,19 +687,22 @@ async def receive_message(request: Request):
 
                 for message in value.get("messages", []):
                     sender = message["from"]
-                    if message["type"] == "text":
-                        text = message["text"]["body"]
-                        print(f"[webhook] message from {sender}: {text}")
-                        reply = await _handle_text(sender, text, names.get(sender))
-                        if isinstance(reply, str):
-                            reply = Reply(reply)
-                        responses.append(
-                            {"to": sender, "body": reply.text, "cta_url": reply.cta_url}
-                        )
-                        if not local_test:
-                            await _safe_send(sender, reply)
-                    else:
+                    if message["type"] != "text":
                         print(f"[webhook] unhandled {message['type']!r} message from {sender}")
+                        continue
+                    # Local tests reuse one fake id; only Meta's real ids are unique
+                    if not local_test and not _first_delivery(message.get("id")):
+                        print(f"[webhook] duplicate delivery of {message.get('id')} ignored")
+                        continue
+                    text = message["text"]["body"]
+                    print(f"[webhook] message from {sender}: {text}")
+                    if not local_test:
+                        background.add_task(_answer_and_send, sender, text, names.get(sender))
+                        continue
+                    reply = await _handle_text(sender, text, names.get(sender))
+                    if isinstance(reply, str):
+                        reply = Reply(reply)
+                    responses.append({"to": sender, "body": reply.text, "cta_url": reply.cta_url})
     except Exception as e:
         # Deliberately broad: any uncaught error here becomes a 500, which Meta
         # reads as failed delivery and retries — the same message arrives again

@@ -9,7 +9,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from functools import lru_cache
 
-from sqlalchemy import Engine
+from sqlalchemy import Engine, text
 from sqlmodel import Session as DBSession
 from sqlmodel import SQLModel, create_engine
 
@@ -23,9 +23,21 @@ def get_engine() -> Engine:
     return create_engine(url, echo=False, pool_pre_ping=True)
 
 
+# Columns added after their table already existed. create_all() only creates
+# missing tables, never columns, and there is no Alembic yet (CLAUDE.md), so
+# each addition is an idempotent ALTER that keeps existing rows.
+_ADDED_COLUMNS = (
+    "ALTER TABLE sessions ADD COLUMN IF NOT EXISTS messages JSONB",
+)
+
+
 def init_db() -> None:
-    """Create any missing tables. Safe to call repeatedly."""
-    SQLModel.metadata.create_all(get_engine())
+    """Create any missing tables and columns. Safe to call repeatedly."""
+    engine = get_engine()
+    SQLModel.metadata.create_all(engine)
+    with engine.begin() as connection:
+        for statement in _ADDED_COLUMNS:
+            connection.execute(text(statement))
 
 
 @contextmanager

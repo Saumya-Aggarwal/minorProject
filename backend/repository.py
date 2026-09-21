@@ -65,6 +65,7 @@ def get_active_session(user_id: int) -> Optional[dict[str, Any]]:
             "last_query": session.last_query,
             "last_products_shown": session.last_products_shown,
             "selected_product": session.selected_product,
+            "messages": session.messages or [],
             "status": session.status,
         }
 
@@ -109,6 +110,31 @@ def record_selection(user_id: int, product: dict[str, Any]) -> None:
             db.add(session)
 
         session.selected_product = product
+        session.updated_at = utcnow()
+
+
+MEMORY_MESSAGES = 12
+
+
+def remember_messages(user_id: int, new: list[dict[str, Any]], keep: int = MEMORY_MESSAGES) -> None:
+    """Append {role, content} messages to the conversation, keeping the latest few.
+
+    Short on purpose: it is sent to the LLM on every turn, and the free Groq
+    tier limits tokens per minute. A dozen messages covers a shopping thread.
+    """
+    with session_scope() as db:
+        session = db.exec(
+            select(Session)
+            .where(Session.user_id == user_id, Session.status == "active")
+            .order_by(Session.updated_at.desc())
+        ).first()
+
+        if session is None:
+            session = Session(user_id=user_id)
+            db.add(session)
+
+        # Reassign rather than mutate: JSONB columns do not track in-place changes
+        session.messages = ((session.messages or []) + new)[-keep:]
         session.updated_at = utcnow()
 
 

@@ -81,6 +81,13 @@ open a small PR for them to review.
 > Dev B keeps everything the bot says: `bot/chat.py`, embeddings, ingestion,
 > the LLM and retrieval tuning. B5 and B6 below are therefore already done (by
 > A, in `search.py` and `catalog.py`); B7 and the rest of Part B are unchanged.
+> **Changed on 21 Sep (late) — retrieval and the assistant.** Testing B's RAG found
+> filters that returned nothing ("jacket" -> a category that does not exist,
+> "kurta for my wife", "sherwani under 3000"). With the demo a day away, A
+> rebuilt retrieval as `bot/retrieval.py` and added the conversational
+> assistant `bot/assistant.py`; `bot/chat.py` keeps contract C1 as the
+> fallback. B: please pull before touching `bot/`, and run
+> `scripts/eval_retrieval.py` and `scripts/test_assistant.py` after any change.
 > **Catalogue edits** (`data/products.json`) are A's, but tell B, because the
 > Chroma index must be rebuilt with `scripts/ingest_catalog.py` afterwards.
 

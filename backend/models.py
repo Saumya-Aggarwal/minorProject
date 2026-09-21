@@ -80,6 +80,11 @@ class Session(SQLModel, table=True):
     selected_product: Optional[dict[str, Any]] = Field(
         default=None, sa_column=Column(JSONB)
     )
+    # The assistant's short-term memory: the last few {role, content} messages,
+    # so "the second one" or "what about in blue?" makes sense next turn
+    messages: Optional[list[dict[str, Any]]] = Field(
+        default=None, sa_column=Column(JSONB)
+    )
     # active | checkout | closed
     status: str = Field(default="active", max_length=20)
     updated_at: datetime = Field(default_factory=utcnow, sa_column=_tstz(nullable=False))

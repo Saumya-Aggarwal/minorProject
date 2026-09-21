@@ -102,6 +102,9 @@ def install_fakes() -> None:
     # The background reconciler would confirm fake payments on its own and race
     # the checks below; section 9 turns it on deliberately to test it
     os.environ["PAYMENT_RECONCILE_SECONDS"] = "0"
+    # Deterministic and free: no LLM calls; the assistant has its own test
+    os.environ["LLM_API_KEY"] = ""
+    os.environ["OPENAI_API_KEY"] = ""
 
 
 # --- helpers -----------------------------------------------------------------------

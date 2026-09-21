@@ -6,27 +6,21 @@ model (common/embeddings.py). A customer typing "something for my sister's
 mehendi" into the search box gets the same kind of meaning-based match as one
 typing it into WhatsApp.
 
-Owned by Dev A. Deliberately separate from bot/chat.py (Dev B), which also
-formats chat replies; this module only returns catalogue records.
+Search itself is bot/retrieval.py, shared with the chat; this module only
+returns catalogue records for pages (search results, similar, recommended).
 
 If Chroma is unreachable, search falls back to keyword matching over the
 catalogue, so the search box never errors during a demo.
 """
 
 import os
-import re
 from functools import lru_cache
 from typing import Any, Optional
 
 import catalog
-from common import embeddings
+from bot import retrieval
 
 COLLECTION_NAME = "products"
-
-# Squared L2 distance on normalised MiniLM vectors, range 0..4. Measured on this
-# catalogue: strong matches score ~0.4-0.9, loose but relevant ones up to ~1.35,
-# unrelated text above ~1.6. Beyond this cut-off a result is noise, not a match.
-MAX_DISTANCE = 1.55
 
 
 @lru_cache(maxsize=1)
@@ -46,39 +40,17 @@ def _records(ids: list[str]) -> list[dict[str, Any]]:
     return [record for record in found if record is not None]
 
 
-def _keyword_search(query: str) -> list[dict[str, Any]]:
-    """Fallback when Chroma is down: every query word must appear somewhere."""
-    words = [w for w in re.findall(r"[a-z0-9]+", query.lower()) if len(w) > 2]
-    if not words:
-        return []
-
-    def haystack(p: dict[str, Any]) -> str:
-        return " ".join(
-            [p["title"], p["category"], p["color"], p["fabric"], p["gender"],
-             " ".join(p["occasion"]), p["description"]]
-        ).lower()
-
-    return [p for p in catalog.get_all() if all(w in haystack(p) for w in words)]
-
-
 def search_products(query: str, top_k: int = 24) -> list[dict[str, Any]]:
-    """Catalogue records ranked by meaning, best first."""
+    """Catalogue records ranked by meaning, best first.
+
+    The same engine as the WhatsApp bot (bot/retrieval.py): "saree under 3000"
+    on the website filters exactly as it does in chat, and falls back to
+    keyword ranking by itself when Chroma is down.
+    """
     query = query.strip()
     if not query:
         return []
-    try:
-        result = _collection().query(
-            query_embeddings=[embeddings.embed_one(query)],
-            n_results=min(top_k, 50),
-            include=["distances"],
-        )
-    except Exception as exc:
-        print(f"[search] vector search unavailable, using keywords: {exc!r}")
-        return _keyword_search(query)
-
-    ids = result["ids"][0]
-    distances = result["distances"][0]
-    return _records([pid for pid, dist in zip(ids, distances) if dist <= MAX_DISTANCE])
+    return retrieval.search(query, k=top_k).products
 
 
 def similar_products(product_id: str, k: int = 4) -> list[dict[str, Any]]:

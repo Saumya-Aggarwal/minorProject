@@ -1,0 +1,570 @@
+"""The conversational shopping assistant: an LLM that uses tools.
+
+Instead of treating every message as a search query, the model reads the
+conversation, decides what the customer means, and calls tools: search the
+catalogue, look up a product, read the customer's orders or cart, add to the
+cart. It asks a question or two when a request is vague ("something for my
+wedding" — whose outfit? which function? budget?) and searches when it is not.
+
+What the model is NOT trusted with:
+  * facts: product names, prices, sizes, order totals and payment links are
+    written into the reply by code (send_reply attaches them), never by the model
+  * other customers: every tool is bound to the sender's user_id on the server;
+    no tool takes a user id, so no message can reach someone else's data
+  * money: it can add to the cart, but paying is always the explicit CHECKOUT
+    command, which answers with Razorpay's Pay Now button
+
+Any failure — no key, timeout, rate limit, a malformed tool call — raises
+AssistantUnavailable, and the webhook answers with the plain retrieval path
+(bot/chat.py) instead. The customer always gets a reply.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import time
+from dataclasses import dataclass, field
+from typing import Any, Callable, Optional
+
+import catalog
+import repository as repo
+from bot import retrieval
+from selection import match_size
+
+MAX_ROUNDS = 5            # model calls per customer message
+TURN_BUDGET_S = 25.0      # stop and fall back rather than keep the customer waiting
+MAX_PRODUCTS = 4
+HISTORY_MESSAGES = 8      # remembered messages sent to the model each call
+MAX_RATE_WAIT_S = 8.0     # wait this long at most for a rate limit to clear
+
+
+class AssistantUnavailable(Exception):
+    """The LLM could not produce an answer; use the fallback path."""
+
+
+@dataclass
+class AssistantReply:
+    message: str                                   # the model's words, cleaned for WhatsApp
+    products: list[dict[str, Any]] = field(default_factory=list)   # catalogue records, in order
+    attach: Optional[str] = None                   # "orders" | "cart": rendered by the webhook
+    tools_used: list[str] = field(default_factory=list)
+
+
+def enabled() -> bool:
+    return bool(os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY"))
+
+
+# --- prompt ---------------------------------------------------------------------
+
+SYSTEM_PROMPT = """You are the stylist for Kurta & Co., an Indian ethnic wear boutique, on WhatsApp.
+
+WE SELL ONLY: men's kurtas, kurta sets, Nehru jackets, waistcoats, sherwanis, Jodhpuri (bandhgala) suit, Pathani suit, churidar, dhoti pants, stole; women's sarees, lehengas, Anarkali, salwar/sharara/palazzo suits, kurtis, gown, dupatta, palazzo. No western wear, shoes or jewellery.
+
+HOW TO HELP
+- Vague request ("something for my wedding"): ask at most two short questions about what is still unknown: who wears it (groom, bride, guest), which function (haldi, mehendi, sangeet, ceremony, reception), budget. Never ask what they already told you. "Me and my wife"/"couple" means both: search Men and Women separately. After two rounds of questions, or "just show me", search.
+- Clear request (a garment is named, or who + occasion is known): search at once, no questions first; you can offer to refine after showing.
+- Showing products: search_products, pick the 2-4 best, then send_reply with product_ids in order and 1-2 sentences on why they fit. The numbered list with names and prices is added for you: never write product names, prices or a list yourself.
+- A search NOTE (e.g. nothing under budget) must be told honestly.
+- Orders ("my orders", "where is my order"): send_reply with attach="orders". Cart: attach="cart".
+- Add to cart ONLY when the customer asks to, with a size THEY gave; otherwise ask which size. Never add just because they asked about an item.
+- Payment: tell them to reply CHECKOUT for a secure Pay Now button.
+- Off-topic: one friendly line, then back to shopping.
+
+RULES: facts (products, prices, sizes, stock, dates, policies) only from tools; delivery is free across India. Short and warm, under 50 words, plain text, *single asterisks* for bold, no headings, tables or links, at most one emoji. Always end by calling send_reply."""
+
+
+def _context_block(context: dict[str, Any]) -> str:
+    """Who the customer is and what they are looking at, for the system prompt."""
+    lines = ["CUSTOMER"]
+    lines.append(f"- Name: {context.get('name') or 'unknown'}")
+    purchases = context.get("purchases") or []
+    if purchases:
+        lines.append("- Bought before: " + "; ".join(purchases[:5]))
+    if context.get("cart_count"):
+        lines.append(f"- Items in cart now: {context['cart_count']}")
+    shown = context.get("last_products_shown") or []
+    if shown:
+        lines.append("- Last list shown to them: " + "; ".join(
+            f"{i}. {p.get('product_id') or p.get('id')} {p.get('name')}" for i, p in enumerate(shown, 1)))
+    selected = context.get("selected_product")
+    if selected:
+        lines.append(f"- Item they picked: {selected.get('product_id') or selected.get('id')} {selected.get('name')}")
+    return "\n".join(lines)
+
+
+# --- tools ----------------------------------------------------------------------
+
+def _schema(name: str, description: str, properties: dict[str, Any], required: list[str]) -> dict[str, Any]:
+    return {"type": "function", "function": {
+        "name": name, "description": description,
+        "parameters": {"type": "object", "properties": properties, "required": required},
+    }}
+
+
+# Optional fields accept null and no enums are used: Groq validates the model's
+# arguments against this schema and rejects the whole call (HTTP 400) for
+# `"attach": ""` or `"max_price": null`, which the model sends often. Allowed
+# values are checked by our code instead, which ignores anything unexpected.
+_TEXT = {"type": ["string", "null"]}
+_NUMBER = {"type": ["number", "string", "null"]}
+_LIST = {"type": ["array", "null"], "items": {"type": "string"}}
+
+TOOLS = [
+    _schema("search_products",
+            "Search the catalogue by meaning. Returns product ids with name, category, price, colour, occasions and sizes in stock.",
+            {
+                "query": {"type": "string", "description": "What to look for, in words, e.g. 'light festive kurta for a daytime mehendi'"},
+                "gender": {**_TEXT, "description": "Men, Women or Both"},
+                "categories": {**_LIST, "description": "Garment types, e.g. ['Sherwani'] or ['Saree','Lehenga']"},
+                "max_price": {**_NUMBER, "description": "Budget ceiling in rupees"},
+                "min_price": _NUMBER,
+            }, ["query"]),
+    _schema("get_product_details", "Full details of one product: sizes in stock, fabric, care, delivery and returns.",
+            {"product_id": {"type": "string"}}, ["product_id"]),
+    _schema("get_my_orders", "This customer's recent orders with status, items and delivery date.", {}, []),
+    _schema("get_my_cart", "What is in this customer's cart now.", {}, []),
+    _schema("add_to_cart", "Add a product to this customer's cart in a size.",
+            {"product_id": {"type": "string"}, "size": _TEXT}, ["product_id"]),
+    _schema("send_reply",
+            "Send your reply and end the turn. product_ids adds a numbered product list. attach is 'orders' or "
+            "'cart' ONLY when the customer asked to see their orders or cart; otherwise leave it out.",
+            {
+                "message": {"type": "string"},
+                "product_ids": _LIST,
+                "attach": _TEXT,
+            }, ["message"]),
+]
+
+
+def _sizes_in_stock(product: dict[str, Any]) -> list[str]:
+    stock = product.get("stock") or {}
+    return [s for s in product.get("sizes_available", []) if stock.get(s, 1) > 0]
+
+
+def _product_line(p: dict[str, Any]) -> str:
+    return (f"{p['id']} | {p['name']} | {p['gender']} {p['category']} | Rs {p['price']:.0f} | "
+            f"{p['color']} | {', '.join(p['occasion'][:4])} | sizes: {', '.join(_sizes_in_stock(p))}")
+
+
+def tool_search_products(user_id: int, query: str = "", gender: Any = None, categories: Any = None,
+                         max_price: Any = None, min_price: Any = None, **_: Any) -> str:
+    # Start from what the words say, then let the model's explicit choices win
+    parsed = retrieval.parse_query(query)
+    given = retrieval.normalise_filters(gender, categories, max_price, min_price)
+    filters = retrieval.Filters(
+        gender=given.gender if (given.gender or given.both_genders) else parsed.gender,
+        both_genders=given.both_genders or (parsed.both_genders and not given.gender),
+        categories=given.categories or parsed.categories,
+        max_price=given.max_price or parsed.max_price,
+        min_price=given.min_price or parsed.min_price,
+        occasion=parsed.occasion,
+    )
+    result = retrieval.search(query, filters, k=6)
+    if not result.products:
+        return "No matches. Ask the customer for more detail, or search more broadly."
+    lines = [_product_line(p) for p in result.products]
+    if result.relaxed:
+        lines.insert(0, f"NOTE: {result.note()}")
+    return "\n".join(lines)
+
+
+def tool_get_product_details(user_id: int, product_id: str = "", **_: Any) -> str:
+    p = catalog.get_by_id(str(product_id).strip().upper())
+    if p is None:
+        return f"No product with id {product_id!r}."
+    return "\n".join([
+        _product_line(p),
+        f"MRP Rs {p['mrp']:.0f} ({p['discount_percent']}% off) | rating {p['rating']} ({p['rating_count']})",
+        f"Fabric: {p['fabric']} | fit: {p['fit']} | care: {p['care']}",
+        "Highlights: " + "; ".join(p["highlights"][:3]),
+        f"Delivery in {p['delivery_days']} days, free | returns within {p['return_days']} days",
+    ])
+
+
+def tool_get_my_orders(user_id: int, **_: Any) -> str:
+    history = repo.get_order_history(user_id, 5)
+    if not history:
+        return "No orders yet."
+    lines = []
+    for summary in history:
+        order = repo.get_order(summary["order_id"]) or {}
+        status = {"captured": "paid", "failed": "cancelled"}.get(summary["status"], "awaiting payment")
+        items = ", ".join(
+            f"{i['product_name']}{' (' + i['size'] + ')' if i['size'] else ''} x{i['quantity']}"
+            for i in summary["items"])
+        arriving = f" | arriving by {order['deliver_by']:%d %b}" if status == "paid" and order.get("deliver_by") else ""
+        lines.append(f"#{summary['order_id']} | {summary['created_at'][:10]} | {status} | "
+                     f"Rs {summary['total_inr']:.0f} | {items}{arriving}")
+    return "\n".join(lines)
+
+
+def tool_get_my_cart(user_id: int, **_: Any) -> str:
+    cart = repo.get_cart(user_id)
+    if not cart["items"]:
+        return "Cart is empty."
+    lines = [f"{n}. {i['product_id']} {i['name']} | size {i['size'] or 'not chosen'} | "
+             f"{i['quantity']} x Rs {i['price_inr']:.0f}" for n, i in enumerate(cart["items"], 1)]
+    lines.append(f"Total Rs {cart['total_inr']:.0f}")
+    return "\n".join(lines)
+
+
+# Seen live: asked "tell me more about it", the model also added the item to the
+# cart, in a size nobody chose. Changing the cart needs the customer to have asked.
+_WANTS_TO_ADD = re.compile(
+    r"\b(add|cart|bag|basket|buy|take|order|book|i'?ll\s+have|i\s+want|want\s+(it|this|that|one|the)|"
+    r"get\s+(it|this|that|me|one)|put\s+(it|this|that))\b", re.I)
+
+
+def tool_add_to_cart(user_id: int, product_id: str = "", size: str = "", *,
+                     customer_text: str = "", customer_recent: str = "", **_: Any) -> str:
+    """customer_text / customer_recent are supplied by respond(), never the model:
+    the current message must ask for it, and the size must be one they typed
+    (now or in their last few messages), not one the model picked."""
+    if not _WANTS_TO_ADD.search(customer_text):
+        return "ERROR: the customer has not asked to add anything. Do not add; answer their message."
+    product = catalog.get_by_id(str(product_id).strip().upper())
+    if product is None:
+        return f"ERROR: no product with id {product_id!r}. Use an id from search_products."
+    sizes = _sizes_in_stock(product)
+    if not sizes:
+        return "ERROR: out of stock."
+    if len(sizes) == 1:
+        size = sizes[0]          # Free Size: nothing to choose
+    elif size and not re.search(rf"(?<!\w){re.escape(str(size).strip())}(?!\w)", customer_recent, re.I):
+        return f"ERROR: the customer has not said size {size}. Ask them which size they want."
+    chosen = ""
+    if size:
+        chosen = match_size(str(size), sizes) or ""
+        if not chosen:
+            return f"ERROR: size {size!r} is not available. In stock: {', '.join(sizes)}. Ask the customer."
+    elif len(sizes) > 1:
+        return f"ERROR: ask the customer for a size first. In stock: {', '.join(sizes)}."
+    else:
+        chosen = sizes[0]
+    cart = repo.add_to_cart(user_id, product["id"], chosen)
+    return (f"Added {product['name']} (size {chosen}). Cart now has {cart['count']} item(s), "
+            f"total Rs {cart['total_inr']:.0f}. They can reply CHECKOUT to pay.")
+
+
+TOOL_FUNCTIONS: dict[str, Callable[..., str]] = {
+    "search_products": tool_search_products,
+    "get_product_details": tool_get_product_details,
+    "get_my_orders": tool_get_my_orders,
+    "get_my_cart": tool_get_my_cart,
+    "add_to_cart": tool_add_to_cart,
+}
+
+
+# --- the model --------------------------------------------------------------------
+
+def _models() -> list[str]:
+    """Primary model, then fallbacks. On Groq each model has its own free-tier
+    budget (8,000 tokens per minute each, measured), so a second and third
+    model roughly triple how fast a conversation can go before anything waits."""
+    primary = os.getenv("LLM_MODEL", "openai/gpt-oss-20b")
+    default = "openai/gpt-oss-120b,qwen/qwen3.8-27b" if os.getenv("LLM_API_KEY") else ""
+    fallbacks = [m.strip() for m in os.getenv("LLM_FALLBACK_MODEL", default).split(",") if m.strip()]
+    return list(dict.fromkeys([primary, *fallbacks]))
+
+
+def _complete(model: str, messages: list[dict[str, Any]]) -> Any:
+    """One chat completion with tools. Returns the message object. Tests replace this."""
+    from openai import OpenAI
+
+    api_key = os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY")
+    base_url = os.getenv("LLM_BASE_URL") or ("https://api.groq.com/openai/v1" if os.getenv("LLM_API_KEY") else None)
+    client_args: dict[str, Any] = {"api_key": api_key, "timeout": 12.0, "max_retries": 0}
+    if base_url:
+        client_args["base_url"] = base_url
+    options: dict[str, Any] = {
+        "model": model, "messages": messages, "tools": TOOLS, "tool_choice": "auto",
+        "temperature": 0.3, "max_tokens": 1500,
+    }
+    if os.getenv("LLM_REASONING_EFFORT"):
+        options["reasoning_effort"] = os.getenv("LLM_REASONING_EFFORT")
+    response = OpenAI(**client_args).chat.completions.create(**options)
+    usage = getattr(response, "usage", None)
+    if usage is not None:
+        print(f"[assistant]   tokens: {usage.prompt_tokens} in, {usage.completion_tokens} out")
+    return response.choices[0].message
+
+
+def _clean(text: str) -> str:
+    """Model output made safe for WhatsApp: its bold, no headings or links, bounded."""
+    text = re.sub(r"<think>.*?</think>", "", text or "", flags=re.DOTALL)   # reasoning leaks (qwen)
+    text = re.sub(r"\*\*(.+?)\*\*", r"*\1*", text)
+    text = re.sub(r"^\s*#{1,6}\s*", "", text, flags=re.MULTILINE)
+    text = re.sub(r"【[^】]*】", "", text)                      # stray citation marks
+    text = re.sub(r"\[([^\]]+)\]\((?:https?://)[^)]+\)", r"\1", text)   # no model-made links
+    text = re.sub(r"\n{3,}", "\n\n", text).strip()
+    return text if len(text) <= 900 else text[:897].rsplit(" ", 1)[0] + "…"
+
+
+# Attach orders or the cart only when the customer asked. The model sometimes
+# sets attach="cart" on an unrelated question, and "Your cart is empty" under
+# "Who is the outfit for?" reads like a glitch.
+_ASKS_FOR = {
+    "orders": re.compile(r"\b(orders?|bought|purchas\w*|deliver\w*|track\w*|ship\w*|paid|payment)\b", re.I),
+    "cart": re.compile(r"\b(cart|bag|basket|added)\b", re.I),
+}
+# A numbered line in the model's own words duplicates the list code attaches
+_LIST_LINE = re.compile(r"^\s*(?:\d+[.)]|[-•*])\s+.*$", re.MULTILINE)
+
+
+def _without_listing(message: str, products: list[dict[str, Any]]) -> str:
+    """Drop the model's own rendition of the list code is about to attach.
+
+    Seen live despite the prompt: "Here are options for the ceremony: 1. Royal
+    Blue Wedding Sherwani – classic. 2. Champagne Gold…", then the real list
+    below it. Keep the words before the first item or product name.
+    """
+    message = _LIST_LINE.sub("", message)
+    # "Here are options for the ceremony:" introduced the removed lines
+    message = re.sub(r":[ \t]*$", ".", message, flags=re.MULTILINE)
+    lowered = message.lower()
+    cuts = [m.start() for m in [re.search(r"(?:^|\s)1[.)]\s", message)] if m]
+    named = [lowered.find(p["name"].lower()) for p in products if p["name"].lower() in lowered]
+    # One product named in a sentence is fine ("the royal blue one suits a day
+    # ceremony"); several, or names with prices, is a listing
+    if len(named) >= 2 or (named and re.search(r"(?:rs\.?|₹|inr)\s*\d", lowered)):
+        cuts += named
+    cut = min(cuts) if cuts else -1
+    if cut > 0:
+        message = message[:cut].rstrip(" :–—-") + ("." if not message[:cut].rstrip().endswith((".", "!")) else "")
+    elif cut == 0:
+        message = ""
+    return message
+
+
+def _finish(args: dict[str, Any], customer_text: str) -> tuple[Optional[AssistantReply], str]:
+    """Validate send_reply. Returns (reply, "") or (None, error for the model)."""
+    raw_ids = args.get("product_ids") or []
+    if isinstance(raw_ids, str):
+        raw_ids = re.findall(r"EW\d{3}", raw_ids.upper())
+    ids = [str(i).strip().upper() for i in raw_ids if str(i).strip()]
+    products = [p for p in (catalog.get_by_id(i) for i in dict.fromkeys(ids)) if p is not None]
+    products = [p for p in products if _sizes_in_stock(p)][:MAX_PRODUCTS]
+    if ids and not products:
+        return None, (f"ERROR: none of {ids} are products we stock. Only use ids returned by "
+                      "search_products, then call send_reply again.")
+    message = str(args.get("message") or "")
+    if products:
+        message = _without_listing(message, products)
+    message = _clean(message)
+    attach = str(args.get("attach") or "").strip().lower()
+    attach = attach if attach in _ASKS_FOR and _ASKS_FOR[attach].search(customer_text) else None
+    if not message and not products and not attach:
+        return None, "ERROR: the message is empty. Call send_reply with a message."
+    return AssistantReply(message=message, products=products, attach=attach), ""
+
+
+def _arguments(raw: Any) -> dict[str, Any]:
+    if isinstance(raw, dict):
+        value = raw
+    else:
+        try:
+            value = json.loads(raw or "{}")
+        except (TypeError, ValueError):
+            return {}
+    if not isinstance(value, dict):
+        return {}
+    # Drop empty values and junk keys ({"": ""} has been seen) before calling tools
+    return {k: v for k, v in value.items() if k and v not in (None, "", [])}
+
+
+def _salvage(exc: Exception) -> Any:
+    """Rebuild a tool call Groq rejected on a technicality, or None.
+
+    Groq checks tool calls before returning them and answers 400
+    "tool_use_failed" with the model's attempt in failed_generation. Seen live:
+    "send_reply<|channel|>commentary" (a chat-template token leaking into the
+    name) and null or "" in optional fields. The intent is clear, so repair it.
+    """
+    body = getattr(exc, "body", None)
+    error = body.get("error", body) if isinstance(body, dict) else None
+    generation = (error or {}).get("failed_generation") if isinstance(error, dict) else None
+    if not generation:
+        return None
+    try:
+        attempt = json.loads(generation)
+    except (TypeError, ValueError):
+        return None
+    attempts = attempt if isinstance(attempt, list) else [attempt]
+    tool_calls = []
+    for n, item in enumerate(attempts):
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("name", "")).split("<|")[0].strip()
+        if name not in TOOL_FUNCTIONS and name != "send_reply":
+            continue
+        arguments = item.get("arguments", item.get("parameters", {}))
+        tool_calls.append(_Call(id=f"salvaged_{n}", name=name, arguments=json.dumps(_arguments(arguments))))
+    if not tool_calls:
+        return None
+    print(f"[assistant] repaired a rejected tool call: {[c.function.name for c in tool_calls]}")
+    return _Message(content="", tool_calls=tool_calls)
+
+
+@dataclass
+class _Function:
+    name: str
+    arguments: str
+
+
+class _Call:
+    def __init__(self, id: str, name: str, arguments: str):
+        self.id, self.function = id, _Function(name, arguments)
+
+
+@dataclass
+class _Message:
+    content: str
+    tool_calls: list[Any]
+
+
+def _ask_model(models: list[str], messages: list[dict[str, Any]], round_number: int) -> Any:
+    """One model message. Retries once, repairs rejected tool calls, then tries
+    the fallback model; raises AssistantUnavailable when nothing works.
+
+    `models` is mutated: a model that fails for capacity reasons is skipped for
+    the rest of this customer message.
+    """
+    last_error: Optional[Exception] = None
+    retried = False
+    rate_limited: dict[str, float] = {}      # model -> seconds Groq asked us to wait
+    waited = False
+    while models:
+        model = models[0]
+        try:
+            started = time.perf_counter()
+            message = _complete(model, messages)
+            print(f"[assistant] {model} round {round_number}: {(time.perf_counter() - started) * 1000:.0f} ms")
+            return message
+        except Exception as exc:
+            last_error = exc
+            text = str(exc)
+            print(f"[assistant] {model} failed: {text[:200]}")
+            if "401" in text or "invalid_api_key" in text:
+                raise AssistantUnavailable("LLM key rejected") from exc
+            repaired = _salvage(exc)
+            if repaired is not None:
+                return repaired
+            if "tool_use_failed" in text and not retried:
+                retried = True           # a one-off bad generation: same model, once more
+                continue
+            wait = re.search(r"try again in ([\d.]+)s", text)
+            if "429" in text and wait:
+                rate_limited[model] = float(wait.group(1))
+            models.pop(0)                # rate limit, outage, or repeated bad output
+            retried = False
+            if not models and rate_limited and not waited:
+                # Every model is over its per-minute budget. Groq says when the
+                # soonest frees up; a few seconds' wait beats a worse answer.
+                model, seconds = min(rate_limited.items(), key=lambda kv: kv[1])
+                if seconds <= MAX_RATE_WAIT_S:
+                    print(f"[assistant] all models rate-limited; waiting {seconds:.1f}s for {model}")
+                    time.sleep(seconds + 0.3)
+                    models.append(model)
+                    waited = True
+    raise AssistantUnavailable(f"no model answered: {last_error!r}")
+
+
+def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
+    """Answer one customer message. Synchronous (network I/O): call via a thread."""
+    if not enabled():
+        raise AssistantUnavailable("no LLM key configured")
+
+    # Recent memory only, trimmed: every message is resent on every model call,
+    # and the free Groq tier allows 8,000 tokens a minute per model
+    history = [{"role": m["role"], "content": str(m["content"])[:350]}
+               for m in context.get("history", [])[-HISTORY_MESSAGES:]
+               if m.get("role") in ("user", "assistant") and m.get("content")]
+    customer_recent = " ".join([m["content"] for m in history if m["role"] == "user"][-3:] + [text])
+    # The model still asked "who will wear the jacket?" for "jacket to wear over
+    # my kurta" despite the prompt; stating what the words already settle helps
+    parsed = retrieval.parse_query(text)
+    hint = ""
+    if parsed.categories:
+        hint = (f"\n- This message already names what they want ({', '.join(parsed.categories)}"
+                f"{', for ' + parsed.gender if parsed.gender else ''}): search now, do not ask first.")
+    messages: list[dict[str, Any]] = [
+        {"role": "system", "content": SYSTEM_PROMPT + "\n\n" + _context_block(context) + hint},
+        *history,
+        {"role": "user", "content": text},
+    ]
+    models = _models()
+    started = time.perf_counter()
+    used: list[str] = []
+    nudged = False
+
+    for round_number in range(1, MAX_ROUNDS + 1):
+        if time.perf_counter() - started > TURN_BUDGET_S:
+            raise AssistantUnavailable("turn took too long")
+
+        message = _ask_model(models, messages, round_number)
+        calls = list(getattr(message, "tool_calls", None) or [])
+        content = getattr(message, "content", "") or ""
+
+        if not calls:
+            if "search_products" in used and not nudged:
+                # It searched, then wrote the products out itself instead of
+                # attaching them: "2" would then select nothing. Ask once more.
+                nudged = True
+                messages.append({"role": "assistant", "content": content})
+                messages.append({"role": "user", "content": (
+                    "(system) Call send_reply now: product_ids = the ids you want to show, in order, and a "
+                    "1-2 sentence message without product names, prices or a list.")})
+                continue
+            cleaned = _clean(content)
+            if not cleaned:
+                raise AssistantUnavailable("empty answer")
+            return AssistantReply(message=cleaned, tools_used=used)
+
+        messages.append({
+            "role": "assistant", "content": content,
+            "tool_calls": [{"id": c.id, "type": "function",
+                            "function": {"name": c.function.name, "arguments": c.function.arguments or "{}"}}
+                           for c in calls],
+        })
+        # Information tools first, so a send_reply in the same batch comes last
+        calls.sort(key=lambda c: c.function.name == "send_reply")
+        for call in calls:
+            name, args = call.function.name.split("<|")[0].strip(), _arguments(call.function.arguments)
+            used.append(name)
+            if name == "send_reply":
+                reply, error = _finish(args, text)
+                if reply is not None:
+                    reply.tools_used = used
+                    return reply
+                result = error
+            elif name in TOOL_FUNCTIONS:
+                try:
+                    # user_id and the customer's words are ours, never the model's
+                    for key in ("user_id", "customer_text", "customer_recent"):
+                        args.pop(key, None)
+                    if name == "add_to_cart":
+                        args.update(customer_text=text, customer_recent=customer_recent)
+                    result = TOOL_FUNCTIONS[name](user_id, **args)
+                except Exception as exc:
+                    print(f"[assistant] tool {name} failed: {exc!r}")
+                    result = "ERROR: that lookup failed. Apologise briefly and suggest trying again."
+            else:
+                result = f"ERROR: unknown tool {name!r}."
+            print(f"[assistant]   {name}({json.dumps(args, ensure_ascii=False)[:120]}) -> {result[:80]!r}")
+            messages.append({"role": "tool", "tool_call_id": call.id, "content": result})
+
+    raise AssistantUnavailable("no reply after the maximum number of rounds")
+
+
+
+def memory_text(reply: AssistantReply) -> str:
+    """How this reply is remembered for the next turn: words plus what was shown."""
+    parts = [reply.message] if reply.message else []
+    if reply.products:
+        parts.append("[Showed: " + "; ".join(
+            f"{n}. {p['id']} {p['name']} Rs {p['price']:.0f}" for n, p in enumerate(reply.products, 1)) + "]")
+    if reply.attach:
+        parts.append(f"[Showed their {reply.attach}]")
+    return "\n".join(parts)

@@ -82,7 +82,8 @@ class ProductMatch(BaseModel):
       pages re-render in place, toasts) via 2-second polling of /api/live
 - [x] Storefront redesign: heritage-luxe design system, real Pexels photos,
       /shop filters + sort, /search, "You may also like", checkout with address
-- [ ] Merge a/* branches into main and push (waiting on the user's go-ahead)
+- [x] Retrieval rebuilt (bot/retrieval.py): eval 26/26
+- [x] Conversational assistant with tools, memory and fallbacks (bot/assistant.py)
 
 ## Storefront (redesign, 21 Sep — the whole website UI is now Dev A's)
 - Tailwind is COMPILED, not the CDN script, so the site styles with no internet.
@@ -170,15 +171,41 @@ Retrieval quality improved markedly with the richer 32-product catalog, because
 the embedded text now carries occasion, fabric, colour and fit vocabulary.
 Price and stock are deliberately NOT embedded: they are filters, not meaning.
 
-bot/chat.py applies a gender metadata filter when the query names hints from
-exactly one set (groom/sister/saree/sherwani...). Without it "groom outfit"
-ranked a women's kurta set first — wedding vocabulary drowned out the one word
-that mattered. Embeddings alone do not respect hard constraints; metadata
-filtering is the reliable fix.
+Retrieval is bot/retrieval.py, one engine for the bot, the assistant's tools and
+the website search. Chroma ranks the whole catalogue by meaning in one query;
+gender, category, budget and stock are then applied in Python from the
+catalogue. Garment words map onto categories that exist (checked at import:
+"jacket" -> Nehru Jacket/Waistcoat, "kurta" for a woman -> Kurti/Salwar Suit).
+A garment after "my" is context, not the request ("jacket over my kurta").
+"Me and my wife"/"couple" shows both genders. If nothing passes, filters relax
+(budget, then category) and the reply says so. Open-ended gibberish returns
+nothing (MAX_DISTANCE). Embeddings alone never respect hard constraints: "groom
+outfit" once ranked a women's kurta set first.
+Verify: scripts/eval_retrieval.py (26 phrasings, every result must fit; the
+first RAG version scored 8/10 on an easier 10-case set).
 
-Still imperfect: "jacket to wear over my kurta" ranks a kurta above the Nehru
-jacket, and "me and my wife" filters to Women. Both need category filtering or
-intent parsing. Dev B's retrieval-tuning task.
+## Assistant (bot/assistant.py)
+Free text goes to an LLM with tools (Groq, OpenAI-compatible): search_products,
+get_product_details, get_my_orders, get_my_cart, add_to_cart, send_reply. It asks
+one or two questions when a request is vague and searches when it is not.
+Exact commands ("2", ADD 42, CART, CHECKOUT, BUY, product codes) never reach it.
+Trust boundaries, all enforced in code:
+- product lists, prices, orders and cart contents are rendered by code;
+  send_reply only names product ids, which must exist
+- tools are bound to the sender's user_id; the model cannot pass one
+- add_to_cart needs the customer's current message to ask for it and a size
+  they typed; payment is always CHECKOUT -> Pay Now
+Memory: sessions.messages (last 12; 8 sent per call), added by an idempotent
+ALTER in db.init_db. Models: LLM_MODEL then LLM_FALLBACK_MODEL (comma list,
+default gpt-oss-120b, qwen3.8-27b). Groq free tier = 8,000 tokens/min PER
+MODEL; a call is ~1,000-1,500 tokens, so rapid-fire messages hit it. On 429 the
+next model is tried, then one short wait. Groq 400 "tool_use_failed" calls are
+repaired from failed_generation. Anything else -> bot/chat.py plain search
+(which also answers "my orders"/"my cart" without the LLM).
+Real messages are answered in a background task (Meta gets 200 at once) and
+duplicate Meta deliveries are ignored by message id.
+Verify: scripts/test_assistant.py (40 checks, scripted fake model, no quota).
+Other suites blank LLM_API_KEY so they stay deterministic.
 
 ## Follow-up handling
 backend/selection.py parses a reply against last_products_shown. It requires the
