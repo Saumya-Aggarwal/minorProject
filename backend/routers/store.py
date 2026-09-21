@@ -104,7 +104,7 @@ async def account(request: Request, order: int | None = None):
     orders = await asyncio.to_thread(repo.get_order_history, user["user_id"], 20)
     link = None
     if not user["whatsapp_number"]:
-        token = await asyncio.to_thread(repo.create_link_token, user["user_id"])
+        token = await asyncio.to_thread(repo.get_or_create_link_token, user["user_id"])
         link = {
             "url": whatsapp_deep_link(token),
             "code": f"{repo.LINK_PREFIX}{token}",

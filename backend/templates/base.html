@@ -12,7 +12,7 @@
       <a href="/" class="font-semibold text-lg tracking-tight">Kurta&nbsp;&amp;&nbsp;Co.</a>
       <span class="text-xs text-stone-400 hidden sm:inline">Ethnic wear</span>
       <div class="ml-auto flex items-center gap-4 text-sm">
-        <a href="/cart" class="hover:underline">Cart</a>
+        <a href="/cart" class="hover:underline">Cart <span id="cart-count" class="font-medium"></span></a>
         {% if user %}
           <a href="/account" class="hover:underline">{{ user.display_name or user.email }}</a>
           <a href="/logout" class="text-stone-500 hover:underline">Sign out</a>
@@ -24,12 +24,17 @@
     </nav>
   </header>
 
-  <main class="max-w-5xl mx-auto px-4 py-8 w-full flex-1">
+  {# data-live-refresh (via the live_attr block) lets static/live.js re-render this
+     region when the cart or an order changes elsewhere, e.g. on WhatsApp #}
+  <main id="main" class="max-w-5xl mx-auto px-4 py-8 w-full flex-1" {% block live_attr %}{% endblock %}>
     {% block content %}{% endblock %}
   </main>
 
   <footer class="border-t border-stone-200 py-6 text-center text-xs text-stone-400">
     Minor project demo &middot; WhatsApp shopping assistant
   </footer>
+
+  <div id="live-toasts" class="fixed bottom-4 right-4 flex flex-col gap-2 z-50" aria-live="polite"></div>
+  {% if user %}<script src="/static/live.js" defer></script>{% endif %}
 </body>
 </html>

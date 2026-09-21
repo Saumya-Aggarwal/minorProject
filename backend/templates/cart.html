@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block live_attr %}data-live-refresh{% endblock %}
 {% block title %}Your cart{% endblock %}
 {% block content %}
 {# cart["items"], not cart.items: items is a dict method, and Jinja's dot syntax

@@ -77,7 +77,21 @@ class ProductMatch(BaseModel):
 - [x] A4: web orders confirm on the customer's WhatsApp when their account is linked
 - [x] A5: /orders/{id} tracking page (placed, paid, arriving by), ORDERS in chat
 - [x] Chat greeting and HELP (a bare "hi" no longer runs a product search)
-- [ ] End-to-end payment on a real phone
+- [x] End-to-end payment on a real phone
+- [x] Live sync: website follows WhatsApp changes (cart badge, cart/account/order
+      pages re-render in place, toasts) via 2-second polling of /api/live
+
+## Live sync
+static/live.js polls GET /api/live every 2s on signed-in pages. The response is
+a fingerprint of cart lines + recent order statuses; the page re-renders its
+<main> only when that changes, and only on pages whose template sets the
+live_attr block (cart, account, order, payment result). It never replaces the
+page while a form field inside it has focus. Polling rather than WebSockets:
+nothing to reconnect across ngrok, server restarts or bad Wi-Fi.
+/api/live reads the user with current_user(touch=False) so polling never writes.
+The account page reuses a still-valid WhatsApp link code (get_or_create_link_token)
+so a re-render cannot invalidate a code the customer is about to send.
+Verify: scripts/test_live.py (server) and node scripts/test_live_js.mjs (browser logic).
 
 ## Payments
 checkout.py orchestrates; payments.py is a thin httpx wrapper over three Razorpay

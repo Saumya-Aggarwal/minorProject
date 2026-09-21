@@ -165,3 +165,13 @@ async def get_order(request: Request, order_id: int):
         raise HTTPException(status_code=404, detail="Order not found")
     # Contact details are the customer's own, but the API has no need to echo them
     return {k: v for k, v in order.items() if k not in ("customer_email", "whatsapp_number")}
+
+
+@router.get("/live")
+async def live_state(request: Request):
+    """Polled every couple of seconds by signed-in pages (static/live.js)."""
+    user = current_user(request, touch=False)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not signed in")
+    return await asyncio.to_thread(repo.get_live_state, user["user_id"])
+

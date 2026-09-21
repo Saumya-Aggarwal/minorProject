@@ -4,6 +4,7 @@ These are synchronous (psycopg2 has no async driver), so async callers should
 wrap them: `await asyncio.to_thread(get_or_create_user, number, name)`.
 """
 
+import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -622,6 +623,32 @@ def clear_cart(user_id: int) -> int:
         return len(rows)
 
 
+def get_live_state(user_id: int) -> dict[str, Any]:
+    """What an open browser tab needs to notice a change made elsewhere.
+
+    The fingerprint covers every cart line and the status of recent orders, so
+    it changes when the customer adds, removes or resizes anything on WhatsApp,
+    and when a payment is confirmed. The page compares fingerprints and only
+    re-renders when they differ, so an idle tab costs two small queries.
+    """
+    cart = get_cart(user_id)
+    with session_scope() as db:
+        recent = db.exec(
+            select(Order.order_id, Order.status)
+            .where(Order.user_id == user_id)
+            .order_by(Order.order_id.desc())
+            .limit(10)
+        ).all()
+
+    lines = sorted(
+        (item["cart_item_id"], item["product_id"], item["size"], item["quantity"])
+        for item in cart["items"]
+    )
+    orders = {str(order_id): status for order_id, status in recent}
+    digest = hashlib.sha1(repr((lines, sorted(orders.items()))).encode()).hexdigest()
+    return {"cart_count": cart["count"], "fingerprint": digest[:16], "orders": orders}
+
+
 def create_link_token(user_id: int) -> str:
     """Mint a single-use code binding a WhatsApp number to this account."""
     with session_scope() as db:
@@ -645,6 +672,30 @@ def create_link_token(user_id: int) -> str:
             )
         )
         return token
+
+
+def get_or_create_link_token(user_id: int, min_remaining_minutes: int = 3) -> str:
+    """Reuse a still-valid code instead of minting a new one on every render.
+
+    create_link_token() retires every earlier code. Calling it on each account
+    page render meant a refresh — or the live-sync re-render — killed the code
+    the customer had just opened in WhatsApp and was about to send. A code with
+    a few minutes left is reused; only near expiry is a new one minted.
+    """
+    cutoff = datetime.now(timezone.utc) + timedelta(minutes=min_remaining_minutes)
+    with session_scope() as db:
+        existing = db.exec(
+            select(LinkToken)
+            .where(
+                LinkToken.user_id == user_id,
+                LinkToken.used_at.is_(None),
+                LinkToken.expires_at > cutoff,
+            )
+            .order_by(LinkToken.created_at.desc())
+        ).first()
+        if existing is not None:
+            return existing.token
+    return create_link_token(user_id)
 
 
 def consume_link_token(token: str, whatsapp_number: str) -> Optional[dict[str, Any]]:

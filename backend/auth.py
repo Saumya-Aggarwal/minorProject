@@ -67,11 +67,14 @@ def logout_user(request: Request) -> None:
     request.session.pop(SESSION_USER_KEY, None)
 
 
-def current_user(request: Request) -> Optional[dict[str, Any]]:
+def current_user(request: Request, touch: bool = True) -> Optional[dict[str, Any]]:
     """The logged-in user as a plain dict, or None.
 
     Returns a dict rather than a User instance so callers never touch a detached
     SQLAlchemy object after its session has closed.
+
+    touch=False skips updating last_active_at. The live-sync poller calls this
+    every two seconds per open tab, and must not turn each poll into a write.
     """
     user_id = request.session.get(SESSION_USER_KEY)
     if not user_id:
@@ -84,7 +87,8 @@ def current_user(request: Request) -> Optional[dict[str, Any]]:
             request.session.pop(SESSION_USER_KEY, None)
             return None
 
-        user.last_active_at = utcnow()
+        if touch:
+            user.last_active_at = utcnow()
         return {
             "user_id": user.user_id,
             "email": user.email,
