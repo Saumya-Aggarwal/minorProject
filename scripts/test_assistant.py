@@ -300,7 +300,93 @@ def main() -> int:
         check("ADD with nothing picked goes to the assistant, which resolves 'the blue one'",
               script.models and "Added in 44" in reply, reply)
 
-        print("\n11. Meta redelivering a message is answered once")
+        def send_full(body: str) -> dict:
+            payload = {"object": "whatsapp_business_account", "entry": [{"id": "1", "changes": [{
+                "field": "messages", "value": {
+                    "messaging_product": "whatsapp",
+                    "contacts": [{"wa_id": PHONE, "profile": {"name": "Asha"}}],
+                    "messages": [{"from": PHONE, "id": "wamid.t", "timestamp": "1", "type": "text",
+                                  "text": {"body": body}}]}}]}]}
+            return web.post("/webhook", json=payload, headers={"X-Local-Test": "true"}).json()["responses"][0]
+
+        print("\n11. Product photos")
+        run(Script(calls(("send_reply", {"message": "Two for the ceremony.", "product_ids": ["EW006", "EW007"]}))))
+        response = send_full("sherwani for the ceremony")
+        check("a product list comes with one photo per product, in order", response["photos"] == ["EW006", "EW007"],
+              response["photos"])
+        response = send_full("1")
+        check("picking one sends its photo", response["photos"] == ["EW006"], response)
+
+        sent: list[tuple[str, str]] = []
+
+        async def fake_text(to, body):
+            sent.append(("text", body))
+
+        async def fake_image(to, path, caption=""):
+            if "EW007" in str(path):
+                raise RuntimeError("upload refused")
+            sent.append(("image", path.name))
+
+        webhook.send_whatsapp_message, webhook.send_image = fake_text, fake_image
+        import asyncio
+        reply = webhook._list_reply("Two for the ceremony.", [repo.catalog.get_by_id("EW006"),
+                                                               repo.catalog.get_by_id("EW007")], "Reply 1–2 to choose")
+        asyncio.run(webhook._safe_send(PHONE, reply))
+        kinds = [k for k, _ in sent]
+        check("sent as intro, photo, (caption for a failed photo), footer",
+              kinds == ["text", "image", "text", "text"] and sent[0][1] == "Two for the ceremony."
+              and sent[1][1] == "EW006.jpg" and "Champagne Gold Sherwani" in sent[2][1]
+              and sent[3][1] == "Reply 1–2 to choose", sent)
+        check("captions carry the catalogue price", "Rs. 11,499" in sent[2][1], sent[2][1])
+
+        print("\n12. Totals and cart facts never come from the model")
+        script = Script()
+        run(script)
+        reply = send("ok whats my total")
+        cart = repo.get_cart(repo.get_or_create_user(PHONE, None))
+        check("'whats my total' is answered by code", f"Total: Rs. {cart['total_inr']:,.0f}" in reply
+              and script.models == [], reply)
+
+        script = Script(
+            calls(("send_reply", {"message": "Your current total is ₹17,498. Ready to check out?"})),
+            calls(("send_reply", {"message": "Your current total is ₹17,498!"})),
+        )
+        run(script)
+        reply = send("so how much will all of this come to after the discount then")
+        feedback = next(m["content"] for m in script.seen[1] if m["role"] == "tool")
+        check("an invented amount is sent back to the model", "17,498 does not match" in feedback, feedback)
+        check("...and never reaches the customer", "17,498" not in reply, reply)
+
+        script = Script(calls(("send_reply", {
+            "message": f"Your cart total is Rs {cart['total_inr']:,.0f}, and the saree is Rs 9,499."})))
+        run(script)
+        reply = send("remind me what I am spending altogether and on the saree")
+        check("real amounts pass the check", f"{cart['total_inr']:,.0f}" in reply and "9,499" in reply, reply)
+        context_sent = script.seen[0][0]["content"]
+        check("the model is given the real cart", f"TOTAL Rs {cart['total_inr']:.0f}" in context_sent)
+
+        print("\n13. Products the model writes out itself get the real list and photos")
+        run(Script(says("EW020 Emerald Kanjivaram Silk Saree – Rs 9499, great for festive.\n\n"
+                        "EW019 Navy Sequin Party Lehenga – Rs 7999, perfect for a sangeet.")))
+        response = send_full("anniversary gift ideas for my wife")
+        check("two products named -> numbered list with photos", response["photos"] == ["EW020", "EW019"], response)
+        check("...no raw product codes left", "EW020" not in response["body"].split("\n\n")[0], response["body"][:80])
+        picked = send("2")
+        check("...and '2' now selects the second", "Navy Sequin Party Lehenga" in picked, picked[:60])
+
+        run(Script(calls(("get_product_details", {"product_id": "EW020"})), says(
+            "The Emerald Kanjivaram Silk Saree is pure silk with a gold zari border, Rs 9,499.")))
+        response = send_full("tell me more about the kanjivaram")
+        check("one product described -> sent with its photo", response["photos"] == ["EW020"], response)
+        check("...with a hint to add it", "ADD" in response["body"], response["body"])
+
+        print("\n14. Removing from the cart")
+        run(Script(calls(("remove_from_cart", {"product_id": "EW006"})), calls(("send_reply", {"message": "Done."}))))
+        send("please remove the royal blue sherwani from my cart")
+        cart = repo.get_cart(repo.get_or_create_user(PHONE, None))
+        check("removed when asked", all(i["product_id"] != "EW006" for i in cart["items"]), cart["items"])
+
+        print("\n15. Meta redelivering a message is answered once")
         check("first delivery accepted", webhook._first_delivery("wamid.unique-1"))
         check("the same id again is ignored", not webhook._first_delivery("wamid.unique-1"))
 

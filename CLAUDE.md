@@ -204,7 +204,18 @@ repaired from failed_generation. Anything else -> bot/chat.py plain search
 (which also answers "my orders"/"my cart" without the LLM).
 Real messages are answered in a background task (Meta gets 200 at once) and
 duplicate Meta deliveries are ignored by message id.
-Verify: scripts/test_assistant.py (40 checks, scripted fake model, no quota).
+Photos: every product shown on WhatsApp (lists, a pick, a detail answer) is sent
+as its photo with a code-built caption (name, price, MRP, one line, link).
+Photos are uploaded once to WhatsApp's media API and the id cached in
+backend/.media_cache.json (gitignored, renewed after 25 days); a failed photo
+falls back to its caption as text. Order: intro text, photos, footer.
+Facts: "what's my total"/"my cart"/"my orders" (short, no add/remove) are
+answered by code before the model. The model gets the real cart in its
+context, and any Rs amount it writes must appear in the catalogue, the
+customer's words or a tool result, else it is told to retry, then the sentence
+is dropped. (Live, it once said "total Rs 17,498" for a Rs 10,798 cart.)
+Products it names in its own words get the real list/photo attached.
+Verify: scripts/test_assistant.py (55 checks, scripted fake model, no quota).
 Other suites blank LLM_API_KEY so they stay deterministic.
 
 ## Follow-up handling

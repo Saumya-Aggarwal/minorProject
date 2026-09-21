@@ -1,4 +1,7 @@
+import json
 import os
+import time
+from pathlib import Path
 
 import httpx
 
@@ -68,3 +71,61 @@ async def send_cta_url(to: str, body: str, button_text: str, url: str) -> dict:
             },
         },
     )
+
+
+# --- product photos ------------------------------------------------------------------
+
+MAX_CAPTION = 1024
+MEDIA_CACHE = Path(__file__).resolve().parent / ".media_cache.json"
+MEDIA_TTL_S = 25 * 24 * 3600    # WhatsApp keeps uploaded media for 30 days
+_media_ids: dict[str, dict] = {}
+
+
+def _load_media_cache() -> None:
+    if _media_ids or not MEDIA_CACHE.exists():
+        return
+    try:
+        _media_ids.update(json.loads(MEDIA_CACHE.read_text(encoding="utf-8")))
+    except (OSError, ValueError):
+        pass
+
+
+async def media_id_for(path: Path) -> str:
+    """Upload a local photo to WhatsApp once and reuse its media id.
+
+    Uploading beats sending a link: Meta would have to fetch the photo from our
+    ngrok tunnel, which is slow and shows a warning page to unknown visitors.
+    Ids are cached on disk (backend/.media_cache.json) and renewed before the
+    30 days WhatsApp keeps media.
+    """
+    _load_media_cache()
+    key = path.name
+    cached = _media_ids.get(key)
+    mtime = path.stat().st_mtime
+    if cached and cached.get("mtime") == mtime and time.time() - cached.get("at", 0) < MEDIA_TTL_S:
+        return cached["id"]
+
+    phone_number_id = os.environ["WHATSAPP_PHONE_NUMBER_ID"]
+    url = f"https://graph.facebook.com/{GRAPH_API_VERSION}/{phone_number_id}/media"
+    headers = {"Authorization": f"Bearer {os.environ['WHATSAPP_ACCESS_TOKEN']}"}
+    async with httpx.AsyncClient(timeout=20) as client:
+        response = await client.post(
+            url, headers=headers,
+            data={"messaging_product": "whatsapp", "type": "image/jpeg"},
+            files={"file": (path.name, path.read_bytes(), "image/jpeg")},
+        )
+    response.raise_for_status()
+    media_id = response.json()["id"]
+    _media_ids[key] = {"id": media_id, "mtime": mtime, "at": time.time()}
+    try:
+        MEDIA_CACHE.write_text(json.dumps(_media_ids, indent=1), encoding="utf-8")
+    except OSError as exc:
+        print(f"[whatsapp] could not save media cache: {exc!r}")
+    print(f"[whatsapp] uploaded {path.name} as media {media_id}")
+    return media_id
+
+
+async def send_image(to: str, path: Path, caption: str = "") -> dict:
+    """Send a product photo with a caption (WhatsApp formatting works in captions)."""
+    media_id = await media_id_for(path)
+    return await _post(to, {"type": "image", "image": {"id": media_id, "caption": caption[:MAX_CAPTION]}})

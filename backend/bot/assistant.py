@@ -50,6 +50,7 @@ class AssistantReply:
     products: list[dict[str, Any]] = field(default_factory=list)   # catalogue records, in order
     attach: Optional[str] = None                   # "orders" | "cart": rendered by the webhook
     tools_used: list[str] = field(default_factory=list)
+    detail: bool = False                           # one product described: photo + the model's words
 
 
 def enabled() -> bool:
@@ -67,7 +68,8 @@ HOW TO HELP
 - Clear request (a garment is named, or who + occasion is known): search at once, no questions first; you can offer to refine after showing.
 - Showing products: search_products, pick the 2-4 best, then send_reply with product_ids in order and 1-2 sentences on why they fit. The numbered list with names and prices is added for you: never write product names, prices or a list yourself.
 - A search NOTE (e.g. nothing under budget) must be told honestly.
-- Orders ("my orders", "where is my order"): send_reply with attach="orders". Cart: attach="cart".
+- Orders ("my orders", "where is my order"): send_reply with attach="orders". Cart: attach="cart". The cart and its total are in CUSTOMER below; never add prices up yourself. "Second item" after a cart question means the cart's second line.
+- To talk about one product in detail, use get_product_details; its photo is attached for you.
 - Add to cart ONLY when the customer asks to, with a size THEY gave; otherwise ask which size. Never add just because they asked about an item.
 - Payment: tell them to reply CHECKOUT for a secure Pay Now button.
 - Off-topic: one friendly line, then back to shopping.
@@ -82,8 +84,14 @@ def _context_block(context: dict[str, Any]) -> str:
     purchases = context.get("purchases") or []
     if purchases:
         lines.append("- Bought before: " + "; ".join(purchases[:5]))
-    if context.get("cart_count"):
-        lines.append(f"- Items in cart now: {context['cart_count']}")
+    cart = context.get("cart") or {}
+    if cart.get("items"):
+        items = "; ".join(
+            f"{n}. {i['product_id']} {i['name']}{' (' + i['size'] + ')' if i['size'] else ''} x{i['quantity']} Rs {i['line_total']:.0f}"
+            for n, i in enumerate(cart["items"], 1))
+        lines.append(f"- Cart now (the truth; do not recompute): {items}; TOTAL Rs {cart['total_inr']:.0f}")
+    elif "cart" in context:
+        lines.append("- Cart now: empty")
     shown = context.get("last_products_shown") or []
     if shown:
         lines.append("- Last list shown to them: " + "; ".join(
@@ -127,6 +135,8 @@ TOOLS = [
     _schema("get_my_cart", "What is in this customer's cart now.", {}, []),
     _schema("add_to_cart", "Add a product to this customer's cart in a size.",
             {"product_id": {"type": "string"}, "size": _TEXT}, ["product_id"]),
+    _schema("remove_from_cart", "Remove a product from this customer's cart, when they ask to.",
+            {"product_id": {"type": "string"}}, ["product_id"]),
     _schema("send_reply",
             "Send your reply and end the turn. product_ids adds a numbered product list. attach is 'orders' or "
             "'cart' ONLY when the customer asked to see their orders or cart; otherwise leave it out.",
@@ -248,7 +258,29 @@ def tool_add_to_cart(user_id: int, product_id: str = "", size: str = "", *,
             f"total Rs {cart['total_inr']:.0f}. They can reply CHECKOUT to pay.")
 
 
+_WANTS_TO_REMOVE = re.compile(
+    r"\b(remove|delete|drop|take\s+(it|this|that)?\s*out|don'?t\s+want|do\s+not\s+want|cancel)\b", re.I)
+
+
+def tool_remove_from_cart(user_id: int, product_id: str = "", *, customer_text: str = "",
+                          customer_recent: str = "", **_: Any) -> str:
+    if not _WANTS_TO_REMOVE.search(customer_text):
+        return "ERROR: the customer has not asked to remove anything."
+    wanted = str(product_id).strip().upper()
+    cart = repo.get_cart(user_id)
+    lines = [i for i in cart["items"] if i["product_id"] == wanted]
+    if not lines:
+        return f"ERROR: {product_id!r} is not in the cart. Cart: " + (
+            ", ".join(f"{i['product_id']} {i['name']}" for i in cart["items"]) or "empty")
+    for line in lines:
+        repo.remove_from_cart(user_id, line["cart_item_id"])
+    after = repo.get_cart(user_id)
+    return (f"Removed {lines[0]['name']}. Cart now has {after['count']} item(s), "
+            f"total Rs {after['total_inr']:.0f}.")
+
+
 TOOL_FUNCTIONS: dict[str, Callable[..., str]] = {
+    "remove_from_cart": tool_remove_from_cart,
     "search_products": tool_search_products,
     "get_product_details": tool_get_product_details,
     "get_my_orders": tool_get_my_orders,
@@ -471,6 +503,77 @@ def _ask_model(models: list[str], messages: list[dict[str, Any]], round_number: 
     raise AssistantUnavailable(f"no model answered: {last_error!r}")
 
 
+# --- checking what the model wrote -------------------------------------------------
+
+_AMOUNT = re.compile(r"(?:₹|\brs\.?|\binr)\s*(\d[\d,]*(?:\.\d+)?)\s*(k\b|thousand)?", re.IGNORECASE)
+_NUMBER_IN_TEXT = re.compile(r"(\d[\d,]*(?:\.\d+)?)\s*(k\b|thousand)?", re.IGNORECASE)
+_PRODUCT_CODE = re.compile(r"\bEW\d{3}\b", re.IGNORECASE)
+
+
+def _value(number: str, unit: Optional[str]) -> int:
+    value = float(number.replace(",", ""))
+    return round(value * 1000 if unit else value)
+
+
+def _unverified_amounts(message: str, evidence: list[str]) -> list[str]:
+    """Rupee amounts in the message that appear nowhere we can vouch for.
+
+    Allowed: any catalogue price or MRP, and any number in the customer's own
+    words, the context we gave the model (the real cart total) or a tool result
+    from this turn. "Your current total is Rs 17,498" — a sum the model worked
+    out itself, and wrongly — fails, and it is told to try again.
+    """
+    known = {round(p["price"]) for p in catalog.get_all()} | {round(p["mrp"]) for p in catalog.get_all()}
+    for text in evidence:
+        known |= {_value(n, u) for n, u in _NUMBER_IN_TEXT.findall(text or "")}
+    wrong = []
+    for number, unit in _AMOUNT.findall(message):
+        if _value(number, unit) not in known:
+            wrong.append(f"Rs {number}{unit or ''}")
+    return list(dict.fromkeys(wrong))
+
+
+def _drop_sentences_with(message: str, amounts: list[str]) -> str:
+    """Last resort after one retry: remove the sentences carrying bad amounts."""
+    numbers = [a.split(" ", 1)[1] for a in amounts]
+    sentences = re.split(r"(?<=[.!?])\s+", message)
+    kept = [s for s in sentences if not any(n in s for n in numbers)]
+    return " ".join(kept).strip() or "Reply CART to see your cart and its total."
+
+
+def _attach_mentioned(reply: AssistantReply, changed_cart: bool = False) -> AssistantReply:
+    """Products the model described in its own words get the real photo and list.
+
+    Seen live: asked for anniversary gifts, it wrote "EW020 Emerald Kanjivaram
+    Silk Saree – Rs 9499 ..." as plain text: no photo, and "2" selected nothing.
+    Two or more products named -> the numbered list (with photos) is attached
+    and the model's version removed. One product -> its photo goes with the
+    description (detail).
+    """
+    if reply.products or reply.attach or changed_cart:
+        # "Added the Kanjivaram saree to your cart" is a confirmation, not a pitch
+        reply.message = _PRODUCT_CODE.sub("", reply.message).replace("  ", " ").strip()
+        return reply
+    lowered = reply.message.lower()
+    found: list[tuple[int, dict[str, Any]]] = []
+    for product in catalog.get_all():
+        spots = [m.start() for m in re.finditer(rf"\b{product['id']}\b", reply.message, re.IGNORECASE)]
+        if product["name"].lower() in lowered:
+            spots.append(lowered.find(product["name"].lower()))
+        if spots:
+            found.append((min(spots), product))
+    found.sort(key=lambda pair: pair[0])
+    products = [p for _, p in found if _sizes_in_stock(p)][:MAX_PRODUCTS]
+    if len(products) >= 2:
+        reply.products = products
+        reply.message = _without_listing(_PRODUCT_CODE.sub("", reply.message), products)
+        reply.message = re.sub(r"[ \t]{2,}", " ", reply.message).strip()
+    elif len(products) == 1:
+        reply.products, reply.detail = products, True
+        reply.message = re.sub(r"[ \t]{2,}", " ", _PRODUCT_CODE.sub("", reply.message)).strip(" –—-\n")
+    return reply
+
+
 def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
     """Answer one customer message. Synchronous (network I/O): call via a thread."""
     if not enabled():
@@ -489,8 +592,9 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
     if parsed.categories:
         hint = (f"\n- This message already names what they want ({', '.join(parsed.categories)}"
                 f"{', for ' + parsed.gender if parsed.gender else ''}): search now, do not ask first.")
+    context_text = _context_block(context) + hint
     messages: list[dict[str, Any]] = [
-        {"role": "system", "content": SYSTEM_PROMPT + "\n\n" + _context_block(context) + hint},
+        {"role": "system", "content": SYSTEM_PROMPT + "\n\n" + context_text},
         *history,
         {"role": "user", "content": text},
     ]
@@ -498,6 +602,22 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
     started = time.perf_counter()
     used: list[str] = []
     nudged = False
+    fact_checked = False
+    # Every rupee amount the model may state must come from somewhere real
+    evidence = [context_text, customer_recent]
+
+    def checked(reply: AssistantReply) -> tuple[Optional[AssistantReply], str]:
+        """Final gate on what the model wrote: amounts verified, products attached."""
+        nonlocal fact_checked
+        unverified = _unverified_amounts(reply.message, evidence)
+        if unverified and not fact_checked:
+            fact_checked = True
+            return None, (f"ERROR: {', '.join(unverified)} does not match our records. Never add up or "
+                          "estimate prices; for cart totals use attach='cart'. Send your reply again.")
+        if unverified:
+            reply.message = _drop_sentences_with(reply.message, unverified)
+        reply.tools_used = used
+        return _attach_mentioned(reply, changed_cart=bool({"add_to_cart", "remove_from_cart"} & set(used))), ""
 
     for round_number in range(1, MAX_ROUNDS + 1):
         if time.perf_counter() - started > TURN_BUDGET_S:
@@ -520,7 +640,12 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
             cleaned = _clean(content)
             if not cleaned:
                 raise AssistantUnavailable("empty answer")
-            return AssistantReply(message=cleaned, tools_used=used)
+            reply, error = checked(AssistantReply(message=cleaned))
+            if reply is not None:
+                return reply
+            messages.append({"role": "assistant", "content": content})
+            messages.append({"role": "user", "content": "(system) " + error})
+            continue
 
         messages.append({
             "role": "assistant", "content": content,
@@ -536,15 +661,16 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
             if name == "send_reply":
                 reply, error = _finish(args, text)
                 if reply is not None:
-                    reply.tools_used = used
-                    return reply
+                    reply, error = checked(reply)
+                    if reply is not None:
+                        return reply
                 result = error
             elif name in TOOL_FUNCTIONS:
                 try:
                     # user_id and the customer's words are ours, never the model's
                     for key in ("user_id", "customer_text", "customer_recent"):
                         args.pop(key, None)
-                    if name == "add_to_cart":
+                    if name in ("add_to_cart", "remove_from_cart"):
                         args.update(customer_text=text, customer_recent=customer_recent)
                     result = TOOL_FUNCTIONS[name](user_id, **args)
                 except Exception as exc:
@@ -553,6 +679,9 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
             else:
                 result = f"ERROR: unknown tool {name!r}."
             print(f"[assistant]   {name}({json.dumps(args, ensure_ascii=False)[:120]}) -> {result[:80]!r}")
+            if not result.startswith("ERROR"):
+                # Our own "Rs 17,498 does not match" must not make 17,498 look verified
+                evidence.append(result)
             messages.append({"role": "tool", "tool_call_id": call.id, "content": result})
 
     raise AssistantUnavailable("no reply after the maximum number of rounds")

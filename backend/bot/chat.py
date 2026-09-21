@@ -37,6 +37,24 @@ def format_product_lines(products: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+def product_caption(product: dict[str, Any], index: int | None = None) -> str:
+    """Caption under a product photo on WhatsApp: number, name, price, one line.
+
+    Built by code from the catalogue, like the text list, so the photo and the
+    price beside it can never disagree.
+    """
+    base_url = os.getenv("PUBLIC_BASE_URL", "").rstrip("/")
+    name = f"{index}. {product['name']}" if index else product["name"]
+    price = f"Rs. {product['price']:,.0f}"
+    mrp = float(product.get("mrp") or 0)
+    if mrp > product["price"]:
+        price += f"   ~Rs. {mrp:,.0f}~   {product.get('discount_percent', 0)}% off"
+    lines = [f"*{name}*", price, _first_sentence(product["description"])]
+    if base_url:
+        lines.append(f"{base_url}/product/{product['id']}")
+    return "\n".join(lines)
+
+
 def _intro(query: str, products: list[dict[str, Any]], user_context: str | None) -> str:
     """One sentence introducing the list, or "" if no LLM is available.
 

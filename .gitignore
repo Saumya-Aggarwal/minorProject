@@ -5,3 +5,5 @@ __pycache__/
 .venv/
 venv/
 chroma_store/
+# WhatsApp media ids for product photos (runtime cache, expires after 30 days)
+backend/.media_cache.json

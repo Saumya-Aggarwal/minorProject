@@ -3,7 +3,8 @@ import inspect
 import os
 import re
 from collections import OrderedDict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, Response
 
@@ -12,7 +13,7 @@ import checkout
 import payments
 import repository as repo
 from bot import assistant
-from bot.chat import format_product_lines, get_product_recommendations
+from bot.chat import format_product_lines, get_product_recommendations, product_caption
 from common.schemas import ProductMatch
 from repository import LINK_PREFIX
 from selection import (
@@ -25,21 +26,52 @@ from selection import (
     parse_selection,
     results_footer,
 )
-from whatsapp import send_cta_url, send_whatsapp_message
+from whatsapp import send_cta_url, send_image, send_whatsapp_message
 
 router = APIRouter()
 
 
+PRODUCT_PHOTOS = Path(__file__).resolve().parents[1] / "static" / "products"
+
+
+@dataclass
+class Card:
+    """One product photo with its caption."""
+
+    product_id: str
+    caption: str
+
+
 @dataclass
 class Reply:
-    """A reply that carries a button, not just text — used for Pay Now.
+    """A reply that carries more than text: a Pay Now button, or product photos.
 
-    Handlers return a plain str for text, or a Reply when there is a link to tap.
+    Handlers return a plain str for text, or a Reply. With cards, WhatsApp gets
+    `lead` as a text message, then one photo per card, then `tail`; `text` is
+    the same content as one message, used by local tests and as the fallback.
     """
 
     text: str
     cta_url: str | None = None
     cta_label: str = "Pay Now"
+    cards: list[Card] = field(default_factory=list)
+    lead: str = ""
+    tail: str = ""
+
+
+def _list_reply(message: str, products: list[dict], footer: str) -> Reply:
+    """Numbered products as photos: the intro, a captioned photo each, the hints."""
+    text = "\n\n".join(part for part in (message, format_product_lines(products), footer) if part)
+    cards = [Card(p["id"], product_caption(p, n)) for n, p in enumerate(products, 1)]
+    return Reply(text=text, cards=cards, lead=message, tail=footer)
+
+
+def _detail_reply(text: str, product_id: str, hint: str = "") -> Reply:
+    """One product: its photo, captioned with the description (1024 chars max)."""
+    full = f"{text}\n\n{hint}" if hint else text
+    if len(full) <= 1000:
+        return Reply(text=full, cards=[Card(product_id, full)])
+    return Reply(text=full, cards=[Card(product_id, text[:1000])], tail=hint)
 
 
 PAYMENT_UNAVAILABLE = (
@@ -90,6 +122,20 @@ async def _safe_send(to: str, reply: "Reply") -> None:
     interactive message still leaves the customer a way to pay.
     """
     try:
+        if reply.cards:
+            if reply.lead:
+                await send_whatsapp_message(to, reply.lead)
+            for card in reply.cards:
+                photo = PRODUCT_PHOTOS / f"{card.product_id}.jpg"
+                try:
+                    await send_image(to, photo, card.caption)
+                except Exception as exc:
+                    # No photo (or upload refused): the caption alone still reads fine
+                    print(f"[webhook] photo for {card.product_id} not sent, sending text: {exc!r}")
+                    await send_whatsapp_message(to, card.caption)
+            if reply.tail:
+                await send_whatsapp_message(to, reply.tail)
+            return
         if reply.cta_url:
             try:
                 await send_cta_url(to, reply.text, reply.cta_label, reply.cta_url)
@@ -159,7 +205,7 @@ def _product_id(product: dict) -> str:
 
 async def _handle_follow_up(
     user_id: int, text: str, previous: dict | None
-) -> str | None:
+) -> "str | Reply | None":
     """Handle cart commands, "2", and BUY. None means "treat it as a search".
 
     Cart commands come first and need no previous turn: "CART" works even as the
@@ -191,7 +237,7 @@ async def _handle_follow_up(
         chosen = ProductMatch.from_raw(product).model_dump()
         print(f"[webhook] product code {code} from the website")
         await asyncio.to_thread(repo.record_selection, user_id, chosen)
-        return describe_choice(chosen, 0, product.get("sizes_available") or [])
+        return _detail_reply(describe_choice(chosen, 0, product.get("sizes_available") or []), product["id"])
 
     if not previous:
         return None
@@ -202,7 +248,8 @@ async def _handle_follow_up(
         product = shown[index]
         print(f"[webhook] selection: item {index + 1} ({product.get('name')})")
         await asyncio.to_thread(repo.record_selection, user_id, product)
-        return describe_choice(product, index, _sizes_for(_product_id(product)))
+        return _detail_reply(describe_choice(product, index, _sizes_for(_product_id(product))),
+                             _product_id(product))
 
     buy_size = parse_buy(text)
     if buy_size is not None:
@@ -513,26 +560,39 @@ async def _record_shown(user_id: int | None, text: str, products: list[dict]) ->
     return matches
 
 
-async def _assistant_reply(user_id: int, text: str, context: dict) -> str:
+def _add_hint(product: dict) -> str:
+    sizes = product.get("sizes_available") or []
+    if len(sizes) > 1:
+        return f"Sizes: {', '.join(sizes)}. Reply ADD {sizes[len(sizes) // 2]} to add it · CART to see your cart"
+    return "Reply ADD to add it to your cart · CART to see your cart"
+
+
+async def _assistant_reply(user_id: int, text: str, context: dict) -> "str | Reply":
     """Let the LLM assistant answer; raises AssistantUnavailable to fall back."""
     answer = await asyncio.to_thread(assistant.respond, user_id, text, context)
     print(f"[webhook] assistant used {answer.tools_used or 'no tools'}")
+    await _remember(user_id, text, assistant.memory_text(answer))
 
-    parts = [answer.message] if answer.message else []
     if answer.products:
         await _record_shown(user_id, text, answer.products)
-        parts.append(format_product_lines(answer.products))
-        parts.append(results_footer(len(answer.products)))
+        if answer.detail:
+            # It described one product in its own words: send that with its photo
+            product = answer.products[0]
+            cart = await asyncio.to_thread(repo.get_cart, user_id)
+            in_cart = any(item["product_id"] == product["id"] for item in cart["items"])
+            hint = "Already in your cart · CART to review · CHECKOUT to pay" if in_cart else _add_hint(product)
+            return _detail_reply(answer.message, product["id"], hint)
+        return _list_reply(answer.message, answer.products, results_footer(len(answer.products)))
+
+    parts = [answer.message] if answer.message else []
     if answer.attach == "orders":
         parts.append(await _format_orders(user_id))
     elif answer.attach == "cart":
         parts.append(_format_cart(await asyncio.to_thread(repo.get_cart, user_id)))
-
-    await _remember(user_id, text, assistant.memory_text(answer))
     return "\n\n".join(parts)
 
 
-async def _search_reply(user_id: int | None, text: str, user_context: str | None) -> str:
+async def _search_reply(user_id: int | None, text: str, user_context: str | None) -> "str | Reply":
     """The plain path: retrieval plus a one-line intro. Always answers."""
     # get_product_recommendations is synchronous and does network I/O
     reply, raw_matches = await asyncio.to_thread(_recommend, text, user_context)
@@ -544,6 +604,11 @@ async def _search_reply(user_id: int | None, text: str, user_context: str | None
     # Contract C1: the RAG side returns intro + numbered list; the command hints
     # belong to whoever owns the commands
     footer = results_footer(len(matches))
+    products = [p for p in (catalog.get_by_id(m.product_id) for m in matches) if p]
+    if products and len(products) == len(matches):
+        lines = format_product_lines(products)
+        lead = reply[: reply.rfind(lines)].strip() if lines in reply else ""
+        return _list_reply(lead, products, footer)
     return f"{reply}\n\n{footer}" if footer else reply
 
 
@@ -586,6 +651,20 @@ async def _handle_text(sender: str, text: str, display_name: str | None) -> "str
     except Exception as exc:
         print(f"[webhook] user lookup failed, continuing stateless: {exc!r}")
 
+    # "What's my total?", "show my cart", "my orders": facts, so code answers.
+    # The model once replied "Your current total is Rs 17,498" by adding up two
+    # prices from memory while the real cart held Rs 10,798.
+    if user_id is not None and _is_lookup(text):
+        try:
+            if _ASKS_CART.search(text) or _ASKS_TOTAL.search(text):
+                answer = _format_cart(await asyncio.to_thread(repo.get_cart, user_id))
+            else:
+                answer = await _format_orders(user_id)
+            await _remember(user_id, text, answer)
+            return answer
+        except Exception as exc:
+            print(f"[webhook] orders/cart lookup failed: {exc!r}")
+
     if user_id is not None and assistant.enabled():
         try:
             cart = await asyncio.to_thread(repo.get_cart, user_id)
@@ -593,6 +672,7 @@ async def _handle_text(sender: str, text: str, display_name: str | None) -> "str
                 "name": (user or {}).get("display_name") or display_name,
                 "purchases": [f"{h['product_name']} (Rs {h['price_inr']:.0f})" for h in history],
                 "cart_count": cart["count"],
+                "cart": cart,
                 "history": (previous or {}).get("messages") or [],
                 "last_products_shown": (previous or {}).get("last_products_shown") or [],
                 "selected_product": (previous or {}).get("selected_product"),
@@ -633,6 +713,24 @@ _ASKS_CART = re.compile(
     r"\b(?:my|the)\s+(?:cart|bag|basket)\b|\bwhat'?s\s+in\s+(?:my|the)\b|\bshow\s+(?:me\s+)?(?:my\s+)?cart\b",
     re.IGNORECASE,
 )
+_ASKS_TOTAL = re.compile(
+    r"\b(?:my|the|cart|bag|order)\s+total\b|\btotal\s+(?:amount|price|cost|bill)\b|\bwhat'?s\s+the\s+total\b"
+    r"|\bhow\s+much\s+(?:do\s+i\s+(?:owe|have\s+to\s+pay|need\s+to\s+pay)|is\s+(?:my|the)\s+(?:cart|bag|total|bill))\b",
+    re.IGNORECASE,
+)
+# Wanting to change the cart is the assistant's job, not a lookup
+_CHANGES_CART = re.compile(r"\b(?:add|remove|delete|drop|put|take\s+out|replace|change|buy|checkout)\b", re.IGNORECASE)
+
+
+def _is_lookup(text: str) -> bool:
+    """A short question that is only asking to see the cart, total or orders.
+
+    Longer messages ("what did I buy last time? suggest something to go with
+    it") go to the assistant, which can do both.
+    """
+    if len(text.split()) > 9 or _CHANGES_CART.search(text):
+        return False
+    return bool(_ASKS_CART.search(text) or _ASKS_TOTAL.search(text) or _ASKS_ORDERS.search(text))
 
 
 # Meta redelivers a message when our 200 is slow or lost. Answering twice would
@@ -702,7 +800,8 @@ async def receive_message(request: Request, background: BackgroundTasks):
                     reply = await _handle_text(sender, text, names.get(sender))
                     if isinstance(reply, str):
                         reply = Reply(reply)
-                    responses.append({"to": sender, "body": reply.text, "cta_url": reply.cta_url})
+                    responses.append({"to": sender, "body": reply.text, "cta_url": reply.cta_url,
+                                      "photos": [card.product_id for card in reply.cards]})
     except Exception as e:
         # Deliberately broad: any uncaught error here becomes a 500, which Meta
         # reads as failed delivery and retries — the same message arrives again
