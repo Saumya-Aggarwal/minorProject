@@ -24,6 +24,7 @@ from selection import (
     parse_bare_size,
     parse_buy,
     parse_command,
+    parse_named_selection,
     parse_selection,
     results_footer,
 )
@@ -257,6 +258,9 @@ async def _handle_follow_up(
 
     shown = previous.get("last_products_shown") or []
     index = parse_selection(text, len(shown))
+    if index is None:
+        # "choose blush pink one": picked by name instead of number
+        index = parse_named_selection(text, shown)
     if index is not None:
         product = shown[index]
         print(f"[webhook] selection: item {index + 1} ({product.get('name')})")
@@ -441,10 +445,17 @@ async def _handle_cart_command(
         product_id = _product_id(chosen)
         sizes = _sizes_for(product_id)
         size = ""
+        if not args["size"]:
+            # "46" ... "shall I add it?" ... "yes add it": the size is in their last message
+            said = [m["content"] for m in (previous or {}).get("messages") or [] if m.get("role") == "user"]
+            earlier = parse_bare_size(said[-1]) if said else None
+            if earlier and match_size(earlier, sizes):
+                args = {**args, "size": earlier}
         if args["size"]:
             size = match_size(args["size"], sizes) or ""
             if not size:
-                return f"{chosen.get('name', 'That item')} comes in {', '.join(sizes)}. Reply ADD M, for example."
+                return (f"{chosen.get('name', 'That item')} comes in {', '.join(sizes)}. "
+                        f"Reply with your size, for example {sizes[len(sizes) // 2]}.")
 
         cart = await asyncio.to_thread(repo.add_to_cart, user_id, product_id, size)
         added = next(
@@ -623,12 +634,21 @@ async def _assistant_reply(user_id: int, text: str, context: dict) -> "str | Rep
     answer = await asyncio.to_thread(assistant.respond, user_id, text, context)
     print(f"[webhook] assistant used {answer.tools_used or 'no tools'}")
     await _remember(user_id, text, assistant.memory_text(answer))
+    if answer.remember:
+        try:
+            saved = await asyncio.to_thread(repo.remember_about, user_id,
+                                            answer.remember.get("gender"), answer.remember.get("note"))
+            print(f"[webhook] profile now {saved}")
+        except Exception as exc:
+            print(f"[webhook] could not save profile: {exc!r}")
 
     if answer.products:
         await _record_shown(user_id, text, answer.products)
         if answer.detail:
-            # It described one product in its own words: send that with its photo
+            # It described one product in its own words: send that with its photo,
+            # and select it, so "XL" or "add it" next refers to this product
             product = answer.products[0]
+            await asyncio.to_thread(repo.record_selection, user_id, ProductMatch.from_raw(product).model_dump())
             cart = await asyncio.to_thread(repo.get_cart, user_id)
             in_cart = any(item["product_id"] == product["id"] for item in cart["items"])
             hint = "Already in your cart · CART to review · CHECKOUT to pay" if in_cart else _add_hint(product)
@@ -728,6 +748,8 @@ async def _handle_text(sender: str, text: str, display_name: str | None) -> "str
             cart = await asyncio.to_thread(repo.get_cart, user_id)
             context = {
                 "name": (user or {}).get("display_name") or display_name,
+                "profile": await asyncio.to_thread(repo.get_profile, user_id),
+                "sizes": await asyncio.to_thread(repo.sizes_chosen, user_id),
                 "purchases": [f"{h['product_name']} (Rs {h['price_inr']:.0f})" for h in history],
                 "cart_count": cart["count"],
                 "cart": cart,

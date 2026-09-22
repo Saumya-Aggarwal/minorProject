@@ -934,3 +934,67 @@ def mark_order_failed(razorpay_order_id: str) -> None:
         ).first()
         if order is not None and order.status != "captured":
             order.status = "failed"
+
+
+# --- what the assistant remembers about a customer ------------------------------
+
+PROFILE_NOTES = 6
+
+
+def get_profile(user_id: int) -> dict[str, Any]:
+    """{"gender": "Men"|"Women"|None, "notes": [...]}; empty for a new customer."""
+    with session_scope() as db:
+        user = db.get(User, user_id)
+        profile = dict((user.profile if user else None) or {})
+    return {"gender": profile.get("gender"), "notes": list(profile.get("notes") or [])}
+
+
+def remember_about(user_id: int, gender: Optional[str] = None, note: Optional[str] = None) -> dict[str, Any]:
+    """Store a lasting fact the customer told us. Notes are short and deduplicated;
+    only the newest PROFILE_NOTES are kept."""
+    with session_scope() as db:
+        user = db.get(User, user_id)
+        if user is None:
+            return {"gender": None, "notes": []}
+        profile = dict(user.profile or {})
+        if gender in ("Men", "Women"):
+            profile["gender"] = gender
+        notes = list(profile.get("notes") or [])
+        note = " ".join(str(note or "").split())[:120]
+        if note and note.lower() not in {n.lower() for n in notes}:
+            notes = (notes + [note])[-PROFILE_NOTES:]
+        profile["notes"] = notes
+        # Reassign rather than mutate: JSONB columns do not track in-place changes
+        user.profile = profile
+        return {"gender": profile.get("gender"), "notes": notes}
+
+
+def forget_profile(user_id: int) -> None:
+    with session_scope() as db:
+        user = db.get(User, user_id)
+        if user is not None:
+            user.profile = None
+
+
+def sizes_chosen(user_id: int) -> dict[str, str]:
+    """category -> the size most recently chosen in it (orders and cart), e.g.
+    {"Kurta": "XXL", "Sherwani": "46"}. Worked out each time, never stored, so it
+    cannot go stale. Who wore it is unknown: this is a hint, not "their size"."""
+    with session_scope() as db:
+        ordered = db.exec(
+            select(OrderItem.product_id, OrderItem.size)
+            .join(Order, Order.order_id == OrderItem.order_id)
+            .where(Order.user_id == user_id, OrderItem.size != "")
+            .order_by(Order.created_at)
+        ).all()
+        in_cart = db.exec(
+            select(CartItem.product_id, CartItem.size)
+            .where(CartItem.user_id == user_id, CartItem.size != "")
+            .order_by(CartItem.added_at)
+        ).all()
+    sizes: dict[str, str] = {}
+    for product_id, size in [*ordered, *in_cart]:
+        product = catalog.get_by_id(product_id)
+        if product and len(product.get("sizes_available") or []) > 1:
+            sizes[product["category"]] = size       # later rows win
+    return sizes

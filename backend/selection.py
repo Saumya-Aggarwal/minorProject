@@ -71,6 +71,28 @@ def parse_selection(text: str, count: int) -> Optional[int]:
     return None
 
 
+_PICK_FILLER = {
+    "i", "ill", "id", "will", "would", "want", "wanna", "like", "take", "choose", "pick", "select", "go", "with",
+    "the", "a", "that", "this", "one", "ones", "please", "pls", "plz", "show", "me", "more", "about", "of",
+    "details", "detail", "see", "lets", "let", "us", "ok", "okay", "yes", "yeah", "for", "is", "it", "like",
+}
+
+
+def parse_named_selection(text: str, shown: list[dict[str, Any]]) -> Optional[int]:
+    """"choose blush pink one", "the teal one": the one shown product whose name
+    contains every remaining word. None unless exactly one matches, and only
+    for short messages, so "pink saree under 3000" stays a search."""
+    words = re.findall(r"[a-z]+", _clean(text))
+    if not shown or not words or len(words) > 8:
+        return None
+    wanted = [w for w in words if w not in _PICK_FILLER]
+    if not wanted:
+        return None
+    names = [set(re.findall(r"[a-z]+", str(p.get("name", "")).lower())) for p in shown]
+    hits = [i for i, name in enumerate(names) if all(w in name for w in wanted)]
+    return hits[0] if len(hits) == 1 else None
+
+
 # --- sizes --------------------------------------------------------------------
 
 # Only tokens that look like a garment size count as one. This is what keeps
@@ -134,7 +156,8 @@ _HELP_PHRASES = {"help", "menu", "commands", "what can you do", "how does this w
 
 # "add", "add this one to cart", "pls add that one to my bag in XXL", "add it in 42"
 _ADD_WITH_SIZE = re.compile(
-    r"^(?:please |pls |ok |okay |yes |yeah )?add(?: (?:it|this|that)(?: one)?)?"
+    r"^(?:(?:please|pls|plz|ok|okay|yes|yeah|yep|sure|haan|ha|go ahead and|can you|could you) )*"
+    r"add(?: (?:it|this|that)(?: one)?)?"
     r"(?: to (?:my |the )?(?:cart|bag))?(?:(?: in)?(?: size)? (?P<size>.+))?$"
 )
 _REMOVE = re.compile(r"^(?:remove|delete|drop)(?: item)? (?:no\.? ?|#)?(\d{1,2})$")

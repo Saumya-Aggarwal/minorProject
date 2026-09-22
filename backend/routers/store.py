@@ -143,6 +143,8 @@ async def account(request: Request, order: int | None = None):
 
     orders = await asyncio.to_thread(repo.get_order_history, user["user_id"], 20)
     address = await asyncio.to_thread(repo.get_last_shipping, user["user_id"])
+    remembered = await asyncio.to_thread(repo.get_profile, user["user_id"])
+    sizes = await asyncio.to_thread(repo.sizes_chosen, user["user_id"])
     link = None
     if not user["whatsapp_number"]:
         token = await asyncio.to_thread(repo.get_or_create_link_token, user["user_id"])
@@ -156,8 +158,19 @@ async def account(request: Request, order: int | None = None):
         request,
         "account.html",
         {"user": user, "orders": orders, "link": link, "address": address,
-         "address_line": addresses.one_line(address) if address else "", "just_ordered": order},
+         "address_line": addresses.one_line(address) if address else "", "just_ordered": order,
+         "remembered": remembered, "sizes": sizes},
     )
+
+
+@router.post("/account/forget")
+async def forget_assistant_memory(request: Request):
+    """The customer clears what the WhatsApp assistant remembers about them."""
+    user = current_user(request)
+    if user is None:
+        return _to_login("/account")
+    await asyncio.to_thread(repo.forget_profile, user["user_id"])
+    return RedirectResponse("/account?forgot=1", status_code=303)
 
 
 # --- bag ----------------------------------------------------------------------------

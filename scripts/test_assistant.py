@@ -40,6 +40,7 @@ from routers import webhook  # noqa: E402
 
 PHONE = "910000000041"
 OTHER = "910000000042"
+WEB_EMAIL = "test-assistant-web@example.com"
 passed, failed = 0, 0
 
 
@@ -91,7 +92,8 @@ chat._intro = lambda *args, **kwargs: ""   # the fallback path's one-liner: no n
 
 def cleanup() -> None:
     with session_scope() as db:
-        users = db.exec(select(User).where(User.whatsapp_number.in_([PHONE, OTHER]))).all()
+        users = db.exec(select(User).where(User.whatsapp_number.in_([PHONE, OTHER])
+                                           | (User.email == WEB_EMAIL))).all()
         ids = [u.user_id for u in users]
         if not ids:
             return
@@ -395,6 +397,87 @@ def main() -> int:
         print("\n15. Meta redelivering a message is answered once")
         check("first delivery accepted", webhook._first_delivery("wamid.unique-1"))
         check("the same id again is ignored", not webhook._first_delivery("wamid.unique-1"))
+
+        print("\n16. The 22 Sep conversation: who it is for, a profile, picking by name, honest cart claims")
+        user = repo.get_or_create_user(PHONE, None)
+        repo.forget_profile(user)
+        repo.remember_messages(user, [{"role": "user", "content": "thanks"},
+                                      {"role": "assistant", "content": "You're welcome!"}])
+        script = Script(calls(("send_reply", {"message": "Lovely! Who is it for, and what budget?"})))
+        run(script)
+        send("umm i wanna buy something for a night wedding")
+        check("unknown wearer: the model is told to ask who it is for first",
+              "WHO WILL WEAR IT IS NOT KNOWN" in script.seen[0][0]["content"])
+
+        run(Script(calls(("send_reply", {"message": "Men's options it is.", "customer_gender": "Men",
+                                         "remember_note": "likes deep jewel tones"}))))
+        send("only male options")
+        profile = repo.get_profile(user)
+        check("'only male options' while shopping for himself is remembered",
+              profile["gender"] == "Men" and "likes deep jewel tones" in profile["notes"], profile)
+
+        script = Script(calls(("send_reply", {"message": "Here you go."})))
+        run(script)
+        send("something for a sangeet")
+        prompt = script.seen[0][0]["content"]
+        check("next time the profile reaches the model and it is not told to ask again",
+              "Shops for themselves as: a man" in prompt and "NOT KNOWN" not in prompt
+              and "likes deep jewel tones" in prompt, prompt[-400:])
+
+        other = repo.get_or_create_user(OTHER, None)
+        run(Script(calls(("send_reply", {"message": "Sure."}))))
+        send("haldi outfit for my brother", phone=OTHER)
+        run(Script(calls(("send_reply", {"message": "Men's then.", "customer_gender": "Men"}))))
+        send("only male options", phone=OTHER)
+        check("...but not when the outfit is for someone else", repo.get_profile(other)["gender"] is None)
+
+        run(Script(calls(("search_products", {"query": "sherwani for a night wedding", "gender": "Men",
+                                              "categories": ["Sherwani"]})),
+                   lambda m: calls(("send_reply", {"message": "Evening sherwanis.",
+                                                   "product_ids": ["EW039", "EW054", "EW042"]}))))
+        send("sherwani for a night wedding")
+        script = Script()          # any model call now would be a failure
+        run(script)
+        picked = send("choose blush pink one")
+        check("'choose blush pink one' picks it by name, no model call",
+              "Blush Pink Groom Sherwani" in picked and "Sizes:" in picked and not script.seen, picked[:80])
+        check("'XL' for a chest-size sherwani is refused with the real sizes",
+              "comes in 38, 40, 42, 44, 46" in send("XL"))
+        added = send("46")
+        check("'46' adds it in 46", "Added Blush Pink Groom Sherwani with Dupatta (size 46)" in added, added[:90])
+
+        repo.clear_cart(user)
+        repo.remember_messages(user, [{"role": "user", "content": "I like the royal blue one in 42"},
+                                      {"role": "assistant", "content": "Shall I add the Royal Blue Wedding "
+                                                                       "Sherwani in 42 to your cart?"}])
+        script = Script(says("Added it to your cart!"),
+                        calls(("add_to_cart", {"product_id": "EW006", "size": "42"})),
+                        calls(("send_reply", {"message": "Done, it is in your cart."})))
+        run(script)
+        send("yes")
+        check("'yes' to 'shall I add it?' lets the add through",
+              [(i["product_id"], i["size"]) for i in repo.get_cart(user)["items"]] == [("EW006", "42")],
+              repo.get_cart(user)["items"])
+        check("...after the model was caught claiming an add it had not done",
+              any("nothing was added" in str(m.get("content")) for m in script.seen[1]))
+
+        repo.clear_cart(user)
+        run(Script(says("Added it!"), says("Great news, I've added it for you.")))
+        honest = send("hmm looks nice")
+        check("a repeated false 'added' never reaches the customer",
+              "added" not in honest.lower() or "not added" in honest.lower(), honest)
+        check("...and nothing is in the cart", not repo.get_cart(user)["items"])
+
+        print("\n17. The customer can see and clear what is remembered")
+        browser = TestClient(app)
+        browser.post("/signup", data={"email": WEB_EMAIL, "password": "web-password-1", "display_name": "Web"})
+        web_user = browser.get("/api/me").json()["user_id"]
+        repo.remember_about(web_user, "Women", "prefers pastel colours")
+        page = browser.get("/account").text
+        check("/account shows what the assistant remembers",
+              "What our assistant remembers" in page and "Prefers pastel colours" in page and "womenswear" in page)
+        browser.post("/account/forget")
+        check("'Forget this' clears it", repo.get_profile(web_user) == {"gender": None, "notes": []})
 
     cleanup()
     print(f"\n{passed} passed, {failed} failed")

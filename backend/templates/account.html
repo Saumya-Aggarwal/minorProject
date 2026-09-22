@@ -82,6 +82,25 @@
         {% endif %}
       </div>
 
+      <div class="panel p-6">
+        <h2 class="display text-2xl">What our assistant remembers</h2>
+        {% if remembered.gender or remembered.notes or sizes %}
+        <ul class="mt-4 space-y-1.5 text-sm">
+          {% if remembered.gender %}<li>You shop for yourself in <span class="font-medium">{{ "menswear" if remembered.gender == "Men" else "womenswear" }}</span></li>{% endif %}
+          {% for note in remembered.notes %}<li>{{ note[:1] | upper }}{{ note[1:] }}</li>{% endfor %}
+          {% if sizes %}<li class="text-muted">Sizes you chose before: {% for category, size in sizes.items() %}{{ category }} {{ size }}{% if not loop.last %}, {% endif %}{% endfor %}</li>{% endif %}
+        </ul>
+        {% if remembered.gender or remembered.notes %}
+        <form method="post" action="/account/forget" class="mt-4">
+          <button class="text-[12px] font-medium uppercase tracking-label text-maroon hover:underline">Forget this</button>
+        </form>
+        {% endif %}
+        <p class="mt-3 text-[12px] text-muted">So the WhatsApp assistant does not ask the same questions twice. Sizes come from your orders and bag.</p>
+        {% else %}
+        <p class="mt-4 text-sm text-muted">Nothing yet. Tell the WhatsApp assistant what you like and it will remember it here.</p>
+        {% endif %}
+      </div>
+
       <div class="panel p-6 text-sm">
         <p class="text-muted">Signed in as {{ user.email or ('+' ~ user.whatsapp_number) }}</p>
         <a href="/logout" class="mt-3 inline-block text-[12px] font-medium uppercase tracking-label hover:text-maroon">Sign out</a>

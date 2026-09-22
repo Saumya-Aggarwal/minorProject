@@ -58,6 +58,10 @@ class User(SQLModel, table=True):
     display_name: Optional[str] = Field(default=None, max_length=100)
     created_at: datetime = Field(default_factory=utcnow, sa_column=_tstz(nullable=False))
     last_active_at: datetime = Field(default_factory=utcnow, sa_column=_tstz(nullable=False))
+    # What the assistant has learned about the customer across chats:
+    # {"gender": "Men"|"Women", "notes": ["shops for his brother", ...]}.
+    # Shown on /account, where the customer can clear it.
+    profile: Optional[dict[str, Any]] = Field(default=None, sa_column=Column(JSONB))
 
 
 class Session(SQLModel, table=True):

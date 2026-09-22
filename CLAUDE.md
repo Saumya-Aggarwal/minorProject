@@ -223,7 +223,19 @@ context, and any Rs amount it writes must appear in the catalogue, the
 customer's words or a tool result, else it is told to retry, then the sentence
 is dropped. (Live, it once said "total Rs 17,498" for a Rs 10,798 cart.)
 Products it names in its own words get the real list/photo attached.
-Verify: scripts/test_assistant.py (55 checks, scripted fake model, no quota).
+Profile (users.profile JSONB, idempotent ALTER): gender the customer stated
+about THEMSELVES (rejected when another person is in the conversation: "only
+male options" for a brother is the brother's) plus short notes, via
+send_reply's customer_gender/remember_note; sizes chosen before are derived
+from orders + cart, never stored. All three reach the prompt. /account shows
+them with "Forget this". When neither the words nor the profile say who will
+wear it, the prompt says so and the model must ask who + budget first.
+Seen live 22 Sep and now enforced in code: "yes"/a size answering our own
+"shall I add it?"/"which size?" counts as asking (_consent); a reply claiming
+"added"/"removed" without a successful cart tool is sent back once, then the
+claim is cut; a product the model focuses on is selected, and "choose blush
+pink one" selects by name (selection.parse_named_selection), so "46" next adds it.
+Verify: scripts/test_assistant.py (68 checks, scripted fake model, no quota).
 Other suites blank LLM_API_KEY so they stay deterministic.
 
 ## Training (backend/training.py, /admin/training)

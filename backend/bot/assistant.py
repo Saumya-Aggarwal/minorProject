@@ -31,7 +31,7 @@ from typing import Any, Callable, Optional
 import catalog
 import repository as repo
 from bot import retrieval
-from selection import match_size
+from selection import match_size, parse_bare_size
 
 MAX_ROUNDS = 5            # model calls per customer message
 TURN_BUDGET_S = 25.0      # stop and fall back rather than keep the customer waiting
@@ -51,6 +51,8 @@ class AssistantReply:
     attach: Optional[str] = None                   # "orders" | "cart": rendered by the webhook
     tools_used: list[str] = field(default_factory=list)
     detail: bool = False                           # one product described: photo + the model's words
+    # Lasting facts to store on the customer's profile: {"gender": ..., "note": ...}
+    remember: dict[str, str] = field(default_factory=dict)
 
 
 def enabled() -> bool:
@@ -70,7 +72,8 @@ HOW TO HELP
 - A search NOTE (e.g. nothing under budget) must be told honestly.
 - Orders ("my orders", "where is my order"): send_reply with attach="orders". Cart: attach="cart". The cart and its total are in CUSTOMER below; never add prices up yourself. "Second item" after a cart question means the cart's second line.
 - To talk about one product in detail, use get_product_details; its photo is attached for you.
-- Add to cart ONLY when the customer asks to, with a size THEY gave; otherwise ask which size. Never add just because they asked about an item.
+- Add to cart ONLY when the customer asks to, with a size THEY gave; otherwise ask which size. Never add just because they asked about an item. If they answer your "shall I add it?" with yes, or your "which size?" with a size, call add_to_cart. Never say something was added or removed unless add_to_cart/remove_from_cart succeeded in this turn.
+- Remember: when they tell you something lasting about themselves (their gender, who they shop for, colours or styles they like), put it in send_reply's customer_gender / remember_note. CUSTOMER below shows what is already remembered: use it, and do not ask again what it already answers.
 - Payment: tell them to reply CHECKOUT for a secure Pay Now button.
 - Off-topic: one friendly line, then back to shopping.
 
@@ -81,6 +84,16 @@ def _context_block(context: dict[str, Any]) -> str:
     """Who the customer is and what they are looking at, for the system prompt."""
     lines = ["CUSTOMER"]
     lines.append(f"- Name: {context.get('name') or 'unknown'}")
+    profile = context.get("profile") or {}
+    if profile.get("gender"):
+        lines.append(f"- Shops for themselves as: {'a man (Men)' if profile['gender'] == 'Men' else 'a woman (Women)'}"
+                     " (remembered; if the outfit is for someone else, go by who that is)")
+    if profile.get("notes"):
+        lines.append("- Remembered from earlier chats: " + "; ".join(profile["notes"]))
+    sizes = context.get("sizes") or {}
+    if sizes:
+        lines.append("- Sizes chosen before (maybe for others; confirm, never assume): "
+                     + ", ".join(f"{category} {size}" for category, size in sizes.items()))
     purchases = context.get("purchases") or []
     if purchases:
         lines.append("- Bought before: " + "; ".join(purchases[:5]))
@@ -147,6 +160,12 @@ TOOLS = [
                 "message": {"type": "string"},
                 "product_ids": _LIST,
                 "attach": _TEXT,
+                "customer_gender": {**_TEXT, "description": "Men or Women, ONLY if the customer said it about "
+                                    "THEMSELVES (\"I'm a guy\", \"only male options\" when shopping for "
+                                    "themselves). Never for someone else's outfit."},
+                "remember_note": {**_TEXT, "description": "A lasting fact about the customer worth remembering "
+                                  "next time, under 12 words, e.g. 'prefers pastel colours', 'shops for his "
+                                  "brother'. Leave out if nothing new."},
             }, ["message"]),
 ]
 
@@ -412,7 +431,9 @@ def _finish(args: dict[str, Any], customer_text: str) -> tuple[Optional[Assistan
     attach = attach if attach in _ASKS_FOR and _ASKS_FOR[attach].search(customer_text) else None
     if not message and not products and not attach:
         return None, "ERROR: the message is empty. Call send_reply with a message."
-    return AssistantReply(message=message, products=products, attach=attach), ""
+    remember = {key: str(args[field_name]).strip() for key, field_name in
+                (("gender", "customer_gender"), ("note", "remember_note")) if args.get(field_name)}
+    return AssistantReply(message=message, products=products, attach=attach, remember=remember), ""
 
 
 def _arguments(raw: Any) -> dict[str, Any]:
@@ -618,6 +639,86 @@ def _owner_guidance(text: str) -> str:
     return "\n".join(lines)
 
 
+# --- conversation rules enforced in code ----------------------------------------------
+# Each of these was seen live on 22 Sep:
+#   bot "Would you like me to add it (XL)?"  customer "yes pls add"  -> refused, asked again
+#   customer "46" to "which size?"           -> bot "is now in your cart" (nothing was added)
+#   "something for a night wedding"          -> a bridal lehenga, without asking who it is for
+
+_AFFIRM = re.compile(r"^\s*(?:yes|yeah|yea|yep|yup|ya|haan|han|ha|sure|ok+|okay|ohk|okk|pls|please|go\s+ahead|"
+                     r"do\s+it|confirm|correct|right|perfect|great)\b", re.I)
+_OFFERED_TO_ADD = re.compile(r"\b(add|cart|bag|which\s+size|what\s+size|size\s+would|sizes?\b)", re.I)
+_CLAIMS_CART_CHANGE = re.compile(
+    r"\b(added|i'?ve\s+added|i\s+have\s+added|(?:is|are)\s+now\s+in\s+your\s+(?:cart|bag)|"
+    r"in\s+your\s+(?:cart|bag)\s+now|removed|taken\s+(?:it\s+)?out)\b", re.I)
+_OTHER_PERSON = re.compile(
+    r"\b(brother|sister|wife|husband|mother|mom|mum|father|dad|papa|son|daughter|friend|cousin|uncle|aunt|"
+    r"bhai|didi|bhabhi|jiju|fiance|fiancee|him|her|his|their|nephew|niece|grand\w*|boss|colleague|"
+    r"girlfriend|boyfriend|parents?|family)\b", re.I)
+_GENDER_WORDS = {"Men": r"\b(male|man|men|mens|guy|boy|gents?|groom)\b",
+                 "Women": r"\b(female|woman|women|womens|girl|lady|ladies|bride)\b"}
+_SAYS_OWN_GENDER = re.compile(r"\bi\s*(?:'?m|am)\s+(?:a\s+)?(male|man|guy|boy|groom|female|woman|girl|lady|bride)\b", re.I)
+_SHOPPING = re.compile(r"\b(buy|wear|outfits?|dress(?:es)?|suggest|recommend|options|ideas?|looking\s+for|"
+                       r"shopping|something\s+for|anything\s+for)\b", re.I)
+
+
+def _last_bot_message(history: list[dict[str, Any]]) -> str:
+    return next((str(m["content"]) for m in reversed(history) if m.get("role") == "assistant"), "")
+
+
+def _consent(text: str, history: list[dict[str, Any]]) -> str:
+    """The customer's words as the add_to_cart gate should read them.
+
+    "yes" or "XL" alone does not ask to add anything, but it does when it
+    answers our own "shall I add it?" / "which size?"."""
+    if (_AFFIRM.match(text) or parse_bare_size(text)) and _OFFERED_TO_ADD.search(_last_bot_message(history)):
+        return f"{text} (add to cart)"
+    return text
+
+
+def _gender(value: str) -> Optional[str]:
+    lowered = value.strip().lower()
+    return "Men" if lowered in ("men", "man", "male", "m") else "Women" if lowered in ("women", "woman", "female", "w") else None
+
+
+def _facts_to_keep(reply: AssistantReply, text: str, customer_recent: str) -> dict[str, str]:
+    """What may go on the profile. The customer's gender only when their own
+    words state it and no one else's outfit is being discussed: "only male
+    options" while shopping for a brother is about the brother."""
+    keep: dict[str, str] = {}
+    own = _SAYS_OWN_GENDER.search(text)
+    if own:
+        keep["gender"] = "Men" if re.match(_GENDER_WORDS["Men"], own.group(1), re.I) else "Women"
+    else:
+        claimed = _gender(reply.remember.get("gender", ""))
+        if claimed and re.search(_GENDER_WORDS[claimed], customer_recent, re.I) \
+                and not _OTHER_PERSON.search(customer_recent):
+            keep["gender"] = claimed
+    note = " ".join(reply.remember.get("note", "").split())
+    if 3 <= len(note) <= 120:
+        keep["note"] = note
+    return keep
+
+
+def _who_hint(text: str, customer_recent: str, parsed: retrieval.Filters, profile: dict[str, Any]) -> str:
+    """Say plainly what is known about who the outfit is for, so the model asks
+    only when it must (and searches the right gender when it need not)."""
+    recent = retrieval.parse_query(customer_recent)
+    if recent.gender or recent.both_genders:
+        return ""
+    own = profile.get("gender")
+    someone_else = bool(_OTHER_PERSON.search(text))
+    if own and not someone_else:
+        who = "a man: search Men" if own == "Men" else "a woman: search Women"
+        return f"\n- They shop for themselves as {who} unless they say it is for someone else."
+    if not parsed.categories and (_SHOPPING.search(text) or parsed.occasion):
+        budget = "" if (recent.max_price or recent.min_price) else " and their budget"
+        return ("\n- WHO WILL WEAR IT IS NOT KNOWN (not in their words, not remembered). Do not search yet: ask, "
+                f"in one short friendly message, who it is for (you or someone else? man or woman?){budget}. "
+                "Only skip this if they said 'just show me'.")
+    return ""
+
+
 def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
     """Answer one customer message. Synchronous (network I/O): call via a thread."""
     if not enabled():
@@ -636,6 +737,11 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
     if parsed.categories:
         hint = (f"\n- This message already names what they want ({', '.join(parsed.categories)}"
                 f"{', for ' + parsed.gender if parsed.gender else ''}): search now, do not ask first.")
+    # Only this message and the one it may be answering: an old "royal blue
+    # sherwani" three turns back says nothing about who today's outfit is for
+    last_said = [m["content"] for m in history if m["role"] == "user"][-1:]
+    hint += _who_hint(text, " ".join(last_said + [text]), parsed, context.get("profile") or {})
+    consent_text = _consent(text, history)
     context_text = _context_block(context) + hint + _owner_guidance(text)
     messages: list[dict[str, Any]] = [
         {"role": "system", "content": SYSTEM_PROMPT + "\n\n" + context_text},
@@ -647,12 +753,23 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
     used: list[str] = []
     nudged = False
     fact_checked = False
+    claim_checked = False
+    succeeded: set[str] = set()         # tools that really did something this turn
     # Every rupee amount the model may state must come from somewhere real
     evidence = [context_text, customer_recent]
 
     def checked(reply: AssistantReply) -> tuple[Optional[AssistantReply], str]:
         """Final gate on what the model wrote: amounts verified, products attached."""
-        nonlocal fact_checked
+        nonlocal fact_checked, claim_checked
+        if _CLAIMS_CART_CHANGE.search(reply.message) and not {"add_to_cart", "remove_from_cart"} & succeeded:
+            if not claim_checked:
+                claim_checked = True
+                return None, ("ERROR: nothing was added to or removed from the cart this turn. If they asked "
+                              "and gave a size, call add_to_cart now; otherwise tell them honestly what is "
+                              "still needed. Then send_reply again.")
+            kept = [s for s in re.split(r"(?<=[.!?])\s+", reply.message) if not _CLAIMS_CART_CHANGE.search(s)]
+            reply.message = " ".join(kept).strip() or (
+                "I have not added it yet: reply ADD with your size (for example ADD M) and I will.")
         unverified = _unverified_amounts(reply.message, evidence)
         if unverified and not fact_checked:
             fact_checked = True
@@ -661,6 +778,7 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
         if unverified:
             reply.message = _drop_sentences_with(reply.message, unverified)
         reply.tools_used = used
+        reply.remember = _facts_to_keep(reply, text, customer_recent)
         return _attach_mentioned(reply, changed_cart=bool({"add_to_cart", "remove_from_cart"} & set(used))), ""
 
     for round_number in range(1, MAX_ROUNDS + 1):
@@ -715,7 +833,7 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
                     for key in ("user_id", "customer_text", "customer_recent"):
                         args.pop(key, None)
                     if name in ("add_to_cart", "remove_from_cart", "hide_product"):
-                        args.update(customer_text=text, customer_recent=customer_recent)
+                        args.update(customer_text=consent_text, customer_recent=customer_recent)
                     result = TOOL_FUNCTIONS[name](user_id, **args)
                 except Exception as exc:
                     print(f"[assistant] tool {name} failed: {exc!r}")
@@ -726,6 +844,7 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
             if not result.startswith("ERROR"):
                 # Our own "Rs 17,498 does not match" must not make 17,498 look verified
                 evidence.append(result)
+                succeeded.add(name)
             messages.append({"role": "tool", "tool_call_id": call.id, "content": result})
 
     raise AssistantUnavailable("no reply after the maximum number of rounds")

@@ -15,6 +15,7 @@ Every ✓/✕ the store owner gave on /admin/training is checked as well.
 Run from the repo root:  backend/.venv/Scripts/python scripts/eval_retrieval.py
 """
 
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -138,6 +139,10 @@ def owner_rules() -> tuple[int, int]:
     except Exception as exc:
         print(f"\n(owner training not checked: {exc.__class__.__name__})")
         return 0, 0
+    # A ✓ on the items shown for "what's in my cart" says the cart was right,
+    # not how a search should rank: those questions are not searches
+    rules = [r for r in rules if not re.search(r"\b(cart|bag|orders?|items?\s+do\s+i\s+have|my\s+items)\b",
+                                                r["question"], re.I)]
     passed = 0
     for rule in rules:
         top = [p["id"] for p in retrieval.search(rule["question"]).products]

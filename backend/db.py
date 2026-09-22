@@ -28,6 +28,7 @@ def get_engine() -> Engine:
 # each addition is an idempotent ALTER that keeps existing rows.
 _ADDED_COLUMNS = (
     "ALTER TABLE sessions ADD COLUMN IF NOT EXISTS messages JSONB",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS profile JSONB",
 )
 
 
