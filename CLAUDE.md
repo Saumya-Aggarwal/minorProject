@@ -211,7 +211,10 @@ next model is tried, then one short wait. Groq 400 "tool_use_failed" calls are
 repaired from failed_generation. Anything else -> bot/chat.py plain search
 (which also answers "my orders"/"my cart" without the LLM).
 Real messages are answered in a background task (Meta gets 200 at once) and
-duplicate Meta deliveries are ignored by message id.
+duplicate Meta deliveries are ignored by message id. The customer sees blue
+ticks and "typing..." while that runs (whatsapp.mark_read_and_typing: one POST
+with status=read + typing_indicator; WhatsApp clears it when the reply lands,
+or after 25s), so a 3-5 second answer does not look like no answer.
 Photos: every product shown on WhatsApp (lists, a pick, a detail answer) is sent
 as its photo with a code-built caption (name, price, MRP, one line, link).
 Photos are uploaded once to WhatsApp's media API and the id cached in
@@ -258,6 +261,12 @@ backend/selection.py parses a reply against last_products_shown. It requires the
 WHOLE message to match a selector pattern, never a substring: "2 piece kurta set"
 and "under 3000" contain digits but are searches. Out-of-range numbers are
 treated as searches too.
+
+A message that is only a size ("xxl", "size 42", "8") or names one in a
+sentence with a size word ("i think 11 size would be the best for me") sizes
+the cart line waiting for one, else adds the picked item in that size: live,
+the model promised "I'll add the mojari in UK 11" and CHECKOUT then found an
+empty cart. "choose blush pink one" picks by name (parse_named_selection).
 
 sessions.selected_product holds the chosen item so a later BUY knows what it
 means; starting a new search clears it. Razorpay's Pay Now button will read the

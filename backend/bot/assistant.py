@@ -650,7 +650,10 @@ _AFFIRM = re.compile(r"^\s*(?:yes|yeah|yea|yep|yup|ya|haan|han|ha|sure|ok+|okay|
 _OFFERED_TO_ADD = re.compile(r"\b(add|cart|bag|which\s+size|what\s+size|size\s+would|sizes?\b)", re.I)
 _CLAIMS_CART_CHANGE = re.compile(
     r"\b(added|i'?ve\s+added|i\s+have\s+added|(?:is|are)\s+now\s+in\s+your\s+(?:cart|bag)|"
-    r"in\s+your\s+(?:cart|bag)\s+now|removed|taken\s+(?:it\s+)?out)\b", re.I)
+    r"in\s+your\s+(?:cart|bag)\s+now|removed|taken\s+(?:it\s+)?out|"
+    # A promise is as good as a claim to the customer: live, "Sure, I'll add the
+    # Silver Paisley Mojari in UK 11 to your cart" was followed by an empty cart
+    r"i'?ll\s+add|i\s+will\s+add|let\s+me\s+add|going\s+to\s+add|adding\s+(?:it|this|that|the))\b", re.I)
 _OTHER_PERSON = re.compile(
     r"\b(brother|sister|wife|husband|mother|mom|mum|father|dad|papa|son|daughter|friend|cousin|uncle|aunt|"
     r"bhai|didi|bhabhi|jiju|fiance|fiancee|him|her|his|their|nephew|niece|grand\w*|boss|colleague|"

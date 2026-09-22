@@ -10,6 +10,7 @@ Creates and removes only its own users.
 Run from the repo root:  backend/.venv/Scripts/python scripts/test_assistant.py
 """
 
+import asyncio
 import json
 import os
 import sys
@@ -478,6 +479,27 @@ def main() -> int:
               "What our assistant remembers" in page and "Prefers pastel colours" in page and "womenswear" in page)
         browser.post("/account/forget")
         check("'Forget this' clears it", repo.get_profile(web_user) == {"gender": None, "notes": []})
+
+        print("\n18. Blue ticks and 'typing…' while the answer is being worked out")
+        import whatsapp
+        check("one call marks the message read and starts typing",
+              whatsapp.typing_payload("wamid.abc") == {
+                  "messaging_product": "whatsapp", "status": "read", "message_id": "wamid.abc",
+                  "typing_indicator": {"type": "text"}})
+        order: list[str] = []
+        real_typing, real_send = webhook.mark_read_and_typing, webhook._safe_send
+
+        async def fake_typing(message_id):
+            order.append(f"typing:{message_id}")
+
+        async def fake_send(to, reply):
+            order.append("reply")
+
+        webhook.mark_read_and_typing, webhook._safe_send = fake_typing, fake_send
+        run(Script(calls(("send_reply", {"message": "On it!"}))))
+        asyncio.run(webhook._answer_and_send(PHONE, "anything for diwali?", "Asha", "", "wamid.xyz"))
+        webhook.mark_read_and_typing, webhook._safe_send = real_typing, real_send
+        check("typing starts before the answer is sent", order == ["typing:wamid.xyz", "reply"], order)
 
     cleanup()
     print(f"\n{passed} passed, {failed} failed")

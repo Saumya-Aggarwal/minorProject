@@ -362,6 +362,19 @@ def bot_conversation_checks() -> None:
         say(client, "sherwani for my wedding")
         check("a bare number after a list is still a pick, not a shoe size", "Sizes:" in say(client, "3"))
         check("picking from a list does not change the cart", repo.get_cart(user)["count"] == 3)
+        # Live: "i think 11 size would be the best for me" -> the bot promised to add
+        # the mojari, added nothing, and CHECKOUT then found an empty cart
+        say(client, "clear cart")
+        say(client, "EW052")
+        sentence = say(client, "i think 11 size would be the best for me")
+        check("a size named in a sentence adds it in that size",
+              "Added Silver Paisley Mojari (size UK 11)" in sentence, sentence[:90])
+        check("...and CHECKOUT then has something to pay for",
+              "empty" not in say(client, "CHECKOUT").lower())
+        say(client, "clear cart")
+        check("a search that happens to contain a number is still a search",
+              "CART to see your cart" in say(client, "show me sarees under 11000"))
+
         say(client, "EW035")
         polite = say(client, "size xl please")
         check("'size xl please' works like a bare size", "Added Lime Green Jacquard Kurta (size XL)" in polite,

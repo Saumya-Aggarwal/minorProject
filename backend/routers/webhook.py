@@ -20,7 +20,9 @@ from selection import (
     describe_choice,
     find_product_code,
     is_greeting,
+    find_size_in_text,
     match_size,
+    mentions_size,
     parse_bare_size,
     parse_buy,
     parse_command,
@@ -29,7 +31,8 @@ from selection import (
     results_footer,
 )
 import training
-from whatsapp import send_cta_url, send_image, send_product_card, send_whatsapp_message
+from whatsapp import (mark_read_and_typing, send_cta_url, send_image, send_product_card,
+                      send_whatsapp_message)
 
 router = APIRouter()
 
@@ -268,9 +271,8 @@ async def _handle_follow_up(
         return _detail_reply(describe_choice(product, index, _sizes_for(_product_id(product))),
                              _product_id(product))
 
-    bare_size = parse_bare_size(text)
-    if bare_size:
-        reply = await _bare_size(user_id, bare_size, previous)
+    if parse_bare_size(text) or mentions_size(text):
+        reply = await _bare_size(user_id, text, previous)
         if reply is not None:
             return reply
 
@@ -300,12 +302,20 @@ async def _bare_size(user_id: int, text: str, previous: dict) -> str | None:
     missing = _missing_sizes(cart)
     waiting = next((line for line in missing if line[1]["product_id"] == chosen_id), None) or (
         missing[-1] if missing else None)
+
+    def said(sizes: list[str]) -> str:
+        """The size in this message: the whole message, or named in a sentence."""
+        return parse_bare_size(text) or find_size_in_text(text, sizes) or ""
+
     if waiting is not None:
         position, item = waiting
-        if match_size(text, item["sizes_available"]) or item["product_id"] == chosen_id:
-            return await _handle_cart_command(user_id, "size", {"position": position, "size": text}, previous)
+        size = said(item["sizes_available"])
+        if size and (match_size(size, item["sizes_available"]) or item["product_id"] == chosen_id):
+            return await _handle_cart_command(user_id, "size", {"position": position, "size": size}, previous)
     if chosen:
-        return await _handle_cart_command(user_id, "add", {"size": text}, previous)
+        size = said(_sizes_for(chosen_id))
+        if size:
+            return await _handle_cart_command(user_id, "add", {"size": size}, previous)
     return None
 
 
@@ -862,8 +872,16 @@ async def _handle_incoming(sender: str, text: str, display_name: str | None, but
     return await _handle_text(sender, text, display_name)
 
 
-async def _answer_and_send(sender: str, text: str, display_name: str | None, button_id: str = "") -> None:
-    """Background work for a real message: the LLM may take a few seconds."""
+async def _answer_and_send(sender: str, text: str, display_name: str | None, button_id: str = "",
+                           message_id: str = "") -> None:
+    """Background work for a real message: the LLM may take a few seconds.
+
+    The customer sees blue ticks and "typing…" straight away, so a 3-5 second
+    answer (or a slower one with photos) does not look like no answer at all.
+    WhatsApp clears the bubble when our reply lands.
+    """
+    if message_id:
+        await mark_read_and_typing(message_id)
     try:
         reply = await _handle_incoming(sender, text, display_name, button_id)
     except Exception as exc:
@@ -911,7 +929,8 @@ async def receive_message(request: Request, background: BackgroundTasks):
                     text = message["text"]["body"] if not button else button.get("title", "")
                     print(f"[webhook] {'button ' + button_id if button else 'message'} from {sender}: {text}")
                     if not local_test:
-                        background.add_task(_answer_and_send, sender, text, names.get(sender), button_id)
+                        background.add_task(_answer_and_send, sender, text, names.get(sender),
+                                            button_id, message.get("id", ""))
                         continue
                     reply = await _handle_incoming(sender, text, names.get(sender), button_id)
                     if isinstance(reply, str):

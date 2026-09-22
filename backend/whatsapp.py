@@ -12,12 +12,30 @@ MAX_CTA_BODY = 1024
 MAX_CTA_BUTTON = 20
 
 
-async def _post(to: str, payload: dict) -> dict:
-    """Send one message payload to the Graph API, explaining the usual failures."""
+def typing_payload(message_id: str) -> dict:
+    """Mark the customer's message read (blue ticks) and show "typing…".
+
+    One call does both. WhatsApp clears the bubble when our reply arrives, or
+    after 25 seconds — so it is only ever sent when an answer is coming.
+    """
+    return {"messaging_product": "whatsapp", "status": "read", "message_id": message_id,
+            "typing_indicator": {"type": "text"}}
+
+
+async def mark_read_and_typing(message_id: str) -> dict:
+    """Best effort: a failure here must never cost the customer their answer."""
+    try:
+        return await _send(typing_payload(message_id))
+    except Exception as exc:
+        print(f"[whatsapp] typing indicator failed: {exc!r}")
+        return {}
+
+
+async def _send(body: dict) -> dict:
+    """POST one body to the messages endpoint, explaining the usual failures."""
     phone_number_id = os.environ["WHATSAPP_PHONE_NUMBER_ID"]
     url = f"https://graph.facebook.com/{GRAPH_API_VERSION}/{phone_number_id}/messages"
     headers = {"Authorization": f"Bearer {os.environ['WHATSAPP_ACCESS_TOKEN']}"}
-    body = {"messaging_product": "whatsapp", "recipient_type": "individual", "to": to, **payload}
 
     async with httpx.AsyncClient(timeout=10) as client:
         response = await client.post(url, headers=headers, json=body)
@@ -37,6 +55,13 @@ async def _post(to: str, payload: dict) -> dict:
                 "WhatsApp > API Setup > To and confirm the code it sends"
             )
         response.raise_for_status()
+    return data
+
+
+async def _post(to: str, payload: dict) -> dict:
+    """Send one message payload to a recipient."""
+    data = await _send({"messaging_product": "whatsapp", "recipient_type": "individual",
+                        "to": to, **payload})
     print(f"[whatsapp] sent {payload['type']} to {to}: {data}")
     return data
 

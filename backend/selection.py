@@ -125,6 +125,27 @@ def looks_like_size(token: str) -> bool:
 _BARE_SIZE = re.compile(r"^(?:(?:its |it is |i want |i need |in )?size )?(?P<size>.+?)(?: size)?(?: please| pls| plz)?$")
 
 
+# "i think 11 size would be the best for me", "let's take XXL then": a sentence
+# that settles the size. Needs one of these words, so "sherwani in 42 for my
+# wedding" stays a search.
+_SIZE_CUE = re.compile(r"\b(size|sizes|fit|fits|take|best|prefer|think|suits?|wear|go\s+with|thats\s+my)\b", re.I)
+
+
+def mentions_size(text: str) -> bool:
+    """Worth checking this message against a product's sizes."""
+    return bool(_SIZE_CUE.search(_clean(text)))
+
+
+def find_size_in_text(text: str, sizes_available: list[str]) -> Optional[str]:
+    """The one size from this product's list that the sentence names, or None."""
+    cleaned = _clean(text)
+    if len(cleaned.split()) > 12 or not _SIZE_CUE.search(cleaned):
+        return None
+    found = {size for size in sizes_available
+             if re.search(rf"(?<!\w)(?:uk\s*)?{re.escape(_shoe(size))}(?!\w)", cleaned, re.I)}
+    return found.pop() if len(found) == 1 else None
+
+
 def parse_bare_size(text: str) -> Optional[str]:
     """The size in a reply that is only a size: "xxl", "size 42", "XL please"."""
     match = _BARE_SIZE.match(_clean(text))
