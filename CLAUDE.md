@@ -297,6 +297,14 @@ sentence with a size word ("i think 11 size would be the best for me") sizes
 the cart line waiting for one, else adds the picked item in that size: live,
 the model promised "I'll add the mojari in UK 11" and CHECKOUT then found an
 empty cart. "choose blush pink one" picks by name (parse_named_selection).
+Sizes may be words (medium -> M), and a one-size product (bag, dupatta, stole)
+takes any size word to mean "that one" — the model invented "(Sizes: S, M, L,
+XL)" for a Free Size clutch, then refused to add it because "i think medium
+would look good on her" never said "add". A size answering our own "which
+size?" now counts as asking. A short question about a shown item ("would 1 be
+a good gift for my wife?") selects it silently while the assistant answers, so
+the size reply that follows has something to attach to. CHECKOUT matches how
+people ask ("can i checkout pls"); "pay for my sister" stays a search.
 
 sessions.selected_product holds the chosen item so a later BUY knows what it
 means; starting a new search clears it. Razorpay's Pay Now button will read the
