@@ -295,6 +295,24 @@ async def _handle_follow_up(
     return None
 
 
+async def _address_reply(user_id: int, text: str) -> str:
+    """Answer "what is my address?" and start "change my address", in code.
+
+    Their own delivery details are shop business: live, the model refused with
+    "I can only assist with ethnic wear".
+    """
+    saved = await asyncio.to_thread(repo.get_last_shipping, user_id)
+    if _CHANGES_ADDRESS.search(text) or not saved:
+        # Mark this as an address change, so finishing it does not check out
+        await asyncio.to_thread(repo.set_pending_address, user_id, {"__intent": "update"})
+        if saved:
+            return (f"Right now I have:\n{saved['name']}, {shipping.one_line(saved)}\n\n"
+                    f"{shipping.ASK_ADDRESS}")
+        return shipping.ASK_ADDRESS
+    return (f"I am delivering to:\n{saved['name']}, {shipping.one_line(saved)}\n"
+            f"Phone {saved['phone']}.\n\nReply CHANGE ADDRESS to use a different one.")
+
+
 async def _collect_address(user_id: int, text: str, previous: dict) -> "str | Reply | None":
     """Collect a delivery address in the chat, then finish the checkout.
 
@@ -304,21 +322,30 @@ async def _collect_address(user_id: int, text: str, previous: dict) -> "str | Re
     cleaned = text.strip().lower()
     if cleaned in ("cancel", "stop", "later", "not now"):
         await asyncio.to_thread(repo.set_pending_address, user_id, None)
+        saved = await asyncio.to_thread(repo.get_last_shipping, user_id)
+        if saved:
+            return f"No problem, I will keep delivering to {saved['name']}, {shipping.one_line(saved)}."
         return "No problem, I have not saved an address. Reply CHECKOUT when you are ready."
     if parse_command(text) is not None or find_product_code(text):
         return None
 
-    known = previous.get("pending_address") or {}
+    known = dict(previous.get("pending_address") or {})
+    updating = known.pop("__intent", "") == "update"
     values = shipping.parse_chat_address(text, known)
     missing = shipping.missing_fields(values)
     if missing and values == known:
         return None                      # nothing usable in it: treat as a normal message
     if missing:
-        await asyncio.to_thread(repo.set_pending_address, user_id, values)
+        await asyncio.to_thread(repo.set_pending_address, user_id,
+                                {**values, **({"__intent": "update"} if updating else {})})
         return shipping.ask_for(missing[0])
 
     await asyncio.to_thread(repo.set_pending_address, user_id, None)
     clean, _ = shipping.validate(values)
+    await asyncio.to_thread(repo.save_address, user_id, clean)
+    if updating:
+        return (f"Saved. I will deliver to {clean['name']}, {shipping.one_line(clean)}.\n"
+                "Reply CHECKOUT when you are ready to pay.")
     try:
         placed = await checkout.checkout_cart(user_id, "bot", clean)
     except payments.PaymentError as exc:
@@ -375,6 +402,7 @@ HELP_TEXT = "\n".join(
         "• CART — see your cart · REMOVE 2 · SIZE 1 L",
         "• CHECKOUT — pay for everything in your cart",
         "• ORDERS — track your orders",
+        "• MY ADDRESS — see or change where we deliver",
     ]
 )
 
@@ -795,6 +823,15 @@ async def _handle_text(sender: str, text: str, display_name: str | None) -> "str
     # "What's my total?", "show my cart", "my orders": facts, so code answers.
     # The model once replied "Your current total is Rs 17,498" by adding up two
     # prices from memory while the real cart held Rs 10,798.
+    if user_id is not None and _asks_about_address(text):
+        try:
+            answer = await _address_reply(user_id, text)
+            await _remember(user_id, text, answer)
+            await _log(user_id, text, answer, [], "lookup")
+            return answer
+        except Exception as exc:
+            print(f"[webhook] address lookup failed: {exc!r}")
+
     if user_id is not None and _is_lookup(text):
         try:
             if _ASKS_CART.search(text) or _ASKS_TOTAL.search(text):
@@ -862,6 +899,21 @@ _ASKS_TOTAL = re.compile(
     r"|\bhow\s+much\s+(?:do\s+i\s+(?:owe|have\s+to\s+pay|need\s+to\s+pay)|is\s+(?:my|the)\s+(?:cart|bag|total|bill))\b",
     re.IGNORECASE,
 )
+# Their own delivery address is shop business, not a product search. Live, the
+# model answered "I can only assist with ethnic wear" to "can u show me my adress?"
+_ASKS_ADDRESS = re.compile(
+    r"\b(?:my|the|delivery|shipping)\s+(?:address|adress|addres)\b"
+    r"|\b(?:address|adress|addres)\b.*\b(?:on\s+file|saved|you\s+have|for\s+(?:my|the)\s+order)\b"
+    r"|\bwhere\s+(?:is|are)\s+(?:it|they|my\s+order|my\s+parcel)\s+(?:going|being\s+sent)\b"
+    r"|\bdeliver(?:y|ing)?\s+to\b",
+    re.IGNORECASE,
+)
+_CHANGES_ADDRESS = re.compile(
+    r"\b(?:change|update|edit|correct|fix|new|different|another|wrong|set|save)\b[^.]{0,25}"
+    r"\b(?:address|adress|addres)\b"
+    r"|\b(?:address|adress|addres)\b[^.]{0,20}\b(?:is\s+wrong|changed|instead)\b",
+    re.IGNORECASE,
+)
 # Wanting to change the cart is the assistant's job, not a lookup
 _CHANGES_CART = re.compile(r"\b(?:add|remove|delete|drop|put|take\s+out|replace|change|buy|checkout)\b", re.IGNORECASE)
 
@@ -875,6 +927,10 @@ def _is_lookup(text: str) -> bool:
     if len(text.split()) > 9 or _CHANGES_CART.search(text):
         return False
     return bool(_ASKS_CART.search(text) or _ASKS_TOTAL.search(text) or _ASKS_ORDERS.search(text))
+
+
+def _asks_about_address(text: str) -> bool:
+    return len(text.split()) <= 12 and bool(_ASKS_ADDRESS.search(text) or _CHANGES_ADDRESS.search(text))
 
 
 # Meta redelivers a message when our 200 is slow or lost. Answering twice would

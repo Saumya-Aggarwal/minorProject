@@ -165,9 +165,15 @@ def close_session(session_id: int, status: str = "closed") -> None:
 SHIPPING_FIELDS = ("name", "phone", "line1", "line2", "city", "state", "pincode")
 
 
-def _apply_shipping(order: Order, shipping: Optional[dict[str, str]]) -> None:
+def _apply_shipping(order: Order, shipping: Optional[dict[str, str]], db=None) -> None:
+    """Put the address on the order, and keep it as the customer's current one."""
     for field in SHIPPING_FIELDS:
         setattr(order, f"ship_{field}", (shipping or {}).get(field) or None)
+    if shipping and db is not None:
+        # Whatever they last ordered to is where they expect the next one to go
+        user = db.get(User, order.user_id)
+        if user is not None:
+            user.shipping = dict(shipping)
 
 
 def _shipping_of(order: Order) -> Optional[dict[str, str]]:
@@ -194,7 +200,7 @@ def create_order_from_items(
     total = sum(_money(item["price_inr"]) * int(item["quantity"]) for item in items)
     with session_scope() as db:
         order = Order(user_id=user_id, channel=channel, total_inr=total, from_cart=from_cart)
-        _apply_shipping(order, shipping)
+        _apply_shipping(order, shipping, db)
         db.add(order)
         db.flush()
         for item in items:
@@ -400,13 +406,25 @@ def get_unpaid_link_orders(max_age_minutes: int, limit: int) -> list[tuple[int, 
     return [(order_id, link_id) for order_id, link_id in rows]
 
 
+def save_address(user_id: int, address: dict[str, str]) -> None:
+    """Keep the address the customer confirmed, even before any order exists."""
+    with session_scope() as db:
+        user = db.get(User, user_id)
+        if user is not None:
+            user.shipping = dict(address)
+
+
 def get_last_shipping(user_id: int) -> Optional[dict[str, str]]:
-    """The address on the customer's most recent order, to pre-fill checkout.
+    """The address to deliver to: the one they last confirmed, else the one on
+    their most recent order.
 
     "Remembered for next time" without an addresses table: the orders already
     hold every address the customer has used.
     """
     with session_scope() as db:
+        user = db.get(User, user_id)
+        if user is not None and user.shipping:
+            return dict(user.shipping)
         order = db.exec(
             select(Order)
             .where(Order.user_id == user_id, Order.ship_line1.is_not(None))
@@ -421,7 +439,7 @@ def set_order_shipping(order_id: int, shipping: dict[str, str]) -> None:
         order = db.get(Order, order_id)
         if order is None:
             raise ValueError(f"unknown order {order_id}")
-        _apply_shipping(order, shipping)
+        _apply_shipping(order, shipping, db)
 
 
 def cancel_order(order_id: int) -> None:

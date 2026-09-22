@@ -374,6 +374,20 @@ def bot_conversation_checks() -> None:
         check("...and it is reused next time",
               (repo.get_last_shipping(fresh) or {}).get("city") == "Roorkee")
 
+        # Live: "hi can u show me my adress?" got "I can only assist with ethnic wear"
+        shown = say_fresh("hi can u show me my adress?")
+        check("asking for their address answers it, in code",
+              "Roorkee" in shown and "Saumya Aggarwal" in shown, shown[:90])
+        changing = say_fresh("i want to change my address")
+        check("'change my address' asks for the new one",
+              "Where should we deliver it" in changing and "Roorkee" in changing, changing[:90])
+        saved = say_fresh("Saumya Aggarwal 9812345678, 9 Rajpur Road, Dehradun 248001, Uttarakhand")
+        check("the new address is saved without checking out",
+              "Saved" in saved and "Dehradun" in saved and len(repo.get_order_history(fresh)) == 1, saved[:90])
+        check("...and it is what the shop delivers to now",
+              (repo.get_last_shipping(fresh) or {}).get("city") == "Dehradun")
+        check("HELP mentions it", "MY ADDRESS" in say_fresh("HELP"))
+
         check("a normal search is not mistaken for a command",
               "CART to see your cart" in say(client, "add a red dupatta"))
 

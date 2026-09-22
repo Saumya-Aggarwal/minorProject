@@ -62,6 +62,9 @@ class User(SQLModel, table=True):
     # {"gender": "Men"|"Women", "notes": ["shops for his brother", ...]}.
     # Shown on /account, where the customer can clear it.
     profile: Optional[dict[str, Any]] = Field(default=None, sa_column=Column(JSONB))
+    # The delivery address the customer last confirmed, used before the one on
+    # their most recent order (they may have changed it since)
+    shipping: Optional[dict[str, Any]] = Field(default=None, sa_column=Column(JSONB))
 
 
 class Session(SQLModel, table=True):

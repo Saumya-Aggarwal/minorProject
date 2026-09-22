@@ -156,8 +156,12 @@ courier-style message ("Aisha Khan, 9876543210 / 12 MG Road / Bengaluru 560038,
 Karnataka"): phone, PIN and state are recognised for certain, the town is
 whatever sits beside the PIN, the rest is the street. Anything still missing is
 asked for one field at a time, the half-finished address living in
-sessions.pending_address; CANCEL leaves the questions. Later orders reuse the
-address (get_last_shipping), as before.
+sessions.pending_address; CANCEL leaves the questions.
+"My address" and "change my address" are answered in code too (the model
+refused with "I can only assist with ethnic wear"); the confirmed address is
+kept on users.shipping, which get_last_shipping prefers over the last order's,
+so it can be changed before any order exists. Every order that carries an
+address updates it.
 
 ## Account linking
 A browser session cannot reach the bot: Meta's webhook delivers only a phone

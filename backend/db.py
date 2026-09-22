@@ -30,6 +30,7 @@ _ADDED_COLUMNS = (
     "ALTER TABLE sessions ADD COLUMN IF NOT EXISTS messages JSONB",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS profile JSONB",
     "ALTER TABLE sessions ADD COLUMN IF NOT EXISTS pending_address JSONB",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS shipping JSONB",
 )
 
 
