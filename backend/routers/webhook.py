@@ -12,6 +12,7 @@ import catalog
 import checkout
 import payments
 import repository as repo
+import shipping
 from bot import assistant
 from bot.chat import format_product_lines, get_product_recommendations, product_caption
 from common.schemas import ProductMatch
@@ -228,6 +229,11 @@ async def _handle_follow_up(
     Cart commands come first and need no previous turn: "CART" works even as the
     very first message. Selection and BUY refer back to the last list shown.
     """
+    if (previous or {}).get("pending_address") is not None:
+        reply = await _collect_address(user_id, text, previous or {})
+        if reply is not None:
+            return reply
+
     command = parse_command(text)
     if command is not None:
         name, args = command
@@ -287,6 +293,46 @@ async def _handle_follow_up(
         return await _place_order(user_id, chosen, buy_size)
 
     return None
+
+
+async def _collect_address(user_id: int, text: str, previous: dict) -> "str | Reply | None":
+    """Collect a delivery address in the chat, then finish the checkout.
+
+    Returns None when the message is plainly something else (a command, or a
+    new search), so the customer is never trapped in the address questions.
+    """
+    cleaned = text.strip().lower()
+    if cleaned in ("cancel", "stop", "later", "not now"):
+        await asyncio.to_thread(repo.set_pending_address, user_id, None)
+        return "No problem, I have not saved an address. Reply CHECKOUT when you are ready."
+    if parse_command(text) is not None or find_product_code(text):
+        return None
+
+    known = previous.get("pending_address") or {}
+    values = shipping.parse_chat_address(text, known)
+    missing = shipping.missing_fields(values)
+    if missing and values == known:
+        return None                      # nothing usable in it: treat as a normal message
+    if missing:
+        await asyncio.to_thread(repo.set_pending_address, user_id, values)
+        return shipping.ask_for(missing[0])
+
+    await asyncio.to_thread(repo.set_pending_address, user_id, None)
+    clean, _ = shipping.validate(values)
+    try:
+        placed = await checkout.checkout_cart(user_id, "bot", clean)
+    except payments.PaymentError as exc:
+        print(f"[webhook] payment could not start after address: {exc}")
+        return PAYMENT_UNAVAILABLE
+    if placed is None:
+        return f"Saved: {shipping.one_line(clean)}. Your cart is empty though — tell me what you are looking for."
+    noun = "item" if placed["item_count"] == 1 else "items"
+    return Reply(
+        f"Delivering to {clean['name']}, {shipping.one_line(clean)}.\n"
+        f"Order #{placed['order_id']} — {placed['item_count']} {noun}, "
+        f"total Rs. {placed['total_inr']:,.0f}.\nTap Pay Now to pay securely.",
+        cta_url=placed["url"], cta_label="Pay Now",
+    )
 
 
 async def _bare_size(user_id: int, text: str, previous: dict) -> str | None:
@@ -511,6 +557,14 @@ async def _handle_cart_command(
         missing = _missing_sizes(cart)
         if missing:
             return _ask_for_sizes(missing)
+
+        # Deliveries need somewhere to go. A returning customer's last address
+        # is reused; a first order asks for one here rather than on the order
+        # page after paying.
+        known = await asyncio.to_thread(repo.get_last_shipping, user_id)
+        if not known:
+            await asyncio.to_thread(repo.set_pending_address, user_id, {})
+            return shipping.ASK_ADDRESS
 
         try:
             placed = await checkout.checkout_cart(user_id, "bot")

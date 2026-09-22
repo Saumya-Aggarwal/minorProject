@@ -66,6 +66,7 @@ def get_active_session(user_id: int) -> Optional[dict[str, Any]]:
             "last_products_shown": session.last_products_shown,
             "selected_product": session.selected_product,
             "messages": session.messages or [],
+            "pending_address": session.pending_address,
             "status": session.status,
         }
 
@@ -110,6 +111,21 @@ def record_selection(user_id: int, product: dict[str, Any]) -> None:
             db.add(session)
 
         session.selected_product = product
+        session.updated_at = utcnow()
+
+
+def set_pending_address(user_id: int, address: Optional[dict[str, Any]]) -> None:
+    """Remember the half-finished address the bot is collecting, or None to stop."""
+    with session_scope() as db:
+        session = db.exec(
+            select(Session)
+            .where(Session.user_id == user_id, Session.status == "active")
+            .order_by(Session.updated_at.desc())
+        ).first()
+        if session is None:
+            session = Session(user_id=user_id)
+            db.add(session)
+        session.pending_address = address
         session.updated_at = utcnow()
 
 

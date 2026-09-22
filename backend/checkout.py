@@ -1,7 +1,7 @@
 """Payment orchestration shared by the bot, the website and both confirmation paths.
 
-    start_payment()          order → Razorpay Payment Link → stored on the order
-    confirm_payment_link()   customer redirected back: ask Razorpay if it is paid
+    start_payment()          order → Razorpay order → our /pay page, stored on the order
+    confirm_payment_link()   ask Razorpay whether that order has a captured payment
     confirm_from_webhook()   Razorpay's webhook says it is paid (signature checked)
 
 Both confirmations end in repository.mark_order_paid(), which is idempotent and
@@ -52,6 +52,17 @@ def _return_url(order: dict[str, Any]) -> Optional[str]:
     return None
 
 
+def return_after_paying(order: dict[str, Any]) -> Optional[str]:
+    """Where the browser goes once the payment is recorded (see _return_url)."""
+    return _return_url(order)
+
+
+async def record_checkout_payment(order_id: int, payment_id: str,
+                                  razorpay_order_id: str) -> dict[str, Any]:
+    """Record a payment the browser brought back, after its signature checked out."""
+    return await _record_paid(order_id, payment_id, razorpay_order_id)
+
+
 async def start_payment(order_id: int) -> str:
     """Create the payment link for an order and store it. Returns the URL.
 
@@ -65,18 +76,15 @@ async def start_payment(order_id: int) -> str:
         # Paying twice for one order must be impossible, so one link per order
         return order["payment_link_url"]
 
-    link = await payments.create_payment_link(
-        order_id,
-        order["total_inr"],
-        _describe(order),
-        customer_name=order["customer_name"],
-        customer_phone=order["whatsapp_number"],
-        customer_email=order["customer_email"],
-        callback_url=_return_url(order),
-    )
-    await asyncio.to_thread(repo.attach_payment_link, order_id, link["id"], link["short_url"])
-    print(f"[checkout] order {order_id} -> payment link {link['id']}")
-    return link["short_url"]
+    base_url = os.getenv("PUBLIC_BASE_URL", "").rstrip("/")
+    if not base_url:
+        # The Pay Now button in WhatsApp needs an absolute https URL
+        raise payments.PaymentError("PUBLIC_BASE_URL is not set, so the payment page has no address")
+    rzp = await payments.create_checkout_order(order_id, order["total_inr"], _describe(order))
+    url = f"{base_url}/pay/{order_id}"
+    await asyncio.to_thread(repo.attach_payment_link, order_id, rzp["id"], url)
+    print(f"[checkout] order {order_id} -> razorpay order {rzp['id']}")
+    return url
 
 
 def _lines(items: list[dict[str, Any]]) -> set[tuple[str, str, int]]:
@@ -186,9 +194,18 @@ async def confirm_payment_link(payment_link_id: str) -> Optional[dict[str, Any]]
     """
     order_id = await asyncio.to_thread(repo.get_order_id_by_payment_link, payment_link_id)
     if order_id is None:
-        print(f"[checkout] callback for unknown payment link {payment_link_id}")
+        print(f"[checkout] callback for unknown payment reference {payment_link_id}")
         return None
 
+    if payment_link_id.startswith("order_"):
+        attempts = await payments.fetch_order_payments(payment_link_id)
+        payment_id = payments.captured_payment_id(attempts)
+        if payment_id is None:
+            order = await asyncio.to_thread(repo.get_order, order_id)
+            return {"order": order, "first_time": False, "link_status": "created"}
+        return await _record_paid(order_id, payment_id, payment_link_id)
+
+    # Orders made before 23 Sep still have a Razorpay Payment Link
     link = await payments.fetch_payment_link(payment_link_id)
     payment_id = payments.paid_payment_id(link)
     if payment_id is None:

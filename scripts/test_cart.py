@@ -29,21 +29,22 @@ from auth import create_web_user  # noqa: E402
 
 # Razorpay and WhatsApp are faked here: these tests are about the cart, and must
 # not depend on network access or valid keys. test_payments.py covers payments.
-FAKE_PAY_URL = "https://rzp.io/test/"
+# Razorpay orders are faked here; the customer pays on our own /pay/<id> page
+PAY_PAGE = "/pay/"
 _fake_links = 0
 
 
-async def _fake_create_payment_link(order_id, amount_inr, description, **_):
+async def _fake_create_checkout_order(order_id, amount_inr, description, notes=None):
     global _fake_links
     _fake_links += 1
-    return {"id": f"plink_cart{order_id}n{_fake_links}", "short_url": f"{FAKE_PAY_URL}{order_id}"}
+    return {"id": f"order_cart{order_id}n{_fake_links}"}
 
 
 async def _no_whatsapp(to, body):
     return {}
 
 
-payments.create_payment_link = _fake_create_payment_link
+payments.create_checkout_order = _fake_create_checkout_order
 os.environ["PAYMENT_RECONCILE_SECONDS"] = "0"  # no background confirmations racing the checks
 # Deterministic and free: no LLM calls; the assistant has its own test with a fake model
 os.environ["LLM_API_KEY"] = ""
@@ -53,7 +54,7 @@ from db import init_db, session_scope  # noqa: E402
 from models import CartItem, LinkToken, Order, OrderItem, Session, User  # noqa: E402
 
 # Recognisable test identities, cleaned up before and after
-TEST_PHONES = ["910000000001", "910000000002", "910000000003"]
+TEST_PHONES = ["910000000001", "910000000002", "910000000003", "910000000004"]
 TEST_EMAILS = ["test-cart-a@example.com", "test-cart-b@example.com"]
 
 ADDRESS = {"name": "Test Buyer", "phone": "9876543210", "line1": "12 MG Road", "line2": "", "city": "Pune", "state": "Maharashtra", "pincode": "411001"}
@@ -308,17 +309,21 @@ def bot_conversation_checks() -> None:
             if not item["size"] and len(item["sizes_available"]) > 1:
                 say(client, f"SIZE {position} {item['sizes_available'][0]}")
 
-        done = say(client, "CHECKOUT")
-        check("CHECKOUT creates one order", "created" in done and len(repo.get_order_history(user)) == 1,
+        # The first chat order has no address yet; section further down covers
+        # the questions, so answer them in one message here
+        first = say(client, "CHECKOUT")
+        check("the first CHECKOUT asks where to deliver", "deliver" in first.lower(), first[:70])
+        done = say(client, "Cart Tester 9812345678, 12 MG Road, Pune 411001, Maharashtra")
+        check("CHECKOUT creates one order", "Order #" in done and len(repo.get_order_history(user)) == 1,
               done[:80])
-        check("CHECKOUT order carries a payment link",
-              (repo.get_order_history(user)[0]["payment_link_url"] or "").startswith(FAKE_PAY_URL))
+        check("CHECKOUT order carries a link to our payment page",
+              PAY_PAGE in (repo.get_order_history(user)[0]["payment_link_url"] or ""))
         again = say(client, "CHECKOUT")
         check("CHECKOUT twice reuses the unpaid order",
               "still waiting" in again and len(repo.get_order_history(user)) == 1, again[:80])
         orders_reply = say(client, "ORDERS")
         check("ORDERS shows the unpaid order with its pay link",
-              "awaiting payment" in orders_reply and FAKE_PAY_URL in orders_reply, orders_reply[:120])
+              "awaiting payment" in orders_reply and PAY_PAGE in orders_reply, orders_reply[:120])
         order = repo.get_order_history(user)[0]
         check("order has both lines, all sized",
               len(order["items"]) == 2 and all(i["size"] for i in order["items"]),
@@ -329,6 +334,45 @@ def bot_conversation_checks() -> None:
         check("REMOVE drops a line", len(repo.get_cart(user)["items"]) == 1)
         check("CLEAR empties the cart", "empty" in say(client, "clear cart").lower()
               and not repo.get_cart(user)["items"])
+
+        # A first chat order has nowhere to deliver to: the bot asks in chat.
+        # A fresh customer, because this one now has an address from above.
+        fresh_phone = "910000000004"
+        fresh = repo.get_or_create_user(fresh_phone, "Fresh Buyer")
+
+        def say_fresh(body: str) -> str:
+            payload = {"object": "whatsapp_business_account", "entry": [{"id": "1", "changes": [{
+                "field": "messages", "value": {
+                    "messaging_product": "whatsapp",
+                    "contacts": [{"wa_id": fresh_phone, "profile": {"name": "Fresh Buyer"}}],
+                    "messages": [{"from": fresh_phone, "id": "wamid.f", "timestamp": "1",
+                                  "type": "text", "text": {"body": body}}]}}]}]}
+            return client.post("/webhook", json=payload,
+                               headers={"X-Local-Test": "true"}).json()["responses"][0]["body"]
+
+        say_fresh("EW012")
+        say_fresh("ADD")
+        asked = say_fresh("CHECKOUT")
+        check("a first chat order asks for the delivery address",
+              "Where should we deliver it" in asked, asked[:80])
+        check("...and creates no order until it has one", not repo.get_order_history(fresh))
+        check("CANCEL leaves the address questions",
+              "not saved an address" in say_fresh("cancel").lower())
+        check("...and a search still works afterwards",
+              "CART to see your cart" in say_fresh("saree for office"))
+        say_fresh("CHECKOUT")
+        partial = say_fresh("45 Civil Lines, Roorkee 247667")
+        check("a half address asks only for what is missing",
+              "name" in partial.lower() or "mobile" in partial.lower(), partial[:80])
+        say_fresh("Saumya Aggarwal 9812345678")
+        done = say_fresh("Uttarakhand")
+        check("the finished address places the order",
+              "Delivering to Saumya Aggarwal" in done and "Order #" in done, done[:120])
+        placed = repo.get_order(repo.get_order_history(fresh)[0]["order_id"])
+        check("...with the address stored on it",
+              (placed["shipping"] or {}).get("pincode") == "247667", placed.get("shipping"))
+        check("...and it is reused next time",
+              (repo.get_last_shipping(fresh) or {}).get("city") == "Roorkee")
 
         check("a normal search is not mistaken for a command",
               "CART to see your cart" in say(client, "add a red dupatta"))
@@ -450,7 +494,7 @@ def web_cart_checks() -> None:
         check("...and creates no order", not repo.get_order_history(web_user))
         done = web.post("/checkout", data=ADDRESS, follow_redirects=False)
         location = done.headers.get("location", "")
-        check("web checkout sends the browser to the payment page", location.startswith(FAKE_PAY_URL),
+        check("web checkout sends the browser to the payment page", PAY_PAGE in location,
               location)
         order = repo.get_order_history(web_user)[0]
         check("web order has both channels' items",
@@ -479,7 +523,7 @@ def web_cart_checks() -> None:
                         follow_redirects=False)
         latest = repo.get_order_history(web_user)[0]
         check("Buy now checkout goes to the payment page, with quantity",
-              paid.headers.get("location", "").startswith(FAKE_PAY_URL)
+              PAY_PAGE in paid.headers.get("location", "")
               and latest["items"][0]["quantity"] == 2)
         unsized = web.post(f"/buy/{MULTI_SIZE}", follow_redirects=True)
         check("unsized Buy now is sent back to choose a size",

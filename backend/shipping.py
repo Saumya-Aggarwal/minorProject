@@ -62,3 +62,87 @@ def one_line(address: dict[str, str]) -> str:
     parts = [address.get("line1"), address.get("line2"), address.get("city")]
     head = ", ".join(p for p in parts if p)
     return f"{head}, {address.get('state', '')} {address.get('pincode', '')}".strip(", ")
+
+
+# --- addresses typed into a WhatsApp chat --------------------------------------
+
+ASK_ADDRESS = (
+    "Where should we deliver it? Send the address in one message, like this:\n\n"
+    "Aisha Khan, 9876543210\n"
+    "12 MG Road, Indiranagar\n"
+    "Bengaluru 560038, Karnataka"
+)
+
+# What to ask for when something is missing, in the order we ask
+_ASK_FOR = {
+    "name": "What name should the parcel go to?",
+    "phone": "What is the 10-digit mobile number for delivery?",
+    "line1": "What is the house or flat number and street?",
+    "city": "Which town or city?",
+    "pincode": "What is the 6-digit PIN code?",
+    "state": "Which state?",
+}
+
+
+def _state_in(text: str) -> str:
+    """The Indian state named anywhere in the text (longest match wins)."""
+    lowered = text.lower()
+    found = [s for s in INDIAN_STATES if re.search(rf"\b{re.escape(s.lower())}\b", lowered)]
+    return max(found, key=len) if found else ""
+
+
+def parse_chat_address(text: str, known: dict[str, str] | None = None) -> dict[str, str]:
+    """Pull an address out of a WhatsApp message, keeping anything already known.
+
+    Customers write it as they would for a courier: a name and number, the
+    street, then the town with its PIN, and the state, split over lines or
+    commas. The phone, PIN and state are recognised for certain; the town is
+    whatever sits beside the PIN (or the last piece), and the rest is the street.
+    """
+    values = {key: (known or {}).get(key, "") for key in FIELDS}
+    chunks = [" ".join(c.split()) for c in re.split(r"[\n,;]+", str(text or ""))]
+    chunks = [c for c in chunks if c]
+
+    def take(pattern: str) -> tuple[str, int]:
+        """Cut the first match out of the chunks; returns (match, chunk index)."""
+        for i, chunk in enumerate(chunks):
+            found = re.search(pattern, chunk)
+            if found:
+                chunks[i] = " ".join(chunk.replace(found.group(0), " ").split())
+                return found.group(1 if found.groups() else 0), i
+        return "", -1
+
+    phone, _ = take(r"(?<!\d)(?:\+?91[\s-]?|0)?([6-9]\d{9})(?!\d)")
+    pincode, pin_at = take(r"(?<!\d)([1-9]\d{5})(?!\d)")
+    state = _state_in(" ".join(chunks))
+    if state:
+        chunks = [" ".join(re.sub(rf"\b{re.escape(state)}\b", " ", c, flags=re.I).split()) for c in chunks]
+    values["phone"] = values["phone"] or phone
+    values["pincode"] = values["pincode"] or pincode
+    values["state"] = values["state"] or state
+
+    city = chunks[pin_at] if 0 <= pin_at < len(chunks) else ""
+    if city:
+        chunks[pin_at] = ""
+    chunks = [c for c in chunks if len(c) > 1]
+
+    if chunks and not values["name"] and not re.search(r"\d", chunks[0]):
+        values["name"] = chunks.pop(0)
+    if not city and chunks:
+        city = chunks.pop()                      # the last piece is the town
+    values["city"] = values["city"] or city
+    if chunks and not values["line1"]:
+        values["line1"] = chunks.pop(0)
+    if chunks and not values["line2"]:
+        values["line2"] = " ".join(chunks)
+    return values
+
+
+def missing_fields(values: dict[str, str]) -> list[str]:
+    """Which fields still need asking about, in the order to ask."""
+    _, errors = validate(values)
+    return [key for key in _ASK_FOR if key in errors]
+
+
+def ask_for(field: str) -> str:
+    return _ASK_FOR.get(field, "Could you send the address again?")

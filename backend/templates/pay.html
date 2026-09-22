@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Pay for order #{{ order.order_id }} — Kurta &amp; Co.{% endblock %}
+{% block whatsapp_fab %}{% endblock %}
+{% block content %}
+<div class="container-site flex min-h-[70vh] items-center justify-center py-16">
+  <div class="panel w-full max-w-md p-8 text-center">
+    <p class="eyebrow">Secure payment</p>
+    <h1 class="display mt-3 text-3xl">Order #{{ order.order_id }}</h1>
+
+    <ul class="mt-6 space-y-2 text-left text-sm">
+      {% for item in order["items"] %}   {# order.items would be the dict method #}
+      <li class="flex justify-between gap-4">
+        <span>{{ item.quantity }} × {{ item.product_name }}{% if item.size %} · {{ item.size }}{% endif %}</span>
+        <span class="whitespace-nowrap text-muted">{{ (item.price_inr * item.quantity) | inr }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="mt-4 flex justify-between border-t border-line pt-4 text-base font-medium">
+      <span>Total</span><span>{{ order.total_inr | inr }}</span>
+    </p>
+
+    <button id="pay" class="btn-primary mt-8 w-full justify-center py-3">Pay {{ order.total_inr | inr }}</button>
+    <p id="status" class="mt-4 text-sm text-muted">UPI, cards and netbanking through Razorpay. Test mode: no real money moves.</p>
+    <p class="mt-2 text-[12px] text-muted">We never see your card or UPI PIN.</p>
+  </div>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+  // The amount and the Razorpay order come from our server, never from the page:
+  // the customer pays what the order says, and the payment we record is the one
+  // Razorpay signed.
+  const CHECKOUT = {
+    key: {{ key_id | tojson }},
+    order_id: {{ razorpay_order_id | tojson }},
+    amount: {{ amount_paise | tojson }},
+    currency: "INR",
+    name: "Kurta & Co.",
+    description: "Order #{{ order.order_id }}",
+    prefill: {
+      name: {{ (order.customer_name or "") | tojson }},
+      email: {{ (order.customer_email or "") | tojson }},
+      contact: {{ contact | tojson }},
+    },
+    theme: { color: "#7A1F2B" },
+  };
+  const RETURN_TO = {{ (return_url or "") | tojson }};
+  const status = document.getElementById("status");
+  const button = document.getElementById("pay");
+
+  async function confirm(response) {
+    status.textContent = "Confirming your payment…";
+    const body = new FormData();
+    body.append("razorpay_order_id", response.razorpay_order_id);
+    body.append("razorpay_payment_id", response.razorpay_payment_id);
+    body.append("razorpay_signature", response.razorpay_signature);
+    try {
+      const result = await fetch("/payments/verify", { method: "POST", body, credentials: "same-origin" });
+      const data = await result.json();
+      if (!data.ok) throw new Error(data.error || "could not confirm");
+      status.textContent = "Payment received. Taking you back…";
+      window.location = data.redirect || "/account";
+    } catch (error) {
+      // The payment itself went through; the webhook and the reconciler will
+      // record it even if this page could not.
+      status.textContent = "Payment received. Your confirmation will arrive shortly.";
+      if (RETURN_TO) setTimeout(() => { window.location = RETURN_TO; }, 2500);
+    }
+  }
+
+  function openCheckout() {
+    const razorpay = new Razorpay({ ...CHECKOUT, handler: confirm });
+    razorpay.on("payment.failed", (event) => {
+      status.textContent = (event.error && event.error.description) || "That payment did not go through. You can try again.";
+    });
+    razorpay.open();
+  }
+
+  button.addEventListener("click", openCheckout);
+  openCheckout();      // the customer tapped "Pay now" already; do not make them tap twice
+</script>
+{% endblock %}

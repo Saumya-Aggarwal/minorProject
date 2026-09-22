@@ -117,8 +117,19 @@ so a re-render cannot invalidate a code the customer is about to send.
 Verify: scripts/test_live.py (server) and node scripts/test_live_js.mjs (browser logic).
 
 ## Payments
-checkout.py orchestrates; payments.py is a thin httpx wrapper over three Razorpay
-endpoints (no SDK: it is synchronous). Payment Links serve both channels.
+checkout.py orchestrates; payments.py is a thin httpx wrapper over the Razorpay
+REST API (no SDK: it is synchronous).
+23 Sep: Payment Links were replaced by Standard Checkout (orders + our own
+/pay/{order_id} page). Test mode allows only 30 payment links per account FOR
+EVER, and this account spent them - live CHECKOUT answered "Razorpay 429: test
+mode limit of 30 reached for payment_link" (24 of the 30 were Rs 1 links from
+this repo's own test runs, which now create an order instead). Orders have no
+such cap. start_payment creates a Razorpay order, stores its id in
+payment_link_id and our page's URL in payment_link_url; templates/pay.html
+loads checkout.js with the key id, that order and the amount from OUR database;
+POST /payments/verify checks the signature Checkout returns (HMAC of
+"order_id|payment_id" with the key secret) before recording anything. Orders
+created before the switch still confirm through the old payment-link path.
 Two confirmation paths, either sufficient: GET /payments/callback (customer's
 browser; confirmed by fetching the link from Razorpay, never by trusting query
 params) and POST /razorpay/webhook (event payment_link.paid, HMAC over the RAW
@@ -136,6 +147,17 @@ reconcile_forever, started in main.py's lifespan) asks Razorpay every
 PAYMENT_RECONCILE_SECONDS (default 5) about unpaid orders from the last hour.
 Webhook = fast path; reconciler = guarantee. Tests set it to 0.
 Verify with: backend/.venv/Scripts/python scripts/test_payments.py
+
+## Delivery address in chat
+A first chat order has nowhere to go, so CHECKOUT asks for the address instead
+of creating an order (the website form is still there, and the order page still
+asks if an order somehow lacks one). shipping.parse_chat_address reads a
+courier-style message ("Aisha Khan, 9876543210 / 12 MG Road / Bengaluru 560038,
+Karnataka"): phone, PIN and state are recognised for certain, the town is
+whatever sits beside the PIN, the rest is the street. Anything still missing is
+asked for one field at a time, the half-finished address living in
+sessions.pending_address; CANCEL leaves the questions. Later orders reuse the
+address (get_last_shipping), as before.
 
 ## Account linking
 A browser session cannot reach the bot: Meta's webhook delivers only a phone

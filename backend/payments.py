@@ -145,3 +145,75 @@ def verify_webhook_signature(raw_body: bytes, signature: str) -> bool:
     # compare_digest: constant time, so the comparison does not leak how many
     # leading characters of a forged signature were correct
     return hmac.compare_digest(expected, signature)
+
+
+# --- Standard Checkout: a Razorpay order, paid on our own page ---------------------
+#
+# Test mode allows only 30 payment links per account, ever, and this account has
+# spent them ("Razorpay 429: test mode limit of 30 reached for payment_link").
+# Orders have no such cap, and Checkout on our own page is the integration
+# Razorpay documents first: create an order, let the customer pay against it,
+# then verify the signature they come back with.
+
+async def create_checkout_order(
+    order_id: int,
+    amount_inr: Decimal | float | int,
+    description: str,
+    notes: Optional[dict[str, str]] = None,
+) -> dict[str, Any]:
+    """Create the Razorpay order to pay against. Returns {"id": "order_..."}.
+
+    receipt must be unique across the account, and our order ids restart
+    whenever the tables are rebuilt, so it carries a random suffix.
+    """
+    payload: dict[str, Any] = {
+        "amount": to_paise(amount_inr),
+        "currency": "INR",
+        "receipt": f"ord{order_id}-{secrets.token_hex(3)}",
+        "notes": {"order_id": str(order_id), "description": description[:250], **(notes or {})},
+    }
+    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+        try:
+            response = await client.post(f"{API_BASE}/orders", json=payload, auth=_auth())
+        except httpx.HTTPError as exc:
+            raise PaymentError(f"could not reach Razorpay: {exc!r}") from exc
+    if response.is_error:
+        raise PaymentError(f"Razorpay {response.status_code}: {_error_message(response)}")
+    return {"id": response.json()["id"]}
+
+
+async def fetch_order_payments(razorpay_order_id: str) -> list[dict[str, Any]]:
+    """Every payment attempt against a Razorpay order — the authoritative answer
+    to "has this been paid?", used by the reconciler and the callback."""
+    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+        try:
+            response = await client.get(f"{API_BASE}/orders/{razorpay_order_id}/payments", auth=_auth())
+        except httpx.HTTPError as exc:
+            raise PaymentError(f"could not reach Razorpay: {exc!r}") from exc
+    if response.is_error:
+        raise PaymentError(f"Razorpay {response.status_code}: {_error_message(response)}")
+    return response.json().get("items") or []
+
+
+def captured_payment_id(attempts: list[dict[str, Any]]) -> Optional[str]:
+    """The captured payment among these attempts, or None (failed ones are kept
+    by Razorpay, so the list is not the same as "paid")."""
+    for payment in attempts:
+        if payment.get("status") == "captured":
+            return payment.get("id")
+    return None
+
+
+def verify_checkout_signature(razorpay_order_id: str, payment_id: str, signature: str) -> bool:
+    """Checkout hands the browser order_id|payment_id signed with our key secret.
+
+    Without this check anyone could POST an invented payment id and have the
+    order marked paid. The browser is never trusted on its own: the reconciler
+    and the webhook confirm against Razorpay as well.
+    """
+    _, key_secret = _auth()
+    if not (razorpay_order_id and payment_id and signature):
+        return False
+    expected = hmac.new(key_secret.encode(), f"{razorpay_order_id}|{payment_id}".encode(),
+                        hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, signature)

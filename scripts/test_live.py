@@ -172,14 +172,15 @@ def main() -> int:
             if not item["size"] and len(item["sizes_available"]) > 1:
                 whatsapp(web, f"SIZE {position} {item['sizes_available'][0]}")
         whatsapp(web, "CHECKOUT")
+        # A first chat order asks where to deliver (see test_cart)
+        whatsapp(web, "Live Tester 9812345678, 1 Test Street, Pune 411001, Maharashtra")
         before_pay = web.get("/api/live").json()
         order_id = max(int(i) for i in before_pay["orders"])
         check("new order visible as created", before_pay["orders"][str(order_id)] == "created")
 
         link_id = repo.get_order(order_id)["payment_link_id"]
-        event = {"event": "payment_link.paid", "payload": {
-            "payment_link": {"entity": {"id": link_id, "status": "paid"}},
-            "payment": {"entity": {"id": "pay_live1", "order_id": "order_live1"}}}}
+        event = {"event": "payment.captured", "payload": {
+            "payment": {"entity": {"id": "pay_live1", "order_id": link_id, "status": "captured"}}}}
         raw = json.dumps(event).encode()
         signature = hmac.new(SECRET.encode(), raw, hashlib.sha256).hexdigest()
         web.post("/razorpay/webhook", content=raw,

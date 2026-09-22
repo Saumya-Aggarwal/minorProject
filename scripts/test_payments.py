@@ -58,35 +58,34 @@ def check(label: str, condition: bool, detail: str = "") -> None:
 
 # --- fakes -------------------------------------------------------------------------
 
-REAL_CREATE = payments.create_payment_link
-REAL_FETCH = payments.fetch_payment_link
+REAL_CREATE = payments.create_checkout_order
+REAL_FETCH = payments.fetch_order_payments
 
 
-callback_for: dict[int, object] = {}  # order_id -> callback_url the link was created with
-
-
-async def fake_create_payment_link(order_id, amount_inr, description, **options):
+async def fake_create_checkout_order(order_id, amount_inr, description, notes=None):
+    """Stands in for POST /orders; its id is what the rest of the flow carries."""
     global _counter
     _counter += 1
-    callback_for[order_id] = options.get("callback_url")
-    link_id = f"plink_test{order_id}n{_counter}"
-    fake_link_status[link_id] = {"id": link_id, "status": "created", "payments": []}
-    return {"id": link_id, "short_url": f"https://rzp.io/test/{link_id}"}
+    rzp_id = f"order_test{order_id}n{_counter}"
+    fake_link_status[rzp_id] = []              # no payment attempts yet
+    return {"id": rzp_id}
 
 
-async def fake_fetch_payment_link(link_id):
-    if link_id not in fake_link_status:
+async def fake_fetch_order_payments(rzp_id):
+    if rzp_id not in fake_link_status:
         raise payments.PaymentError("Razorpay 400: not found")
-    return fake_link_status[link_id]
+    return fake_link_status[rzp_id]
 
 
-def pay_fake_link(link_id: str, payment_id: str) -> None:
-    fake_link_status[link_id] = {
-        "id": link_id,
-        "status": "paid",
-        "order_id": f"order_for_{link_id}",
-        "payments": [{"payment_id": payment_id, "status": "captured"}],
-    }
+def pay_fake_link(rzp_id: str, payment_id: str) -> None:
+    """The customer pays: Razorpay now reports a captured payment on that order."""
+    fake_link_status[rzp_id] = [{"id": payment_id, "status": "captured"}]
+
+
+def checkout_signature(rzp_id: str, payment_id: str) -> str:
+    """What Razorpay Checkout hands the browser after a successful payment."""
+    secret = os.environ["RAZORPAY_KEY_SECRET"]
+    return hmac.new(secret.encode(), f"{rzp_id}|{payment_id}".encode(), hashlib.sha256).hexdigest()
 
 
 async def record_whatsapp(to, body):
@@ -95,8 +94,8 @@ async def record_whatsapp(to, body):
 
 
 def install_fakes() -> None:
-    payments.create_payment_link = fake_create_payment_link
-    payments.fetch_payment_link = fake_fetch_payment_link
+    payments.create_checkout_order = fake_create_checkout_order
+    payments.fetch_order_payments = fake_fetch_order_payments
     checkout.send_whatsapp_message = record_whatsapp
     os.environ["RAZORPAY_WEBHOOK_SECRET"] = WEBHOOK_SECRET
     # The background reconciler would confirm fake payments on its own and race
@@ -136,16 +135,12 @@ def signed(event: dict, secret: str = WEBHOOK_SECRET) -> tuple[bytes, str]:
     return raw, hmac.new(secret.encode(), raw, hashlib.sha256).hexdigest()
 
 
-def paid_event(link_id: str, payment_id: str) -> dict:
+def paid_event(rzp_id: str, payment_id: str) -> dict:
+    """Standard Checkout's webhook: the payment carries its Razorpay order id."""
     return {
-        "event": "payment_link.paid",
-        "payload": {
-            "payment_link": {"entity": {"id": link_id, "status": "paid"}},
-            # Each real payment link has its own Razorpay order, so the id must be
-            # unique per payment — a shared one collides on orders_razorpay_order_id_key
-            "payment": {"entity": {"id": payment_id, "order_id": f"order_{payment_id}",
-                                   "status": "captured"}},
-        },
+        "event": "payment.captured",
+        "payload": {"payment": {"entity": {"id": payment_id, "order_id": rzp_id,
+                                           "status": "captured"}}},
     }
 
 
@@ -270,7 +265,7 @@ def main() -> int:
         address = {"name": "Web Payer", "phone": "9876543210", "line1": "4 Park Street",
                    "city": "Kolkata", "state": "West Bengal", "pincode": "700016"}
         to_pay = web.post("/checkout", data=address, follow_redirects=False).headers.get("location", "")
-        check("web checkout goes to the payment page", to_pay.startswith("https://rzp.io/test/"), to_pay)
+        check("web checkout goes to our payment page", "/pay/" in to_pay, to_pay)
         web_order = repo.get_order_history(web_user)[0]
 
         tracking = web.get(f"/orders/{web_order['order_id']}")
@@ -315,7 +310,7 @@ def main() -> int:
     async def broken(*_args, **_kwargs):
         raise payments.PaymentError("simulated outage")
 
-    payments.create_payment_link = broken
+    payments.create_checkout_order = broken
     repo.add_to_cart(racer, "EW003", "M", 1)
     try:
         asyncio.run(checkout.checkout_cart(racer, "bot"))
@@ -326,17 +321,17 @@ def main() -> int:
     check("the order it created is cancelled, not left dangling",
           history[0]["status"] == "failed", f"got {[o['status'] for o in history]}")
     check("cart untouched by the outage", len(repo.get_cart(racer)["items"]) == 1)
-    payments.create_payment_link = fake_create_payment_link
+    payments.create_checkout_order = fake_create_checkout_order
 
     print("\n9. Return to WhatsApp, and background reconciliation")
     returner = repo.get_or_create_user(PHONES[1], "Racer")
     chat_order = asyncio.run(checkout.checkout_single(returner, "EW012", "", 1, "bot"))
+    chat_return = checkout.return_after_paying(repo.get_order(chat_order["order_id"]))
     check("chat orders return to the WhatsApp chat, not our site",
-          str(callback_for[chat_order["order_id"]]).startswith("https://wa.me/"),
-          f"got {callback_for[chat_order['order_id']]}")
+          str(chat_return).startswith("https://wa.me/"), f"got {chat_return}")
     web_order_id = repo.get_order_history(repo.get_user_by_whatsapp(PHONES[2])["user_id"])[0]["order_id"]
-    check("website orders keep the default (our confirmation page)",
-          callback_for.get(web_order_id) is None, f"got {callback_for.get(web_order_id)}")
+    check("website orders return to our confirmation page",
+          checkout.return_after_paying(repo.get_order(web_order_id)) is None)
 
     check("reconcile: nothing to confirm while unpaid",
           asyncio.run(checkout.reconcile_pending_payments()) == 0)
@@ -378,15 +373,52 @@ def main() -> int:
         check("confirmation page has a Back to WhatsApp button",
               "Back to WhatsApp" in page and "https://wa.me/" in page)
 
+    print("\n11. Our own payment page (Razorpay Checkout)")
+    payer = repo.get_or_create_user(PHONES[1], "Racer")
+    page_order = asyncio.run(checkout.checkout_single(payer, "EW012", "", 1, "bot"))
+    order_id = page_order["order_id"]
+    rzp_id = repo.get_order(order_id)["payment_link_id"]
+    with TestClient(__import__("main").app) as client:
+        page = client.get(f"/pay/{order_id}")
+        check("the payment page loads without signing in", page.status_code == 200)
+        check("...and asks Razorpay Checkout for this order and amount",
+              "checkout.razorpay.com" in page.text and rzp_id in page.text
+              and str(payments.to_paise(page_order["total_inr"])) in page.text)
+        check("an unknown order does not get a payment page", client.get("/pay/999999").status_code == 404)
+
+        forged = client.post("/payments/verify", data={
+            "razorpay_order_id": rzp_id, "razorpay_payment_id": "pay_forged",
+            "razorpay_signature": "0" * 64})
+        check("a forged payment is refused", forged.status_code == 400 and status_of(order_id) == "created")
+
+        before = len(messages_to(PHONES[1]))
+        good = client.post("/payments/verify", data={
+            "razorpay_order_id": rzp_id, "razorpay_payment_id": "pay_PAGE1",
+            "razorpay_signature": checkout_signature(rzp_id, "pay_PAGE1")})
+        check("a signed payment is recorded", good.status_code == 200 and good.json()["ok"]
+              and status_of(order_id) == "captured")
+        check("...and sends exactly one confirmation", len(messages_to(PHONES[1])) == before + 1)
+        check("...and sends a chat customer back to WhatsApp",
+              good.json()["redirect"].startswith("https://wa.me/"), good.json())
+
+        again = client.post("/payments/verify", data={
+            "razorpay_order_id": rzp_id, "razorpay_payment_id": "pay_PAGE1",
+            "razorpay_signature": checkout_signature(rzp_id, "pay_PAGE1")})
+        check("paying twice confirms once", again.status_code == 200
+              and len(messages_to(PHONES[1])) == before + 1)
+        check("a paid order shows the result, not the payment page",
+              "checkout.razorpay.com" not in client.get(f"/pay/{order_id}").text)
+
     print("\n10. Live Razorpay test API (one real call)")
-    payments.create_payment_link = REAL_CREATE
-    payments.fetch_payment_link = REAL_FETCH
+    # Orders, not payment links: test mode allows only 30 payment links per account
+    # for ever, and this suite's own runs spent them (found live on 23 Sep).
+    payments.create_checkout_order = REAL_CREATE
+    payments.fetch_order_payments = REAL_FETCH
     try:
-        link = asyncio.run(payments.create_payment_link(0, 1, "Integration check — safe to ignore"))
-        fetched = asyncio.run(payments.fetch_payment_link(link["id"]))
-        check("real payment link created", link["id"].startswith("plink_") and link["short_url"])
-        check("real link fetched back unpaid", fetched.get("status") == "created")
-        print(f"        pay it to try the page: {link['short_url']}")
+        rzp = asyncio.run(payments.create_checkout_order(0, 1, "Integration check — safe to ignore"))
+        attempts = asyncio.run(payments.fetch_order_payments(rzp["id"]))
+        check("real Razorpay order created", rzp["id"].startswith("order_"))
+        check("real order has no captured payment yet", payments.captured_payment_id(attempts) is None)
     except payments.PaymentError as exc:
         print(f"  SKIP  live API not reachable with these keys: {exc}")
 
