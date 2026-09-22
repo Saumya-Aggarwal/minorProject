@@ -379,7 +379,9 @@ def main() -> int:
                         "EW019 Navy Sequin Party Lehenga – Rs 7999, perfect for a sangeet.")))
         response = send_full("anniversary gift ideas for my wife")
         check("two products named -> numbered list with photos", response["photos"] == ["EW020", "EW019"], response)
-        check("...no raw product codes left", "EW020" not in response["body"].split("\n\n")[0], response["body"][:80])
+        check("...no raw product codes left",
+              "EW020 Emerald" not in response["body"] and "Rs 9499" not in response["body"],
+              response["body"][:80])
         picked = send("2")
         check("...and '2' now selects the second", "Navy Sequin Party Lehenga" in picked, picked[:60])
 
@@ -492,6 +494,21 @@ def main() -> int:
         check("a size in words, answering our own question, is allowed through",
               [(i["product_id"], i["size"]) for i in repo.get_cart(user)["items"]] == [("EW017", "M")],
               repo.get_cart(user)["items"])
+
+        # Live: "Added the Mint Embellished Box Clutch to your cart. Total Rs
+        # 1,299." reached the customer as the two words "Added the." — the
+        # listing guard read a confirmation as the model writing its own list
+        repo.clear_cart(user)
+        repo.remember_messages(user, [
+            {"role": "user", "content": "i think medium would look good on her"},
+            {"role": "assistant", "content": "Shall I add the Crimson Anarkali Suit in M to your cart?"}])
+        run(Script(calls(("add_to_cart", {"product_id": "EW017", "size": "M"})),
+                   calls(("send_reply", {
+                       "product_ids": ["EW017"],
+                       "message": "Added the Crimson Anarkali Suit to your cart. Total is Rs 8,999."}))))
+        confirmed = send("yes")
+        check("a confirmation naming the item is not cut down to a stub",
+              "Added the Crimson Anarkali Suit" in confirmed, confirmed[:80])
 
         print("\n18. It is a shop assistant, not a chatbot")
         run(Script(calls(("send_reply", {

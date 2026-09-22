@@ -90,6 +90,10 @@ class Session(SQLModel, table=True):
     # Half-finished delivery address while the bot is collecting one in chat;
     # None when no address is being asked for
     pending_address: Optional[dict[str, Any]] = Field(default=None, sa_column=Column(JSONB))
+    # The "buy it again" list on screen: how far down their purchase history it
+    # has reached, and the size each item was bought in, so choosing a number
+    # puts it back in the cart without asking for a size again
+    reorder: Optional[dict[str, Any]] = Field(default=None, sa_column=Column(JSONB))
     # The assistant's short-term memory: the last few {role, content} messages,
     # so "the second one" or "what about in blue?" makes sense next turn
     messages: Optional[list[dict[str, Any]]] = Field(

@@ -235,6 +235,11 @@ async def _handle_follow_up(
         if reply is not None:
             return reply
 
+    # "more" after a buy-it-again page means older purchases, not a new search
+    reorder = (previous or {}).get("reorder") or {}
+    if reorder and _WANTS_MORE.match(text.strip()):
+        return await _reorder_reply(user_id, int(reorder.get("offset") or 0) + REORDER_PAGE)
+
     command = parse_command(text)
     if command is not None:
         name, args = command
@@ -275,6 +280,10 @@ async def _handle_follow_up(
         product = shown[index]
         print(f"[webhook] selection: item {index + 1} ({product.get('name')})")
         await asyncio.to_thread(repo.record_selection, user_id, product)
+        known_size = (reorder.get("sizes") or {}).get(_product_id(product))
+        if known_size is not None:
+            # They asked to buy something again and named it: nothing is left to ask
+            return await _add_again(user_id, product, known_size)
         return _detail_reply(describe_choice(product, index, _sizes_for(_product_id(product))),
                              _product_id(product))
 
@@ -403,6 +412,7 @@ HELP_TEXT = "\n".join(
         "• CART — see your cart · REMOVE 2 · SIZE 1 L",
         "• CHECKOUT — pay for everything in your cart",
         "• ORDERS — track your orders",
+        "• BUY AGAIN — shop what you have ordered before",
         "• MY ADDRESS — see or change where we deliver",
     ]
 )
@@ -451,6 +461,90 @@ async def _format_orders(user_id: int) -> str:
     if base_url:
         lines.append(f"\nFull details on the website: {base_url}/account")
     return "\n".join(lines)
+
+
+# --- buy it again ---------------------------------------------------------------
+# "can i buy one my old order agian" put a single product on screen with the
+# words "Added the." The customer's own history is a shop of its own: show a
+# page of it, and let a number put an item back in the cart, in the size they
+# chose last time, without asking anything further.
+REORDER_PAGE = 4
+_ASKS_REORDER = re.compile(
+    r"\bre-?order\b"
+    r"|\b(?:buy|order|get|purchase|want|take|have)\b[^.?!]{0,40}\b(?:again|once\s+more)\b"
+    # not "show me my previous orders", which is the ORDERS lookup
+    r"|\b(?:buy|order|get|purchase|repeat)\b[^.?!]{0,30}"
+    r"\b(?:old|previous|last|past|earlier|former)\s+(?:orders?|purchases?|buys?|items?|ones?|stuff|things?)\b"
+    r"|\b(?:same|repeat)\s+(?:as\s+)?(?:my\s+)?(?:last|previous|old)\s+(?:order|time|one)\b"
+    r"|\b(?:things?|stuff|what)\s+i\s+(?:bought|ordered)\s+(?:before|earlier|last\s+time)\b",
+    re.IGNORECASE,
+)
+# "more" only means "older purchases" while a buy-it-again page is on screen
+_WANTS_MORE = re.compile(
+    r"^(?:more|older|earlier|next)\b|^(?:show|see|got|any)\s+(?:me\s+)?(?:some\s+|any\s+)?more\b"
+    r"|^what\s+else\b|^anything\s+else\b",
+    re.IGNORECASE,
+)
+
+
+def _asks_to_reorder(text: str) -> bool:
+    return len(text.split()) <= 14 and bool(_ASKS_REORDER.search(text))
+
+
+async def _reorder_reply(user_id: int, offset: int = 0) -> "str | Reply":
+    """A page of what this customer has bought before, ready to buy again."""
+    page = await asyncio.to_thread(repo.past_purchases, user_id, REORDER_PAGE, offset)
+    products: list[dict] = []
+    sizes: dict[str, str] = {}
+    for bought in page["items"]:
+        product = catalog.get_by_id(bought["product_id"])
+        if product is None:          # no longer in the catalogue
+            continue
+        products.append(product)
+        sizes[product["id"]] = bought["size"]
+
+    if not products:
+        if offset:
+            # Leave the page that is on screen selectable: they asked for older
+            # purchases, not to throw away the four they can see
+            return ("That is everything you have ordered from us. "
+                    "Tell me what you are looking for and I will find something new.")
+        return ("You have not ordered anything from us yet, so there is nothing to buy again. "
+                "Tell me what you are shopping for and I will show you a few pieces.")
+
+    await _record_shown(user_id, "buy it again", products,
+                        reorder={"offset": offset, "sizes": sizes})
+    heading = "Here is what you have ordered before:" if not offset else "Going further back:"
+    intro = f"{heading}\nReply with a number and I will put it back in your cart, in the same size."
+    hints = ["Reply 1 to add it back"]
+    if page["more"]:
+        hints.append("MORE for older orders")
+    hints.append("CART to see your cart")
+    return _list_reply(intro, products, " · ".join(hints))
+
+
+def _added_confirmation(cart: dict, name: str, size: str) -> str:
+    """What the customer sees once something really is in their cart."""
+    note = f" (size {size})" if size else " (size not chosen yet)"
+    noun = "item" if cart["count"] == 1 else "items"
+    hint = (
+        _cart_hints(cart) + ", or keep browsing."
+        if _missing_sizes(cart)
+        else "Reply CHECKOUT to pay, CART to review, or keep browsing."
+    )
+    return (f"Added {name}{note} to your cart.\n"
+            f"Cart: {cart['count']} {noun}, Rs. {cart['total_inr']:,.0f}.\n{hint}")
+
+
+async def _add_again(user_id: int, product: dict, size: str) -> "str | Reply":
+    """Picking from the buy-it-again list is the whole instruction: add it."""
+    product_id = _product_id(product)
+    available = _sizes_for(product_id)
+    size = match_size(size, available) or (available[0] if len(available) == 1 else "")
+    cart = await asyncio.to_thread(repo.add_to_cart, user_id, product_id, size)
+    name = product.get("name") or product.get("product_name") or "it"
+    print(f"[webhook] buying {product_id} again for user {user_id} in size {size or 'none'}")
+    return _detail_reply(_added_confirmation(cart, name, size), product_id)
 
 
 def _format_cart(cart: dict) -> str:
@@ -548,17 +642,7 @@ async def _handle_cart_command(
             None,
         )
         shown_size = (added or {}).get("size") or size
-        note = f" (size {shown_size})" if shown_size else " (size not chosen yet)"
-        noun = "item" if cart["count"] == 1 else "items"
-        hint = (
-            _cart_hints(cart) + ", or keep browsing."
-            if _missing_sizes(cart)
-            else "Reply CHECKOUT to pay, CART to review, or keep browsing."
-        )
-        return (
-            f"Added {chosen.get('name', 'it')}{note} to your cart.\n"
-            f"Cart: {cart['count']} {noun}, Rs. {cart['total_inr']:,.0f}.\n{hint}"
-        )
+        return _added_confirmation(cart, chosen.get("name", "it"), shown_size)
 
     cart = await asyncio.to_thread(repo.get_cart, user_id)
 
@@ -701,8 +785,14 @@ async def _log(user_id: int | None, question: str, answer: "str | Reply", produc
         print(f"[webhook] could not log the reply: {exc!r}")
 
 
-async def _record_shown(user_id: int | None, text: str, products: list[dict]) -> list[ProductMatch]:
-    """Store the numbered list so "2", ADD and BUY refer to it next turn."""
+async def _record_shown(user_id: int | None, text: str, products: list[dict],
+                        reorder: dict | None = None) -> list[ProductMatch]:
+    """Store the numbered list so "2", ADD and BUY refer to it next turn.
+
+    `reorder` marks this list as "things you bought before" (and clears that
+    mark on every other list), so a number only skips the size question while
+    such a page is the one on screen.
+    """
     # Chroma metadata and catalogue records use other keys; normalise first
     matches = [ProductMatch.from_raw(product) for product in products]
     if user_id is not None:
@@ -710,6 +800,7 @@ async def _record_shown(user_id: int | None, text: str, products: list[dict]) ->
             await asyncio.to_thread(
                 repo.record_turn, user_id, text, [match.model_dump() for match in matches]
             )
+            await asyncio.to_thread(repo.set_reorder, user_id, reorder)
         except Exception as exc:
             print(f"[webhook] could not record turn: {exc!r}")
     return matches
@@ -832,6 +923,18 @@ async def _handle_text(sender: str, text: str, display_name: str | None) -> "str
             return answer
         except Exception as exc:
             print(f"[webhook] address lookup failed: {exc!r}")
+
+    # "can i buy from my old order again": their own history, shown as a list
+    # they can choose from, not a search and not a question for the model
+    if user_id is not None and _asks_to_reorder(text):
+        try:
+            answer = await _reorder_reply(user_id)
+            await _remember(user_id, text, _reply_text(answer))
+            shown = [card.product_id for card in getattr(answer, "cards", [])]
+            await _log(user_id, text, answer, shown, "reorder")
+            return answer
+        except Exception as exc:
+            print(f"[webhook] buy-it-again failed: {exc!r}")
 
     if user_id is not None and _is_lookup(text):
         try:

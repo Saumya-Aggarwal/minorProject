@@ -67,6 +67,7 @@ def get_active_session(user_id: int) -> Optional[dict[str, Any]]:
             "selected_product": session.selected_product,
             "messages": session.messages or [],
             "pending_address": session.pending_address,
+            "reorder": session.reorder,
             "status": session.status,
         }
 
@@ -126,6 +127,21 @@ def set_pending_address(user_id: int, address: Optional[dict[str, Any]]) -> None
             session = Session(user_id=user_id)
             db.add(session)
         session.pending_address = address
+        session.updated_at = utcnow()
+
+
+def set_reorder(user_id: int, state: Optional[dict[str, Any]]) -> None:
+    """Remember the "buy it again" page on screen, or None once it is gone."""
+    with session_scope() as db:
+        session = db.exec(
+            select(Session)
+            .where(Session.user_id == user_id, Session.status == "active")
+            .order_by(Session.updated_at.desc())
+        ).first()
+        if session is None:
+            session = Session(user_id=user_id)
+            db.add(session)
+        session.reorder = state
         session.updated_at = utcnow()
 
 
@@ -576,6 +592,41 @@ def get_purchased_items(user_id: int, limit: int = 5) -> list[dict[str, Any]]:
             }
             for line, order in rows
         ]
+
+
+def past_purchases(user_id: int, limit: int = 4, offset: int = 0) -> dict[str, Any]:
+    """A page of what this customer has bought before, for "buy it again".
+
+    One entry per product, newest purchase first, carrying the size they chose
+    then — so putting it back in the cart needs no further questions. `more`
+    says whether older purchases are waiting behind this page.
+    """
+    with session_scope() as db:
+        rows = db.exec(
+            select(OrderItem, Order)
+            .join(Order, Order.order_id == OrderItem.order_id)
+            .where(Order.user_id == user_id, Order.status.in_(ACTIVE_ORDER_STATUSES))
+            .order_by(Order.created_at.desc(), OrderItem.order_item_id.desc())
+        ).all()
+
+        bought: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for line, order in rows:
+            if line.product_id in seen:
+                continue
+            seen.add(line.product_id)
+            bought.append({
+                "product_id": line.product_id,
+                "product_name": line.product_name,
+                "price_inr": float(line.price_inr),
+                "size": line.size or "",
+                "order_id": order.order_id,
+                "bought_at": order.created_at.isoformat(),
+            })
+
+    offset = max(0, offset)
+    return {"items": bought[offset:offset + limit], "more": len(bought) > offset + limit,
+            "total": len(bought), "offset": offset}
 
 
 def get_purchased_product_ids(user_id: int) -> list[str]:

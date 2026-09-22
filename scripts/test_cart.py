@@ -247,6 +247,7 @@ def bot_conversation_checks() -> None:
     from fastapi.testclient import TestClient
 
     from main import app
+    from routers.webhook import REORDER_PAGE
 
     phone = TEST_PHONES[0]
 
@@ -350,6 +351,8 @@ def bot_conversation_checks() -> None:
             return client.post("/webhook", json=payload,
                                headers={"X-Local-Test": "true"}).json()["responses"][0]["body"]
 
+        check("buy it again with nothing bought yet says so",
+              "not ordered anything" in say_fresh("can i buy my old order again").lower())
         say_fresh("EW012")
         say_fresh("ADD")
         asked = say_fresh("CHECKOUT")
@@ -387,6 +390,7 @@ def bot_conversation_checks() -> None:
         check("...and it is what the shop delivers to now",
               (repo.get_last_shipping(fresh) or {}).get("city") == "Dehradun")
         check("HELP mentions it", "MY ADDRESS" in say_fresh("HELP"))
+        check("HELP mentions buying again", "BUY AGAIN" in say_fresh("HELP"))
 
         # Live: "i think medium would look good on her" after picking a clutch
         # was not understood, and the model promised an add it never made
@@ -453,6 +457,36 @@ def bot_conversation_checks() -> None:
         polite = say(client, "size xl please")
         check("'size xl please' works like a bare size", "Added Lime Green Jacquard Kurta (size XL)" in polite,
               polite[:80])
+
+        # Live: "can i buy one my old order agian" showed a single product and
+        # the words "Added the." Their history is a list they can shop from.
+        say(client, "clear cart")
+        bought = repo.past_purchases(user, REORDER_PAGE)
+        check("past purchases are one entry per product, newest first",
+              bought["total"] >= 2 and len(bought["items"]) == bought["total"] and not bought["more"],
+              f"got {bought}")
+        check("...each carrying the size it was bought in",
+              all(item["size"] for item in bought["items"]), f"got {bought['items']}")
+        page_one = repo.past_purchases(user, 1)
+        check("...and it pages, oldest purchases last",
+              page_one["more"] and repo.past_purchases(user, 1, 1)["items"][0]["product_id"]
+              != page_one["items"][0]["product_id"], f"got {page_one}")
+        listed = say(client, "can i buy one my old order agian")
+        check("'buy my old order again' lists what they ordered before",
+              "ordered before" in listed and "2." in listed, listed[:100])
+        check("MORE past the end of the history says so",
+              "everything you have ordered" in say(client, "more").lower())
+        picked = say(client, "1")
+        line = repo.get_cart(user)["items"]
+        check("choosing from that list adds it back, without asking anything",
+              "Added" in picked and len(line) == 1, picked[:90])
+        check("...in the size they bought last time",
+              line[0]["size"] == bought["items"][0]["size"],
+              f"{line[0]['size']!r} vs {bought['items'][0]['size']!r}")
+        say(client, "clear cart")
+        say(client, "sherwani for my wedding")
+        check("a number after an ordinary search still just picks the item",
+              "Sizes:" in say(client, "1") and not repo.get_cart(user)["items"])
 
 
 def web_cart_checks() -> None:

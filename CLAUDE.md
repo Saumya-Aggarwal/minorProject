@@ -268,7 +268,7 @@ Seen live 22 Sep and now enforced in code: "yes"/a size answering our own
 "added"/"removed" without a successful cart tool is sent back once, then the
 claim is cut; a product the model focuses on is selected, and "choose blush
 pink one" selects by name (selection.parse_named_selection), so "46" next adds it.
-Verify: scripts/test_assistant.py (68 checks, scripted fake model, no quota).
+Verify: scripts/test_assistant.py (74 checks, scripted fake model, no quota).
 Other suites blank LLM_API_KEY so they stay deterministic.
 
 ## Training (backend/training.py, /admin/training)
@@ -309,6 +309,25 @@ people ask ("can i checkout pls"); "pay for my sister" stays a search.
 sessions.selected_product holds the chosen item so a later BUY knows what it
 means; starting a new search clears it. Razorpay's Pay Now button will read the
 same field.
+
+## Buy it again
+"can i buy one my old order agian" went to the model, which showed ONE product
+and the two words "Added the." The customer's own history is now a shop of its
+own, answered in code before the assistant sees it (_asks_to_reorder):
+repository.past_purchases gives one entry per product, newest first, with the
+size it was bought in; the bot shows four with photos, MORE pages back through
+the rest, and a number puts that item straight into the cart in that same size
+— nothing left to ask, because they already chose it once. "show me my previous
+orders" stays the ORDERS lookup; only a buying verb ("buy"/"order"/"reorder")
+reaches this path. The page on screen is sessions.reorder {offset, sizes},
+cleared by the next list of any other kind, so a number only skips the size
+question while a buy-it-again page is the list being looked at.
+The stub came from the guard that stops the model writing out its own copy of
+the list code is about to attach: one product name plus a rupee amount looked
+like a listing, so "Added the Mint Embellished Box Clutch to your cart. Total
+Rs 1,299." was cut at the name. It no longer cuts a confirmation when the cart
+really did change this turn, and never leaves a fragment too short to be a
+sentence.
 
 ## Catalog
 data/products.json — 84 products, men's and women's Indian ethnic wear, 32 fields

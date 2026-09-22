@@ -72,6 +72,7 @@ HOW TO HELP
 - A search NOTE (e.g. nothing under budget) must be told honestly.
 - Orders ("my orders", "where is my order"): send_reply with attach="orders". Cart: attach="cart". The cart and its total are in CUSTOMER below; never add prices up yourself. "Second item" after a cart question means the cart's second line.
 - To talk about one product in detail, use get_product_details; its photo is attached for you.
+- Buying something they already own again: tell them to reply BUY AGAIN, which shows what they have ordered before, four at a time, and a number puts one back in the cart in the same size.
 - Add to cart ONLY when the customer asks to, with a size THEY gave; otherwise ask which size, using ONLY the sizes the tools report for that product (a bag, dupatta or stole is one size: never ask, just add). Never add just because they asked about an item. If they answer your "shall I add it?" with yes, or your "which size?" with a size, call add_to_cart. Never say something was added or removed unless add_to_cart/remove_from_cart succeeded in this turn.
 - Remember: when they tell you something lasting about themselves (their gender, who they shop for, colours or styles they like), put it in send_reply's customer_gender / remember_note. CUSTOMER below shows what is already remembered: use it, and do not ask again what it already answers.
 - Payment: tell them to reply CHECKOUT for a secure Pay Now button.
@@ -394,7 +395,7 @@ _ASKS_FOR = {
 _LIST_LINE = re.compile(r"^\s*(?:\d+[.)]|[-•*])\s+.*$", re.MULTILINE)
 
 
-def _without_listing(message: str, products: list[dict[str, Any]]) -> str:
+def _without_listing(message: str, products: list[dict[str, Any]], changed_cart: bool = False) -> str:
     """Drop the model's own rendition of the list code is about to attach.
 
     Seen live despite the prompt: "Here are options for the ceremony: 1. Royal
@@ -408,13 +409,18 @@ def _without_listing(message: str, products: list[dict[str, Any]]) -> str:
     cuts = [m.start() for m in [re.search(r"(?:^|\s)1[.)]\s", message)] if m]
     named = [lowered.find(p["name"].lower()) for p in products if p["name"].lower() in lowered]
     # One product named in a sentence is fine ("the royal blue one suits a day
-    # ceremony"); several, or names with prices, is a listing
-    if len(named) >= 2 or (named and re.search(r"(?:rs\.?|₹|inr)\s*\d", lowered)):
+    # ceremony"); several, or names with prices, is a listing. "Added the Mint
+    # Box Clutch to your cart. Total Rs 1,299." is a confirmation, not a listing:
+    # cutting it left the customer reading "Added the."
+    if len(named) >= 2 or (named and not changed_cart and re.search(r"(?:rs\.?|₹|inr)\s*\d", lowered)):
         cuts += named
     cut = min(cuts) if cuts else -1
     if cut > 0:
         message = message[:cut].rstrip(" :–—-") + ("." if not message[:cut].rstrip().endswith((".", "!")) else "")
     elif cut == 0:
+        message = ""
+    # What is left of a cut sentence must still be a sentence
+    if cut > 0 and (len(message.split()) < 3 or re.search(r"\b(?:the|a|an|of|in|to|and|our|your)\W*$", message, re.I)):
         message = ""
     return message
 
@@ -432,7 +438,8 @@ OFF_TOPIC = ("I only help with our ethnic wear, so I cannot help with that. "
              "Tell me what you are shopping for and I will pick a few pieces.")
 
 
-def _finish(args: dict[str, Any], customer_text: str) -> tuple[Optional[AssistantReply], str]:
+def _finish(args: dict[str, Any], customer_text: str,
+            changed_cart: bool = False) -> tuple[Optional[AssistantReply], str]:
     """Validate send_reply. Returns (reply, "") or (None, error for the model)."""
     raw_ids = args.get("product_ids") or []
     if isinstance(raw_ids, str):
@@ -445,7 +452,7 @@ def _finish(args: dict[str, Any], customer_text: str) -> tuple[Optional[Assistan
                       "search_products, then call send_reply again.")
     message = str(args.get("message") or "")
     if products:
-        message = _without_listing(message, products)
+        message = _without_listing(message, products, changed_cart)
     message = _clean(message)
     attach = str(args.get("attach") or "").strip().lower()
     attach = attach if attach in _ASKS_FOR and _ASKS_FOR[attach].search(customer_text) else None
@@ -849,7 +856,7 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
             name, args = call.function.name.split("<|")[0].strip(), _arguments(call.function.arguments)
             used.append(name)
             if name == "send_reply":
-                reply, error = _finish(args, text)
+                reply, error = _finish(args, text, bool({"add_to_cart", "remove_from_cart"} & succeeded))
                 if reply is not None:
                     reply, error = checked(reply)
                     if reply is not None:
