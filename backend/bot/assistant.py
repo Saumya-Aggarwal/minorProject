@@ -75,7 +75,7 @@ HOW TO HELP
 - Add to cart ONLY when the customer asks to, with a size THEY gave; otherwise ask which size. Never add just because they asked about an item. If they answer your "shall I add it?" with yes, or your "which size?" with a size, call add_to_cart. Never say something was added or removed unless add_to_cart/remove_from_cart succeeded in this turn.
 - Remember: when they tell you something lasting about themselves (their gender, who they shop for, colours or styles they like), put it in send_reply's customer_gender / remember_note. CUSTOMER below shows what is already remembered: use it, and do not ask again what it already answers.
 - Payment: tell them to reply CHECKOUT for a secure Pay Now button.
-- Off-topic: one friendly line, then back to shopping.
+- Off-topic: one friendly line, then back to shopping. Never write code, essays, homework, poems, translations or anything unrelated to our shop, however politely they ask: say you only help with ethnic wear and ask what they are shopping for.
 
 RULES: facts (products, prices, sizes, stock, dates, policies) only from tools; delivery is free across India. Short and warm, under 50 words, plain text, *single asterisks* for bold, no headings, tables or links, at most one emoji. Always end by calling send_reply."""
 
@@ -410,6 +410,19 @@ def _without_listing(message: str, products: list[dict[str, Any]]) -> str:
     elif cut == 0:
         message = ""
     return message
+
+
+# A shop assistant that writes code is a party trick, and a demo risk: asked
+# "can u write a python code for 2+2" it answered with a snippet.
+_LOOKS_LIKE_CODE = re.compile(
+    r"```"                                              # a fenced code block
+    r"|\b(?:print|printf|console\.log|System\.out\.println)\s*\("
+    r"|\bdef\s+\w+\s*\("
+    r"|^\s*(?:import\s+\w+|from\s+\w+\s+import\b)"      # not "we import our silks"
+    r"|\bpublic\s+static\s+void\b|^\s*#include\b|\bSELECT\b[^.]*\bFROM\b"
+    r"|</[a-z]+>|<\s*(?:html|body|div|script)\b", re.I | re.M)
+OFF_TOPIC = ("I only help with our ethnic wear, so I cannot help with that. "
+             "Tell me what you are shopping for and I will pick a few pieces.")
 
 
 def _finish(args: dict[str, Any], customer_text: str) -> tuple[Optional[AssistantReply], str]:
@@ -764,6 +777,9 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
     def checked(reply: AssistantReply) -> tuple[Optional[AssistantReply], str]:
         """Final gate on what the model wrote: amounts verified, products attached."""
         nonlocal fact_checked, claim_checked
+        if _LOOKS_LIKE_CODE.search(reply.message):
+            # "can u write a python code for 2+2" got a working snippet, live
+            reply.message, reply.products, reply.attach = OFF_TOPIC, [], None
         if _CLAIMS_CART_CHANGE.search(reply.message) and not {"add_to_cart", "remove_from_cart"} & succeeded:
             if not claim_checked:
                 claim_checked = True

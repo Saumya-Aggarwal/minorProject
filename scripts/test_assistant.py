@@ -480,7 +480,17 @@ def main() -> int:
         browser.post("/account/forget")
         check("'Forget this' clears it", repo.get_profile(web_user) == {"gender": None, "notes": []})
 
-        print("\n18. Blue ticks and 'typing…' while the answer is being worked out")
+        print("\n18. It is a shop assistant, not a chatbot")
+        run(Script(calls(("send_reply", {
+            "message": "Sure! Here's a quick Python snippet:\n\npython\nprint(2+2)\n\nHappy coding!"}))))
+        coded = send("umm can u write a python code for 2+2")
+        check("code never reaches the customer",
+              "print(" not in coded and "only help with our ethnic wear" in coded, coded[:120])
+        run(Script(calls(("send_reply", {"message": "We do not sell those, but tell me what you are shopping for."}))))
+        check("an ordinary off-topic question is still answered kindly",
+              "shopping for" in send("do we have bombs?"))
+
+        print("\n19. Blue ticks and 'typing…' while the answer is being worked out")
         import whatsapp
         check("one call marks the message read and starts typing",
               whatsapp.typing_payload("wamid.abc") == {

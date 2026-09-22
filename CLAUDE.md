@@ -226,6 +226,10 @@ context, and any Rs amount it writes must appear in the catalogue, the
 customer's words or a tool result, else it is told to retry, then the sentence
 is dropped. (Live, it once said "total Rs 17,498" for a Rs 10,798 cart.)
 Products it names in its own words get the real list/photo attached.
+It is a shop assistant, not a chatbot: asked "can u write a python code
+for 2+2" it answered with a working snippet, so a reply that looks like
+code (fences, print(, def, top-of-line import, SQL, HTML) is replaced with
+assistant.OFF_TOPIC. Ordinary off-topic questions still get a kind line.
 Profile (users.profile JSONB, idempotent ALTER): gender the customer stated
 about THEMSELVES (rejected when another person is in the conversation: "only
 male options" for a brother is the brother's) plus short notes, via
