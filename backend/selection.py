@@ -93,13 +93,51 @@ def parse_named_selection(text: str, shown: list[dict[str, Any]]) -> Optional[in
     return hits[0] if len(hits) == 1 else None
 
 
+# "would 1 be a good gift?", "is the 2nd one warm?": a question about one of the
+# items just shown. It is not a selection command (the assistant still answers
+# it), but the item becomes the one we are talking about.
+_REFERS_NUMBER = re.compile(r"(?<!\w)(?:number\s*|item\s*|option\s*|#)?([1-9])(?!\w)")
+_REFERS_WORDS = re.compile(
+    r"\?|\b(this|that|it|one|ones|number|option|item|first|second|third|fourth|last)\b", re.IGNORECASE)
+
+
+def refers_to_shown(text: str, count: int) -> Optional[int]:
+    """Which shown item a short question is about (zero-based), or None.
+
+    Deliberately narrow: the message must read like a reference ("...?", "this",
+    "one"), so "2 piece kurta set" and "under 3000" stay searches.
+    """
+    cleaned = _clean(text)
+    # _clean strips the question mark, and asking is exactly what marks a reference
+    asking = "?" in str(text) or bool(_REFERS_WORDS.search(cleaned))
+    if count <= 0 or len(cleaned.split()) > 12 or not asking:
+        return None
+    numbers = {int(n) for n in _REFERS_NUMBER.findall(cleaned) if 1 <= int(n) <= count}
+    if len(numbers) == 1:
+        return numbers.pop() - 1
+    for word, position in ORDINAL_WORDS.items():
+        if re.search(rf"\b{word}\b", cleaned) and (position == -1 or position <= count):
+            return count - 1 if position == -1 else position - 1
+    return None
+
+
 # --- sizes --------------------------------------------------------------------
 
 # Only tokens that look like a garment size count as one. This is what keeps
 # "add a red dupatta" from being read as ADD with size "a red dupatta".
 # Shoes are UK sizes: "8", "uk 8" and "UK8" all mean "UK 8" (single digits from 3,
 # so "add 2" is not taken as a size).
-_SIZE_TOKEN = re.compile(r"^(?:xxs|xs|s|m|l|xl|xxl|xxxl|\d{2}|[3-9]|uk ?\d{1,2}|free|free size|one size)$")
+# Customers say "medium", not "M"
+SIZE_WORDS = {
+    "extra extra small": "XXS", "double extra small": "XXS",
+    "extra small": "XS", "small": "S", "medium": "M", "med": "M", "large": "L",
+    "extra large": "XL", "xtra large": "XL", "double xl": "XXL", "extra extra large": "XXL",
+    "double extra large": "XXL", "triple xl": "XXXL", "free": "Free Size", "one size": "Free Size",
+}
+_SIZE_TOKEN = re.compile(
+    r"^(?:xxs|xs|s|m|l|xl|xxl|xxxl|\d{2}|[3-9]|uk ?\d{1,2}|free|free size|one size"
+    r"|extra extra small|double extra small|extra small|small|medium|med|large"
+    r"|extra large|xtra large|double xl|extra extra large|double extra large|triple xl)$")
 
 
 def _shoe(size: str) -> str:
@@ -110,11 +148,14 @@ def _shoe(size: str) -> str:
 def match_size(token: str, sizes_available: list[str]) -> Optional[str]:
     """Map what the customer typed to the product's canonical size, or None."""
     token = _clean(token)
-    if token in ("free", "one size"):
-        token = "free size"
+    token = SIZE_WORDS.get(token, token).lower()
     for size in sizes_available:
         if size.lower() == token or (size.lower().startswith("uk") and _shoe(size) == _shoe(token)):
             return size
+    # A product with one size has nothing to choose: "medium" on a Free Size
+    # clutch still means "that one"
+    if len(sizes_available) == 1 and sizes_available[0].lower() in ("free size", "one size"):
+        return sizes_available[0]
     return None
 
 
@@ -128,6 +169,8 @@ _BARE_SIZE = re.compile(r"^(?:(?:its |it is |i want |i need |in )?size )?(?P<siz
 # "i think 11 size would be the best for me", "let's take XXL then": a sentence
 # that settles the size. Needs one of these words, so "sherwani in 42 for my
 # wedding" stays a search.
+# Any word that names a size at all, however written
+_SIZE_WORD = re.compile(r"(?<!\w)(?:xxs|xs|s|m|l|xl|xxl|xxxl|small|medium|med|large|free|one size|\d{2}|uk ?\d{1,2})(?!\w)", re.I)
 _SIZE_CUE = re.compile(r"\b(size|sizes|fit|fits|take|best|prefer|think|suits?|wear|go\s+with|thats\s+my)\b", re.I)
 
 
@@ -136,14 +179,35 @@ def mentions_size(text: str) -> bool:
     return bool(_SIZE_CUE.search(_clean(text)))
 
 
+def names_a_size(text: str) -> bool:
+    """True if the message names a size at all ("medium", "XL", "UK 9")."""
+    return bool(_SIZE_WORD.search(_clean(text)))
+
+
+def aliases(size: str) -> list[str]:
+    """Every way a customer might write this size: "M", "medium", "UK 8", "8"."""
+    spellings = [size.lower(), _shoe(size)] + [word for word, canonical in SIZE_WORDS.items()
+                                 if canonical.lower() == size.lower()]
+    return sorted(set(spellings), key=len, reverse=True)
+
+
 def find_size_in_text(text: str, sizes_available: list[str]) -> Optional[str]:
-    """The one size from this product's list that the sentence names, or None."""
+    """The one size from this product's list that the sentence names, or None.
+
+    "i think medium would look good on her" -> M.
+    """
     cleaned = _clean(text)
     if len(cleaned.split()) > 12 or not _SIZE_CUE.search(cleaned):
         return None
     found = {size for size in sizes_available
-             if re.search(rf"(?<!\w)(?:uk\s*)?{re.escape(_shoe(size))}(?!\w)", cleaned, re.I)}
-    return found.pop() if len(found) == 1 else None
+             if any(re.search(rf"(?<!\w)(?:uk\s*)?{re.escape(spelling)}(?!\w)", cleaned, re.I)
+                    for spelling in aliases(size))}
+    if len(found) == 1:
+        return found.pop()
+    # Nothing to choose on a one-size product: any size word means "that one"
+    if not found and len(sizes_available) == 1 and _SIZE_WORD.search(cleaned):
+        return sizes_available[0]
+    return None
 
 
 def parse_bare_size(text: str) -> Optional[str]:
@@ -181,6 +245,11 @@ _ADD_WITH_SIZE = re.compile(
     r"add(?: (?:it|this|that)(?: one)?)?"
     r"(?: to (?:my |the )?(?:cart|bag))?(?:(?: in)?(?: size)? (?P<size>.+))?$"
 )
+# "can i checkout pls", "i want to pay now", "lets check out"
+_CHECKOUT = re.compile(
+    r"^(?:(?:can|could|may)\s+i\s+|i(?:'?d)?\s+(?:want|like|wanna)\s+to\s+|lets\s+|let\s+us\s+|"
+    r"please\s+|pls\s+|ready\s+to\s+)?(?:check\s*out|pay(?:\s+now)?|place\s+(?:my\s+)?order|"
+    r"complete\s+(?:my\s+)?order)(?:\s+(?:now|please|pls|plz))?$")
 _REMOVE = re.compile(r"^(?:remove|delete|drop)(?: item)? (?:no\.? ?|#)?(\d{1,2})$")
 _SIZE = re.compile(r"^(?:size|change size)(?: of)?(?: item)? (\d{1,2}) (?:to )?(.+)$")
 
@@ -202,7 +271,7 @@ def parse_command(text: str) -> Optional[tuple[str, dict[str, Any]]]:
 
     if cleaned in _CART_PHRASES:
         return ("cart", {})
-    if cleaned in _CHECKOUT_PHRASES:
+    if cleaned in _CHECKOUT_PHRASES or _CHECKOUT.match(cleaned):
         return ("checkout", {})
     if cleaned in _CLEAR_PHRASES:
         return ("clear", {})

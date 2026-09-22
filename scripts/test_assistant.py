@@ -480,6 +480,19 @@ def main() -> int:
         browser.post("/account/forget")
         check("'Forget this' clears it", repo.get_profile(web_user) == {"gender": None, "notes": []})
 
+        # Live: the bot asked "which size?", the customer answered "i think medium
+        # would look good on her", and the add was refused as unasked-for
+        repo.clear_cart(user)
+        repo.remember_messages(user, [
+            {"role": "user", "content": "would 1 be a good gift for my wife?"},
+            {"role": "assistant", "content": "The Crimson Anarkali Suit is a lovely gift. Which size?"}])
+        run(Script(calls(("add_to_cart", {"product_id": "EW017", "size": "M"})),
+                   calls(("send_reply", {"message": "Added for you."}))))
+        send("i think medium would look good on her")
+        check("a size in words, answering our own question, is allowed through",
+              [(i["product_id"], i["size"]) for i in repo.get_cart(user)["items"]] == [("EW017", "M")],
+              repo.get_cart(user)["items"])
+
         print("\n18. It is a shop assistant, not a chatbot")
         run(Script(calls(("send_reply", {
             "message": "Sure! Here's a quick Python snippet:\n\npython\nprint(2+2)\n\nHappy coding!"}))))

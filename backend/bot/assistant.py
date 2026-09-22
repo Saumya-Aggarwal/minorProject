@@ -31,7 +31,7 @@ from typing import Any, Callable, Optional
 import catalog
 import repository as repo
 from bot import retrieval
-from selection import match_size, parse_bare_size
+from selection import aliases, match_size, names_a_size, parse_bare_size
 
 MAX_ROUNDS = 5            # model calls per customer message
 TURN_BUDGET_S = 25.0      # stop and fall back rather than keep the customer waiting
@@ -72,7 +72,7 @@ HOW TO HELP
 - A search NOTE (e.g. nothing under budget) must be told honestly.
 - Orders ("my orders", "where is my order"): send_reply with attach="orders". Cart: attach="cart". The cart and its total are in CUSTOMER below; never add prices up yourself. "Second item" after a cart question means the cart's second line.
 - To talk about one product in detail, use get_product_details; its photo is attached for you.
-- Add to cart ONLY when the customer asks to, with a size THEY gave; otherwise ask which size. Never add just because they asked about an item. If they answer your "shall I add it?" with yes, or your "which size?" with a size, call add_to_cart. Never say something was added or removed unless add_to_cart/remove_from_cart succeeded in this turn.
+- Add to cart ONLY when the customer asks to, with a size THEY gave; otherwise ask which size, using ONLY the sizes the tools report for that product (a bag, dupatta or stole is one size: never ask, just add). Never add just because they asked about an item. If they answer your "shall I add it?" with yes, or your "which size?" with a size, call add_to_cart. Never say something was added or removed unless add_to_cart/remove_from_cart succeeded in this turn.
 - Remember: when they tell you something lasting about themselves (their gender, who they shop for, colours or styles they like), put it in send_reply's customer_gender / remember_note. CUSTOMER below shows what is already remembered: use it, and do not ask again what it already answers.
 - Payment: tell them to reply CHECKOUT for a secure Pay Now button.
 - Their own order, cart, delivery address, sizes, payment or our policies are shop business: answer or hand over to the right tool, never refuse them as off-topic.
@@ -250,6 +250,12 @@ _WANTS_TO_ADD = re.compile(
     r"get\s+(it|this|that|me|one)|put\s+(it|this|that))\b", re.I)
 
 
+def _size_was_said(size: str, customer_recent: str) -> bool:
+    """Did the customer actually name this size? "medium" counts as M."""
+    return any(re.search(rf"(?<!\w){re.escape(spelling)}(?!\w)", customer_recent, re.I)
+               for spelling in aliases(size.strip()))
+
+
 def tool_add_to_cart(user_id: int, product_id: str = "", size: str = "", *,
                      customer_text: str = "", customer_recent: str = "", **_: Any) -> str:
     """customer_text / customer_recent are supplied by respond(), never the model:
@@ -265,7 +271,7 @@ def tool_add_to_cart(user_id: int, product_id: str = "", size: str = "", *,
         return "ERROR: out of stock."
     if len(sizes) == 1:
         size = sizes[0]          # Free Size: nothing to choose
-    elif size and not re.search(rf"(?<!\w){re.escape(str(size).strip())}(?!\w)", customer_recent, re.I):
+    elif size and not _size_was_said(str(size), customer_recent):
         return f"ERROR: the customer has not said size {size}. Ask them which size they want."
     chosen = ""
     if size:
@@ -688,7 +694,9 @@ def _consent(text: str, history: list[dict[str, Any]]) -> str:
 
     "yes" or "XL" alone does not ask to add anything, but it does when it
     answers our own "shall I add it?" / "which size?"."""
-    if (_AFFIRM.match(text) or parse_bare_size(text)) and _OFFERED_TO_ADD.search(_last_bot_message(history)):
+    if _OFFERED_TO_ADD.search(_last_bot_message(history)) and (
+            _AFFIRM.match(text) or parse_bare_size(text) or names_a_size(text)):
+        # "i think medium would look good on her" answers "which size?"
         return f"{text} (add to cart)"
     return text
 

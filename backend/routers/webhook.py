@@ -29,6 +29,7 @@ from selection import (
     parse_command,
     parse_named_selection,
     parse_selection,
+    refers_to_shown,
     results_footer,
 )
 import training
@@ -847,6 +848,16 @@ async def _handle_text(sender: str, text: str, display_name: str | None) -> "str
     if user_id is not None and assistant.enabled():
         try:
             cart = await asyncio.to_thread(repo.get_cart, user_id)
+            # "would 1 be a good gift for my wife?" is a question, not a pick, but
+            # it settles which item we are talking about: a later "medium" then
+            # has something to attach to
+            shown = (previous or {}).get("last_products_shown") or []
+            about = refers_to_shown(text, len(shown))
+            if about is not None and not (previous or {}).get("selected_product"):
+                await asyncio.to_thread(repo.record_selection, user_id, shown[about])
+                previous = {**(previous or {}), "selected_product": shown[about]}
+                print(f"[webhook] talking about item {about + 1} ({shown[about].get('name')})")
+
             context = {
                 "name": (user or {}).get("display_name") or display_name,
                 "profile": await asyncio.to_thread(repo.get_profile, user_id),

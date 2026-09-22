@@ -388,6 +388,22 @@ def bot_conversation_checks() -> None:
               (repo.get_last_shipping(fresh) or {}).get("city") == "Dehradun")
         check("HELP mentions it", "MY ADDRESS" in say_fresh("HELP"))
 
+        # Live: "i think medium would look good on her" after picking a clutch
+        # was not understood, and the model promised an add it never made
+        say_fresh("clear cart")
+        say_fresh("EW001")                       # Brocade Silk Kurta, S-XXL
+        worded = say_fresh("i think medium would look good on her")
+        check("a size in words is understood", "Added Brocade Silk Kurta (size M)" in worded, worded[:80])
+        say_fresh("clear cart")
+        say_fresh("EW080")                       # Mint Embellished Box Clutch, one size
+        one_size = say_fresh("i think medium would look good on her")
+        check("a one-size product is just added, whatever size they say",
+              "Added Mint Embellished Box Clutch" in one_size, one_size[:80])
+        check("'can i checkout pls' checks out", "Where should we deliver" in say_fresh("can i checkout pls")
+              or "Order #" in say_fresh("can i checkout pls"))
+        check("...but 'pay for my sister' is still a search",
+              "CART to see your cart" in say_fresh("pay for my sister"))
+
         check("a normal search is not mistaken for a command",
               "CART to see your cart" in say(client, "add a red dupatta"))
 
