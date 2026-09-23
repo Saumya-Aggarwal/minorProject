@@ -268,6 +268,14 @@ send_reply's customer_gender/remember_note; sizes chosen before are derived
 from orders + cart, never stored. All three reach the prompt. /account shows
 them with "Forget this". When neither the words nor the profile say who will
 wear it, the prompt says so and the model must ask who + budget first.
+Whose function it is is not who wears the outfit: "something to wear on a
+wedding of my friend" was answered "is your friend a man or a woman?", so
+_wearer() strips "<person>'s wedding / wedding of my <person>" before looking
+for another person, and an explicit cue ("to wear", "for me", "what should I
+wear") settles that the customer is the one dressing — then the model asks only
+menswear or womenswear and the budget, and that answer is kept on the profile
+(it used to be rejected, because a friend was mentioned). Without such a cue
+("i wanna buy something for a night wedding") it still asks who it is for.
 Seen live 22 Sep and now enforced in code: "yes"/a size answering our own
 "shall I add it?"/"which size?" counts as asking (_consent); a reply claiming
 "added"/"removed" without a successful cart tool is sent back once, then the

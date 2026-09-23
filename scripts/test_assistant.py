@@ -41,6 +41,7 @@ from routers import webhook  # noqa: E402
 
 PHONE = "910000000041"
 OTHER = "910000000042"
+GUEST = "910000000043"          # a wedding guest, with no history to colour the reading
 WEB_EMAIL = "test-assistant-web@example.com"
 passed, failed = 0, 0
 
@@ -93,7 +94,7 @@ chat._intro = lambda *args, **kwargs: ""   # the fallback path's one-liner: no n
 
 def cleanup() -> None:
     with session_scope() as db:
-        users = db.exec(select(User).where(User.whatsapp_number.in_([PHONE, OTHER])
+        users = db.exec(select(User).where(User.whatsapp_number.in_([PHONE, OTHER, GUEST])
                                            | (User.email == WEB_EMAIL))).all()
         ids = [u.user_id for u in users]
         if not ids:
@@ -433,6 +434,28 @@ def main() -> int:
         run(Script(calls(("send_reply", {"message": "Men's then.", "customer_gender": "Men"}))))
         send("only male options", phone=OTHER)
         check("...but not when the outfit is for someone else", repo.get_profile(other)["gender"] is None)
+
+        # Live 23 Sep: "i would like to buy something to wear on a wedding of my
+        # friend" was answered "is your friend a man or a woman?" — the friend is
+        # the one getting married; the customer is the one dressing
+        guest = repo.get_or_create_user(GUEST, None)
+        script = Script(calls(("send_reply", {"message": "Menswear or womenswear, and what budget?"})))
+        run(script)
+        send("hi i would like to buy something to wear on a wedding of my friend", phone=GUEST)
+        prompt = script.seen[0][0]["content"]
+        check("whose wedding it is is not who wears the outfit",
+              "THEY are the one who will wear it" in prompt and "NOT KNOWN" not in prompt,
+              prompt[-300:])
+        run(Script(calls(("send_reply", {"message": "Menswear then.", "customer_gender": "Men"}))))
+        send("male", phone=GUEST)
+        check("...and the answer is remembered as his own", repo.get_profile(guest)["gender"] == "Men",
+              repo.get_profile(guest))
+        script = Script(calls(("send_reply", {"message": "Sure."})))
+        run(script)
+        send("something for my brother to wear at his office party", phone=GUEST)
+        check("...but dressing the brother is not his own outfit",
+              "themselves as a man" not in script.seen[0][0]["content"],
+              script.seen[0][0]["content"][-250:])
 
         run(Script(calls(("search_products", {"query": "sherwani for a night wedding", "gender": "Men",
                                               "categories": ["Sherwani"]})),

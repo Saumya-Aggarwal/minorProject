@@ -690,6 +690,30 @@ _GENDER_WORDS = {"Men": r"\b(male|man|men|mens|guy|boy|gents?|groom)\b",
 _SAYS_OWN_GENDER = re.compile(r"\bi\s*(?:'?m|am)\s+(?:a\s+)?(male|man|guy|boy|groom|female|woman|girl|lady|bride)\b", re.I)
 _SHOPPING = re.compile(r"\b(buy|wear|outfits?|dress(?:es)?|suggest|recommend|options|ideas?|looking\s+for|"
                        r"shopping|something\s+for|anything\s+for)\b", re.I)
+# "a wedding of my friend", "my sister's reception": the other person is whose
+# function it is, not who wears the outfit. Live, "i would like to buy something
+# to wear on a wedding of my friend" was answered "is your friend a man or a
+# woman?" — the friend is getting married; the customer is the one dressing.
+_FUNCTIONS = (r"wedding|shaadi|shadi|marriage|reception|sangeet|mehendi|mehndi|haldi|engagement|roka|"
+              r"anniversary|birthday|party|function|ceremony|puja|pooja|griha\s+pravesh")
+_THEIR_FUNCTION = re.compile(
+    rf"\b(?:{_FUNCTIONS})\b\s+(?:of|for)\s+(?:my|our|a|his|her|their)\s+\w+"
+    # "my best friend's reception" needs the words between "my" and the owner
+    rf"|\b(?:my|our|his|her|their|a)\s+(?:\w+\s+){{0,2}}\w+(?:'s|s'|s)\s+(?:{_FUNCTIONS})\b", re.I)
+# "I would like to buy something to wear": the customer is the one wearing it
+_WEARS_IT_THEMSELVES = re.compile(
+    r"\bfor\s+(?:me|myself|us|ourselves)\b|\bto\s+wear\b|\bon\s+me\b"
+    r"|\b(?:i|we)\s+(?:can|could|should|shall|will|would|'?ll|'?d|can'?t)?\s*(?:wear|am\s+wearing)\b"
+    r"|\b(?:should|can|could|shall|will|do|what\s+do)\s+(?:i|we)\s+wear\b", re.I)
+
+
+def _wearer(text: str) -> str:
+    """"someone_else", "themselves" or "unknown", reading the whole sentence."""
+    # Whose function it is says nothing about who dresses for it
+    about_people = _THEIR_FUNCTION.sub(" ", text)
+    if _OTHER_PERSON.search(about_people):
+        return "someone_else"
+    return "themselves" if _WEARS_IT_THEMSELVES.search(text) else "unknown"
 
 
 def _last_bot_message(history: list[dict[str, Any]]) -> str:
@@ -724,7 +748,7 @@ def _facts_to_keep(reply: AssistantReply, text: str, customer_recent: str) -> di
     else:
         claimed = _gender(reply.remember.get("gender", ""))
         if claimed and re.search(_GENDER_WORDS[claimed], customer_recent, re.I) \
-                and not _OTHER_PERSON.search(customer_recent):
+                and _wearer(customer_recent) != "someone_else":
             keep["gender"] = claimed
     note = " ".join(reply.remember.get("note", "").split())
     if 3 <= len(note) <= 120:
@@ -739,12 +763,17 @@ def _who_hint(text: str, customer_recent: str, parsed: retrieval.Filters, profil
     if recent.gender or recent.both_genders:
         return ""
     own = profile.get("gender")
-    someone_else = bool(_OTHER_PERSON.search(text))
-    if own and not someone_else:
+    wearer = _wearer(text)
+    if own and wearer != "someone_else":
         who = "a man: search Men" if own == "Men" else "a woman: search Women"
         return f"\n- They shop for themselves as {who} unless they say it is for someone else."
     if not parsed.categories and (_SHOPPING.search(text) or parsed.occasion):
         budget = "" if (recent.max_price or recent.min_price) else " and their budget"
+        if wearer == "themselves":
+            # Their words settle the wearer; only menswear or womenswear is open
+            return ("\n- THEY are the one who will wear it, in their own words: never ask who it is for. "
+                    "What is still open is whether to search menswear or womenswear, so ask them that "
+                    f"in your own plain words{budget}, in one short message.")
         return ("\n- WHO WILL WEAR IT IS NOT KNOWN (not in their words, not remembered). Do not search yet: ask, "
                 f"in one short friendly message, who it is for (you or someone else? man or woman?){budget}. "
                 "Only skip this if they said 'just show me'.")
