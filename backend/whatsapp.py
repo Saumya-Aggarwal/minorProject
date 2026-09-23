@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import time
@@ -31,14 +32,37 @@ async def mark_read_and_typing(message_id: str) -> dict:
         return {}
 
 
+SEND_ATTEMPTS = 3          # venue Wi-Fi drops a call now and then
+SEND_TIMEOUT_S = 15.0
+
+
 async def _send(body: dict) -> dict:
-    """POST one body to the messages endpoint, explaining the usual failures."""
+    """POST one body to the messages endpoint, explaining the usual failures.
+
+    A reply the customer never sees is the worst failure we have: seen live,
+    one message was answered in 0.09s and then lost because the call out to
+    Meta timed out on a sleeping Wi-Fi connection. A dropped connection, a
+    timeout or a 5xx is therefore tried again; anything Meta actually refuses
+    (bad token, recipient not allowed) is not, because it would refuse again.
+    """
     phone_number_id = os.environ["WHATSAPP_PHONE_NUMBER_ID"]
     url = f"https://graph.facebook.com/{GRAPH_API_VERSION}/{phone_number_id}/messages"
     headers = {"Authorization": f"Bearer {os.environ['WHATSAPP_ACCESS_TOKEN']}"}
 
-    async with httpx.AsyncClient(timeout=10) as client:
-        response = await client.post(url, headers=headers, json=body)
+    for attempt in range(1, SEND_ATTEMPTS + 1):
+        last = attempt == SEND_ATTEMPTS
+        try:
+            async with httpx.AsyncClient(timeout=SEND_TIMEOUT_S) as client:
+                response = await client.post(url, headers=headers, json=body)
+        except (httpx.TimeoutException, httpx.TransportError) as exc:
+            print(f"[whatsapp] attempt {attempt}/{SEND_ATTEMPTS} did not reach Meta: {exc!r}")
+            if last:
+                raise
+        else:
+            if response.status_code < 500 or last:
+                break
+            print(f"[whatsapp] attempt {attempt}/{SEND_ATTEMPTS} got {response.status_code} from Meta")
+        await asyncio.sleep(1.5 * attempt)
 
     data = response.json()
     if response.is_error:

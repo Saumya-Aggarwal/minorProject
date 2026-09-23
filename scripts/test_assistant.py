@@ -541,6 +541,55 @@ def main() -> int:
         webhook.mark_read_and_typing, webhook._safe_send = real_typing, real_send
         check("typing starts before the answer is sent", order == ["typing:wamid.xyz", "reply"], order)
 
+        # Live: a message was answered in 0.09s and the answer never left the
+        # laptop — the call out to Meta timed out and the reply was dropped
+        print("\n20. A reply survives a network blip on the way to Meta")
+        import httpx
+        os.environ.setdefault("WHATSAPP_PHONE_NUMBER_ID", "test-phone-id")
+        os.environ.setdefault("WHATSAPP_ACCESS_TOKEN", "test-token")
+        whatsapp.SEND_ATTEMPTS, tries = 3, []
+
+        class FakeResponse:
+            def __init__(self, status): self.status_code, self.is_error = status, status >= 400
+            def json(self): return {"messages": [{"id": "wamid.sent"}]} if not self.is_error else {
+                "error": {"code": 190, "message": "expired"}}
+            def raise_for_status(self): raise httpx.HTTPStatusError("nope", request=None, response=self)
+
+        class FakeClient:
+            def __init__(self, *a, **k): pass
+            async def __aenter__(self): return self
+            async def __aexit__(self, *a): return False
+            async def post(self, *a, **k):
+                tries.append(1)
+                if len(tries) == 1:
+                    raise httpx.ConnectTimeout("wifi asleep")
+                return FakeResponse(200)
+
+        real_client, real_sleep = httpx.AsyncClient, asyncio.sleep
+        httpx.AsyncClient = FakeClient
+        asyncio.sleep = lambda *a, **k: real_sleep(0)
+        try:
+            sent = asyncio.run(whatsapp._send({"to": "91999", "text": {"body": "hi"}}))
+            check("a timed-out send is tried again instead of being dropped",
+                  sent["messages"][0]["id"] == "wamid.sent" and len(tries) == 2, tries)
+
+            tries.clear()
+
+            class RefusingClient(FakeClient):
+                async def post(self, *a, **k):
+                    tries.append(1)
+                    return FakeResponse(401)
+
+            httpx.AsyncClient = RefusingClient
+            refused = False
+            try:
+                asyncio.run(whatsapp._send({"to": "91999", "text": {"body": "hi"}}))
+            except httpx.HTTPStatusError:
+                refused = True
+            check("a token Meta refuses is not retried three times", refused and len(tries) == 1, tries)
+        finally:
+            httpx.AsyncClient, asyncio.sleep = real_client, real_sleep
+
     cleanup()
     print(f"\n{passed} passed, {failed} failed")
     return 1 if failed else 0

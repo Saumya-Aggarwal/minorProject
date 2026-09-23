@@ -237,7 +237,12 @@ next model is tried, then one short wait. Groq 400 "tool_use_failed" calls are
 repaired from failed_generation. Anything else -> bot/chat.py plain search
 (which also answers "my orders"/"my cart" without the LLM).
 Real messages are answered in a background task (Meta gets 200 at once) and
-duplicate Meta deliveries are ignored by message id. The customer sees blue
+duplicate Meta deliveries are ignored by message id. 23 Sep: a "hi" was
+answered in 0.09s and the answer never left the laptop — the POST to Meta timed
+out on a sleeping Wi-Fi connection and _safe_send swallowed it, so the phone
+showed nothing. whatsapp._send now tries three times (15s timeout, growing
+pause) on a timeout, a dropped connection or a 5xx, and never retries something
+Meta actually refused (190 expired token, 131030 recipient not allowed). The customer sees blue
 ticks and "typing..." while that runs (whatsapp.mark_read_and_typing: one POST
 with status=read + typing_indicator; WhatsApp clears it when the reply lands,
 or after 25s), so a 3-5 second answer does not look like no answer.
