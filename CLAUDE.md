@@ -1,6 +1,15 @@
 # WhatsApp Shopping Assistant — Phase 1 (College Minor Project)
 
-## Context
+## Now (from 27 Sep 2026): read plan.md first
+Phase 1 below is finished and graded. Munim is becoming a multi-brand product, with
+the first pilot on a friend's Shopify store (T-shirts and workout clothes).
+plan.md holds the phases (P0-P7), the decision log and a starter prompt for each
+phase, and each phase is planned in its own chat. The project is now SOLO: the
+Dev A / Dev B ownership rules below and in WORK_SPLIT.md no longer apply. The rest
+of this file describes the code as it stands and stays accurate until a phase
+changes it.
+
+## Context (September sprint)
 2-person team, 7-day sprint. Deadline: 23 September 2026.
 Dev A owns BUYING: FastAPI routers, WhatsApp, Razorpay, and the Postgres schema
 (models.py, db.py, repository.py). Dev B owns FINDING: ChromaDB, embeddings, the
@@ -8,8 +17,8 @@ RAG/LLM pipeline (bot/chat.py), catalog.py, and the browse/search pages.
 
 WORK_SPLIT.md holds the file-ownership table and the contracts (C1-C5) between
 the two halves. Do not edit a file the other dev owns without asking them, and
-never change a contract without syncing both devs. plan.md has the architecture
-for the remaining work.
+never change a contract without syncing both devs. The sprint plan is archived at
+docs/archive/plan-sprint-19-23-sep.md.
 
 ## Stack
 - FastAPI (Python, async), SQLAlchemy + PostgreSQL
@@ -24,6 +33,11 @@ for the remaining work.
 
 Backend runs from inside /backend: `uvicorn main:app --reload --port 8000`.
 Env is loaded from backend/.env by main.py (python-dotenv).
+
+Every suite plus the retrieval eval, from the repo root (needs docker compose up):
+    backend/.venv/Scripts/python scripts/run_all_tests.py   (names pick a subset, -v streams)
+A new test script must call sys.stdout.reconfigure(encoding="utf-8") and exit
+non-zero on failure; add it to SUITES in run_all_tests.py.
 
 ## Shared contract (do not change without syncing both devs)
 get_product_recommendations(query: str, top_k: int = 3) -> tuple[str, List[ProductMatch]]
