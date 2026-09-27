@@ -7,3 +7,10 @@ venv/
 chroma_store/
 # WhatsApp media ids for product photos (runtime cache, expires after 30 days)
 backend/.media_cache.json
+
+# Local database dumps (hold customer phone numbers and addresses)
+backups/
+
+# Logged customer conversations and ratings (scripts/export_training_data.py).
+# Real people's messages once brands are live: never in the public repo.
+evals/raw/
