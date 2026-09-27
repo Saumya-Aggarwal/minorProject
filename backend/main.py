@@ -6,6 +6,10 @@ from dotenv import load_dotenv
 # Repo root on sys.path so `common` (a sibling of backend/) is importable
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+# Log lines carry the Rs sign. On a Windows pipe (cp1252) printing one raised,
+# the assistant "failed" and the customer got the plain-search fallback.
+sys.stdout.reconfigure(encoding="utf-8")
+
 # Load backend/.env before anything reads os.environ
 load_dotenv(Path(__file__).parent / ".env")
 

@@ -23,6 +23,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "backend"))
+sys.stdout.reconfigure(encoding="utf-8")  # Rs sign in output; a Windows pipe is cp1252
 
 from dotenv import load_dotenv  # noqa: E402
 
