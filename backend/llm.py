@@ -13,10 +13,19 @@ backend/.env, not in code:
 Settings, read on every call (dotenv loads in main.py):
   LLM_<ROLE>_API_KEY, LLM_<ROLE>_BASE_URL, LLM_<ROLE>_MODEL,
   LLM_<ROLE>_FALLBACK_MODEL (comma list), LLM_<ROLE>_REASONING_EFFORT
-Anything unset falls back to the chat role's — except the key of a role that
-sets its own base URL, which must set its own key too — and the chat role to
-the original names: LLM_API_KEY / LLM_BASE_URL / LLM_MODEL / LLM_FALLBACK_MODEL /
-LLM_REASONING_EFFORT, or OPENAI_API_KEY + OPENAI_CHAT_MODEL alone.
+Models and reasoning effort fall back to the chat role's, and the chat role's
+to the original names (LLM_MODEL, LLM_FALLBACK_MODEL, LLM_REASONING_EFFORT,
+OPENAI_CHAT_MODEL).
+
+A key and its endpoint always come from the SAME level, so a key is only ever
+sent where it was configured to go:
+  role     LLM_<ROLE>_API_KEY + LLM_<ROLE>_BASE_URL (no URL = OpenAI's endpoint)
+  chat     LLM_CHAT_API_KEY + LLM_CHAT_BASE_URL     (no URL = OpenAI's endpoint)
+  generic  LLM_API_KEY + LLM_BASE_URL               (no URL = Groq, as since Sept)
+  openai   OPENAI_API_KEY, to OpenAI only
+The first level with either value set wins; a role with neither uses chat's.
+The OpenAI SDK's own fallbacks (OPENAI_API_KEY / OPENAI_BASE_URL from the
+environment when given None) are never used: client() passes both explicitly.
 """
 
 from __future__ import annotations
@@ -27,6 +36,7 @@ from typing import Any, Optional
 
 ROLES = ("chat", "vision", "stt", "judge")
 GROQ_URL = "https://api.groq.com/openai/v1"
+OPENAI_URL = "https://api.openai.com/v1"
 
 
 @dataclass(frozen=True)
@@ -42,25 +52,22 @@ class RoleConfig:
         return self.models[0] if self.models else ""
 
 
-def _endpoint_and_key() -> tuple[Optional[str], Optional[str]]:
-    """The chat endpoint, then the only key allowed to go to it.
+def _pair(prefix: str, default_url: str) -> Optional[tuple[str, Optional[str]]]:
+    """(endpoint, key) from one level of settings, or None if it sets neither."""
+    url, key = os.getenv(prefix + "BASE_URL"), os.getenv(prefix + "API_KEY")
+    if not (url or key):
+        return None
+    return url or default_url, key or None
 
-    A key is never sent to an endpoint it was not configured with: an OpenAI
-    key does not go to LLM_BASE_URL, nor the Groq key to LLM_CHAT_BASE_URL.
-    """
-    chat_key, generic_key = os.getenv("LLM_CHAT_API_KEY"), os.getenv("LLM_API_KEY")
-    if os.getenv("LLM_CHAT_BASE_URL"):
-        return os.getenv("LLM_CHAT_BASE_URL"), chat_key
-    if os.getenv("LLM_BASE_URL"):
-        return os.getenv("LLM_BASE_URL"), chat_key or generic_key
-    if chat_key or generic_key:
-        return GROQ_URL, chat_key or generic_key
-    return None, os.getenv("OPENAI_API_KEY")          # None = OpenAI's own endpoint
+
+def _chat_endpoint_and_key() -> tuple[str, Optional[str]]:
+    return (_pair("LLM_CHAT_", OPENAI_URL) or _pair("LLM_", GROQ_URL)
+            or (OPENAI_URL, os.getenv("OPENAI_API_KEY") or None))
 
 
 def _chat() -> RoleConfig:
     groq_key = os.getenv("LLM_API_KEY")
-    base_url, api_key = _endpoint_and_key()
+    base_url, api_key = _chat_endpoint_and_key()
     if groq_key:
         primary = os.getenv("LLM_CHAT_MODEL") or os.getenv("LLM_MODEL", "openai/gpt-oss-20b")
         default_fallbacks = "openai/gpt-oss-120b,qwen/qwen3.8-27b"
@@ -83,12 +90,9 @@ def config(role: str = "chat") -> RoleConfig:
     model = os.getenv(prefix + "MODEL")
     fallbacks = os.getenv(prefix + "FALLBACK_MODEL", "")
     models = ([model, *[m.strip() for m in fallbacks.split(",") if m.strip()]] if model else chat.models)
-    own_url = os.getenv(prefix + "BASE_URL")
-    # The chat key is borrowed only together with the chat endpoint: a role
-    # pointed at another provider without its own key gets no key, rather
-    # than sending the chat provider's key to a third party
-    api_key = os.getenv(prefix + "API_KEY") or (None if own_url else chat.api_key)
-    return RoleConfig(role, api_key, own_url or chat.base_url, list(dict.fromkeys(models)),
+    # The role's own endpoint and key, or chat's pair: never one of each
+    base_url, api_key = _pair(prefix, OPENAI_URL) or (chat.base_url, chat.api_key)
+    return RoleConfig(role, api_key, base_url, list(dict.fromkeys(models)),
                       os.getenv(prefix + "REASONING_EFFORT") or chat.reasoning_effort)
 
 
@@ -101,10 +105,10 @@ def client(role: str = "chat", timeout: float = 12.0) -> Any:
     from openai import OpenAI
 
     settings = config(role)
-    arguments: dict[str, Any] = {"api_key": settings.api_key, "timeout": timeout, "max_retries": 0}
-    if settings.base_url:
-        arguments["base_url"] = settings.base_url
-    return OpenAI(**arguments)
+    if not settings.api_key:
+        # Never let the SDK fill in OPENAI_API_KEY for an endpoint it was not meant for
+        raise RuntimeError(f"no API key configured for the {role} role's endpoint {settings.base_url}")
+    return OpenAI(api_key=settings.api_key, base_url=settings.base_url, timeout=timeout, max_retries=0)
 
 
 def complete(role: str, messages: list[dict[str, Any]], model: Optional[str] = None,
