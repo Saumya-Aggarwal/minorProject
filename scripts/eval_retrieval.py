@@ -53,7 +53,9 @@ CASES = (
     # The misses found when testing the first RAG version
     Case("jacket to wear over my kurta", categories=("Nehru Jacket", "Waistcoat")),
     Case("bandhgala for a formal event", categories=("Jodhpuri Suit",), gender="Men"),
-    Case("kurta for my wife", categories=("Kurti", "Salwar Suit"), gender="Women"),
+    # Co-ord Set added 22 Sep with the kurta-and-pant co-ords (EW073), when the
+    # garment map learnt it; this case was not updated until 2 Oct
+    Case("kurta for my wife", categories=("Kurti", "Salwar Suit", "Co-ord Set"), gender="Women"),
     Case("sherwani under 3000", categories=("Sherwani",), relaxed="budget"),
     Case("me and my wife need wedding outfits", both_genders=True),
     Case("asdfgh qwerty", empty=True),

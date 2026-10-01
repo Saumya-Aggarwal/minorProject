@@ -4,8 +4,9 @@ Every vector stored and every vector searched must come from the same model:
 products.embedding_model records which one made each row, and
 catalog_sync.ensure_catalogues() re-embeds rows made by another.
 
-EMBEDDING_PROVIDER in backend/.env:
-  gemma   EmbeddingGemma-300M, 768 dims, multilingual, CPU (int8 ONNX, ~310 MB
+EMBEDDING_PROVIDER in backend/.env (chosen 2 Oct by scripts/eval_embeddings.py:
+same 46/46 eval, Hinglish requests 60% on target vs MiniLM's 22%):
+  gemma   (default) EmbeddingGemma-300M, 768 dims, multilingual, CPU (int8 ONNX, ~310 MB
           download on first use into ~/.cache/huggingface)
   minilm  all-MiniLM-L6-v2, 384 dims, English only, CPU (~90 MB). "local" is
           accepted as its old name.
@@ -43,18 +44,24 @@ _MINILM_REPO = "sentence-transformers/all-MiniLM-L6-v2"
 _CHROMA_MINILM = Path.home() / ".cache" / "chroma" / "onnx_models" / MINILM / "onnx"
 
 # (MAX_DISTANCE for open-ended searches in bot/retrieval.py, SIMILAR for
-# owner training in training.py), measured per model by
-# scripts/eval_retrieval.py --thresholds. Cosine distance = 1 - cosine.
+# owner training in training.py), per model, measured by
+# scripts/eval_embeddings.py. Cosine distance = 1 - cosine.
 THRESHOLDS: dict[str, tuple[float, float]] = {
-    # Chroma's squared L2 of 1.55 on unit vectors is cosine distance 0.775
+    # 2 Oct: every real request within 0.708, all nonsense at 0.777 or more.
+    # SIMILAR measured best at 0.884 on 14 question pairs, set lower on purpose:
+    # a missed match stops an owner rating carrying over to a reworded
+    # question, while a false one is near harmless (a rating moves one product,
+    # and the category/gender filters keep it out of unrelated results)
+    GEMMA: (0.74, 0.87),
+    # The values tuned by hand in September (Chroma's squared L2 1.55 = 0.775);
+    # nonsense and real requests overlap for this model (52/53 separated)
     MINILM: (0.775, 0.75),
-    GEMMA: (0.775, 0.75),          # provisional until measured (P1 step 5)
     OPENAI_MODEL: (0.775, 0.75),   # never measured: no OpenAI key yet
 }
 
 
 def provider() -> str:
-    value = os.getenv("EMBEDDING_PROVIDER", "minilm").strip().lower()
+    value = os.getenv("EMBEDDING_PROVIDER", "gemma").strip().lower()
     return "minilm" if value == "local" else value
 
 
