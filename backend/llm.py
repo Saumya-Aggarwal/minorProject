@@ -13,8 +13,9 @@ backend/.env, not in code:
 Settings, read on every call (dotenv loads in main.py):
   LLM_<ROLE>_API_KEY, LLM_<ROLE>_BASE_URL, LLM_<ROLE>_MODEL,
   LLM_<ROLE>_FALLBACK_MODEL (comma list), LLM_<ROLE>_REASONING_EFFORT
-Anything unset falls back to the chat role's, and the chat role to the
-original names: LLM_API_KEY / LLM_BASE_URL / LLM_MODEL / LLM_FALLBACK_MODEL /
+Anything unset falls back to the chat role's — except the key of a role that
+sets its own base URL, which must set its own key too — and the chat role to
+the original names: LLM_API_KEY / LLM_BASE_URL / LLM_MODEL / LLM_FALLBACK_MODEL /
 LLM_REASONING_EFFORT, or OPENAI_API_KEY + OPENAI_CHAT_MODEL alone.
 """
 
@@ -31,7 +32,7 @@ GROQ_URL = "https://api.groq.com/openai/v1"
 @dataclass(frozen=True)
 class RoleConfig:
     role: str
-    api_key: Optional[str]
+    api_key: Optional[str] = field(repr=False)      # never in logs or tracebacks
     base_url: Optional[str]
     models: list[str] = field(default_factory=list)     # primary first, then fallbacks
     reasoning_effort: Optional[str] = None
@@ -67,10 +68,12 @@ def config(role: str = "chat") -> RoleConfig:
     model = os.getenv(prefix + "MODEL")
     fallbacks = os.getenv(prefix + "FALLBACK_MODEL", "")
     models = ([model, *[m.strip() for m in fallbacks.split(",") if m.strip()]] if model else chat.models)
-    return RoleConfig(role,
-                      os.getenv(prefix + "API_KEY") or chat.api_key,
-                      os.getenv(prefix + "BASE_URL") or chat.base_url,
-                      list(dict.fromkeys(models)),
+    own_url = os.getenv(prefix + "BASE_URL")
+    # The chat key is borrowed only together with the chat endpoint: a role
+    # pointed at another provider without its own key gets no key, rather
+    # than sending the chat provider's key to a third party
+    api_key = os.getenv(prefix + "API_KEY") or (None if own_url else chat.api_key)
+    return RoleConfig(role, api_key, own_url or chat.base_url, list(dict.fromkeys(models)),
                       os.getenv(prefix + "REASONING_EFFORT") or chat.reasoning_effort)
 
 
