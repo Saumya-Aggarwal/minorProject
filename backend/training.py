@@ -15,6 +15,9 @@ the free Groq tier does not allow it. It changes what the model is SHOWN:
               only. Customer feedback never changes anyone else's results, so
               one customer cannot skew the shop.
 
+Everything is per store: one brand's ratings never re-rank another brand's
+results, and the admin page lists only its own store's replies.
+
 Every function here is best-effort for the bot: if Postgres is unreachable,
 search and replies carry on untrained rather than failing.
 """
@@ -29,6 +32,7 @@ from typing import Any, Optional
 
 from sqlmodel import select
 
+import tenancy
 from common import embeddings
 from db import session_scope
 from models import BotReply, Feedback, User, utcnow
@@ -36,7 +40,8 @@ from models import BotReply, Feedback, User, utcnow
 SIMILAR = 0.75          # cosine similarity at which two questions count as the same
 CACHE_SECONDS = 30      # owner rules are re-read at most this often
 
-_rules_cache: dict[str, Any] = {"at": 0.0, "rules": []}
+# "at": when the cache was last emptied (0 = stale now); "rules": store_id -> rules
+_rules_cache: dict[str, Any] = {"at": 0.0, "rules": {}}
 
 
 @lru_cache(maxsize=512)
@@ -55,7 +60,9 @@ def _cosine(a: Any, b: Any) -> float:
 def log_reply(user_id: int, question: str, answer: str, product_ids: list[str], path: str) -> int:
     """Keep what the bot answered, for the owner to review and rate."""
     with session_scope() as db:
-        row = BotReply(user_id=user_id, question=question[:1000], answer=answer[:3000],
+        owner = db.get(User, user_id)
+        row = BotReply(user_id=user_id, store_id=owner.store_id if owner else tenancy.store_id(),
+                       question=question[:1000], answer=answer[:3000],
                        product_ids=list(product_ids), path=path)
         db.add(row)
         db.flush()
@@ -69,12 +76,15 @@ def rate(scope: str, rating: int, question: str, product_id: str = "", reply_id:
         raise ValueError("scope must be owner|customer and rating +1|-1")
     vector = list(_embed(question)) if question.strip() else None
     with session_scope() as db:
+        # A customer's "Not for me" belongs to their store; an owner rates the current one
+        customer = db.get(User, user_id) if scope == "customer" and user_id is not None else None
+        store = customer.store_id if customer else tenancy.store_id()
         if scope == "owner" and reply_id is not None:
             for old in db.exec(select(Feedback).where(
                     Feedback.scope == "owner", Feedback.reply_id == reply_id,
                     Feedback.product_id == product_id)).all():
                 db.delete(old)
-        row = Feedback(scope=scope, rating=rating, product_id=product_id, question=question[:1000],
+        row = Feedback(store_id=store, scope=scope, rating=rating, product_id=product_id, question=question[:1000],
                        embedding=vector, note=note[:500], reply_id=reply_id, user_id=user_id,
                        created_at=utcnow())
         db.add(row)
@@ -95,18 +105,22 @@ def undo(feedback_id: int) -> None:
 # --- reading, for the bot ----------------------------------------------------------
 
 def _owner_rules() -> list[dict[str, Any]]:
-    if time.time() - _rules_cache["at"] < CACHE_SECONDS:
-        return _rules_cache["rules"]
+    """The current store's owner ratings, cached for CACHE_SECONDS."""
+    if time.time() - _rules_cache["at"] >= CACHE_SECONDS:
+        _rules_cache.update(at=time.time(), rules={})
+    store = tenancy.store_id()
+    if store in _rules_cache["rules"]:
+        return _rules_cache["rules"][store]
     with session_scope() as db:
         rows = db.exec(select(Feedback, BotReply)
                        .join(BotReply, Feedback.reply_id == BotReply.reply_id, isouter=True)
-                       .where(Feedback.scope == "owner")).all()
+                       .where(Feedback.scope == "owner", Feedback.store_id == store)).all()
         rules = [{
             "id": f.feedback_id, "rating": f.rating, "product_id": f.product_id,
             "question": f.question, "embedding": f.embedding, "note": f.note,
             "answer": reply.answer if reply else "",
         } for f, reply in rows if f.embedding]
-    _rules_cache.update(at=time.time(), rules=rules)
+    _rules_cache["rules"][store] = rules
     return rules
 
 
@@ -170,6 +184,7 @@ def recent_replies(limit: int = 40) -> list[dict[str, Any]]:
     """Latest bot replies with the owner's ratings on each, newest first."""
     with session_scope() as db:
         replies = db.exec(select(BotReply, User).join(User, BotReply.user_id == User.user_id)
+                          .where(BotReply.store_id == tenancy.store_id())
                           .order_by(BotReply.created_at.desc()).limit(limit)).all()
         ids = [reply.reply_id for reply, _ in replies]
         ratings: dict[int, dict[str, dict[str, Any]]] = {}
@@ -199,7 +214,8 @@ def recent_replies(limit: int = 40) -> list[dict[str, Any]]:
 def learned_rules() -> list[dict[str, Any]]:
     """Every owner rating in force, newest first, for the "What it has learned" tab."""
     with session_scope() as db:
-        rows = db.exec(select(Feedback).where(Feedback.scope == "owner")
+        rows = db.exec(select(Feedback).where(Feedback.scope == "owner",
+                                              Feedback.store_id == tenancy.store_id())
                        .order_by(Feedback.created_at.desc())).all()
         return [{"id": f.feedback_id, "rating": f.rating, "product_id": f.product_id,
                  "question": f.question, "note": f.note, "created_at": f.created_at} for f in rows]

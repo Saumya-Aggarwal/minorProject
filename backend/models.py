@@ -29,6 +29,50 @@ def _tstz(**kwargs: Any) -> Column:
     return Column(DateTime(timezone=True), **kwargs)
 
 
+class Store(SQLModel, table=True):
+    """One brand Munim serves: its WhatsApp number, catalogue source and texts.
+
+    Store #1 is the demo ethnic-wear shop; everything made before stores
+    existed belongs to it. A row is created when a brand starts onboarding
+    (status "draft") and only "live" stores are answered on WhatsApp.
+
+    The *_enc columns hold Fernet ciphertext (secrets_box.py), never the
+    secret itself; a database dump alone does not leak a brand's token.
+    """
+
+    __tablename__ = "stores"
+
+    store_id: Optional[int] = Field(default=None, primary_key=True)
+    slug: str = Field(max_length=40, unique=True)
+    name: str = Field(max_length=100)
+    # feed | shopify | woo | api — which CommerceConnector loads the catalogue
+    platform: str = Field(default="feed", max_length=20)
+    # draft | live | paused
+    status: str = Field(default="draft", max_length=20)
+    currency: str = Field(default="INR", max_length=3)
+    # Prefix of the product codes customers type ("EW" -> EW006)
+    code_prefix: str = Field(default="", max_length=4)
+
+    # WhatsApp Cloud API. Meta's webhook names the receiving number by its
+    # phone_number_id, which is how a message finds its store.
+    wa_phone_number_id: Optional[str] = Field(default=None, max_length=40, unique=True)
+    wa_display_number: Optional[str] = Field(default=None, max_length=20)
+    wa_business_account_id: Optional[str] = Field(default=None, max_length=40)
+    wa_app_id: Optional[str] = Field(default=None, max_length=40)
+    wa_access_token_enc: Optional[str] = None
+    wa_app_secret_enc: Optional[str] = None
+    wa_verify_token_enc: Optional[str] = None
+
+    # Connector settings, e.g. {"shop_domain": "x.myshopify.com"} or {"feed_path": ...}
+    connector: Optional[dict[str, Any]] = Field(default=None, sa_column=Column(JSONB))
+    # Texts the assistant uses: {"greeting", "what_we_sell", "policies"}
+    brand: Optional[dict[str, Any]] = Field(default=None, sa_column=Column(JSONB))
+    # Hand-off to a person: {"enabled", "contact", "hours": {"mon": ["10:00", "19:00"], ...}}
+    handoff: Optional[dict[str, Any]] = Field(default=None, sa_column=Column(JSONB))
+    created_at: datetime = Field(default_factory=utcnow, sa_column=_tstz(nullable=False))
+    updated_at: datetime = Field(default_factory=utcnow, sa_column=_tstz(nullable=False))
+
+
 class User(SQLModel, table=True):
     """One identity per customer, across both the website and WhatsApp.
 
@@ -37,6 +81,10 @@ class User(SQLModel, table=True):
 
     Website signups start with an email and no whatsapp_number; bot contacts start
     with a whatsapp_number and no email. Linking fills in the missing half.
+
+    A customer belongs to one store: the same phone number messaging two brands
+    is two customers, with separate carts, orders and memory. Carts, sessions
+    and link tokens hang off user_id, so they are scoped by this alone.
     """
 
     __tablename__ = "users"
@@ -45,14 +93,15 @@ class User(SQLModel, table=True):
             "email IS NOT NULL OR whatsapp_number IS NOT NULL",
             name="ck_users_has_identity",
         ),
+        UniqueConstraint("store_id", "whatsapp_number", name="uq_users_store_whatsapp"),
+        UniqueConstraint("store_id", "email", name="uq_users_store_email"),
     )
 
     user_id: Optional[int] = Field(default=None, primary_key=True)
+    store_id: int = Field(foreign_key="stores.store_id", index=True)
     # Digits only, no '+' — matches the "from" field in Meta's webhook payload
-    whatsapp_number: Optional[str] = Field(
-        default=None, max_length=20, unique=True, index=True
-    )
-    email: Optional[str] = Field(default=None, max_length=255, unique=True, index=True)
+    whatsapp_number: Optional[str] = Field(default=None, max_length=20, index=True)
+    email: Optional[str] = Field(default=None, max_length=255, index=True)
     # bcrypt hash; None for contacts who only ever used WhatsApp
     password_hash: Optional[str] = Field(default=None, max_length=255)
     display_name: Optional[str] = Field(default=None, max_length=100)
@@ -116,6 +165,8 @@ class Order(SQLModel, table=True):
 
     order_id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="users.user_id", index=True)
+    # Always the user's store (set from the user row, never from the request)
+    store_id: int = Field(foreign_key="stores.store_id", index=True)
     # Where the order came from: bot | web
     channel: str = Field(default="bot", max_length=10)
     # Sum of the lines at checkout. Stored rather than recomputed, so the amount
@@ -234,6 +285,7 @@ class BotReply(SQLModel, table=True):
     reply_id: Optional[int] = Field(default=None, primary_key=True)
     # CASCADE: deleting a customer (tests, or a GDPR-style request) takes their log too
     user_id: int = Field(foreign_key="users.user_id", index=True, ondelete="CASCADE")
+    store_id: int = Field(foreign_key="stores.store_id", index=True)
     question: str
     answer: str
     # Product ids shown, in the order they were numbered
@@ -255,6 +307,8 @@ class Feedback(SQLModel, table=True):
     __tablename__ = "feedback"
 
     feedback_id: Optional[int] = Field(default=None, primary_key=True)
+    # Owner ratings re-rank only this store's results; customer ones only theirs
+    store_id: int = Field(foreign_key="stores.store_id", index=True)
     scope: str = Field(max_length=10, index=True)          # owner | customer
     rating: int                                            # +1 | -1
     product_id: str = Field(default="", max_length=20)

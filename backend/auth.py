@@ -14,6 +14,7 @@ import bcrypt
 from fastapi import Request
 from sqlmodel import select
 
+import tenancy
 from db import session_scope
 from models import User, utcnow
 
@@ -82,8 +83,9 @@ def current_user(request: Request, touch: bool = True) -> Optional[dict[str, Any
 
     with session_scope() as db:
         user = db.get(User, user_id)
-        if user is None:
-            # Row deleted (or merged away) since the cookie was issued
+        if user is None or user.store_id != tenancy.store_id():
+            # Row deleted (or merged away) since the cookie was issued, or an
+            # account of another store: a login never carries across brands
             request.session.pop(SESSION_USER_KEY, None)
             return None
 
@@ -99,7 +101,8 @@ def current_user(request: Request, touch: bool = True) -> Optional[dict[str, Any
 
 def find_user_by_email(email: str) -> Optional[dict[str, Any]]:
     with session_scope() as db:
-        user = db.exec(select(User).where(User.email == email.lower().strip())).first()
+        user = db.exec(select(User).where(User.store_id == tenancy.store_id(),
+                                          User.email == email.lower().strip())).first()
         if user is None:
             return None
         return {
@@ -113,6 +116,7 @@ def find_user_by_email(email: str) -> Optional[dict[str, Any]]:
 def create_web_user(email: str, password: str, display_name: str) -> int:
     with session_scope() as db:
         user = User(
+            store_id=tenancy.store_id(),
             email=email.lower().strip(),
             password_hash=hash_password(password),
             display_name=display_name.strip() or None,

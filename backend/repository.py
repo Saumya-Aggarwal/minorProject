@@ -14,6 +14,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlmodel import select
 
 import catalog
+import tenancy
 from db import session_scope
 from models import BotReply, CartItem, Feedback, LinkToken, Order, OrderItem, Session, User, utcnow
 
@@ -30,14 +31,15 @@ def _money(value: Decimal | float | int | str) -> Decimal:
 
 
 def get_or_create_user(whatsapp_number: str, display_name: Optional[str] = None) -> int:
-    """Return the user_id for a WhatsApp number, creating the row on first contact."""
+    """Return the user_id for a WhatsApp number in the current store, creating it on first contact."""
+    store = tenancy.store_id()
     with session_scope() as db:
         user = db.exec(
-            select(User).where(User.whatsapp_number == whatsapp_number)
+            select(User).where(User.store_id == store, User.whatsapp_number == whatsapp_number)
         ).first()
 
         if user is None:
-            user = User(whatsapp_number=whatsapp_number, display_name=display_name)
+            user = User(store_id=store, whatsapp_number=whatsapp_number, display_name=display_name)
             db.add(user)
         else:
             user.last_active_at = utcnow()
@@ -215,7 +217,11 @@ def create_order_from_items(
 
     total = sum(_money(item["price_inr"]) * int(item["quantity"]) for item in items)
     with session_scope() as db:
-        order = Order(user_id=user_id, channel=channel, total_inr=total, from_cart=from_cart)
+        owner = db.get(User, user_id)
+        if owner is None:
+            raise ValueError(f"unknown user {user_id}")
+        order = Order(user_id=user_id, store_id=owner.store_id, channel=channel, total_inr=total,
+                      from_cart=from_cart)
         _apply_shipping(order, shipping, db)
         db.add(order)
         db.flush()
@@ -912,12 +918,19 @@ def consume_link_token(token: str, whatsapp_number: str) -> Optional[dict[str, A
         if target is None:
             print(f"[repository] link token {token!r} points at a deleted user")
             return None
+        # A code from one brand's website sent to another brand's number must
+        # not bind that number to the first brand's account
+        if target.store_id != tenancy.store_id():
+            print(f"[repository] link token {token!r} belongs to store {target.store_id}, "
+                  f"not {tenancy.store_id()}")
+            return None
 
         # The number almost always already belongs to a bot-created row: the
         # customer messaged the bot before linking. Fold that row into the
         # website account rather than colliding with the unique constraint.
         existing = db.exec(
-            select(User).where(User.whatsapp_number == whatsapp_number)
+            select(User).where(User.store_id == target.store_id,
+                               User.whatsapp_number == whatsapp_number)
         ).first()
 
         if existing is not None and existing.user_id != target.user_id:
@@ -996,10 +1009,11 @@ def consume_link_token(token: str, whatsapp_number: str) -> Optional[dict[str, A
 
 
 def get_user_by_whatsapp(whatsapp_number: str) -> Optional[dict[str, Any]]:
-    """Look up a contact without creating one."""
+    """Look up a contact of the current store without creating one."""
     with session_scope() as db:
         user = db.exec(
-            select(User).where(User.whatsapp_number == whatsapp_number)
+            select(User).where(User.store_id == tenancy.store_id(),
+                               User.whatsapp_number == whatsapp_number)
         ).first()
         if user is None:
             return None
