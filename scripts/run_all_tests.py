@@ -4,7 +4,7 @@ The suites share one Postgres database and each cleans up its own rows, so
 they run in sequence, never in parallel. Output is kept quiet: one line per
 suite, and the full output only for a suite that failed.
 
-Needs Postgres and ChromaDB running (docker compose up -d).
+Needs Postgres running (docker compose up -d).
 
 Run from the repo root:
     backend/.venv/Scripts/python scripts/run_all_tests.py            all suites
@@ -52,9 +52,7 @@ def _reachable(host: str, port: int) -> bool:
 
 def _services_down() -> list[str]:
     db = urlparse(os.environ.get("DATABASE_URL", "postgresql://localhost:5432"))
-    services = [("Postgres", db.hostname or "localhost", db.port or 5432),
-                ("ChromaDB", os.environ.get("CHROMA_HOST", "localhost"),
-                 int(os.environ.get("CHROMA_PORT", "8001")))]
+    services = [("Postgres", db.hostname or "localhost", db.port or 5432)]
     return [f"{name} ({host}:{port})" for name, host, port in services
             if not _reachable(host, port)]
 

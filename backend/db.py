@@ -53,7 +53,8 @@ def _alembic_config(connection) -> Config:
 
 
 def init_db() -> None:
-    """Bring the schema up to date (alembic upgrade head). Safe to call repeatedly."""
+    """Bring the schema up to date (alembic upgrade head) and make sure every
+    catalogue is loaded and embedded. Safe to call repeatedly."""
     engine = get_engine()
     with engine.begin() as connection:
         connection.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": _MIGRATION_LOCK})
@@ -65,6 +66,12 @@ def init_db() -> None:
             command.stamp(config, _BASELINE)
             print(f"[db] existing schema adopted as Alembic revision {_BASELINE}")
         command.upgrade(config, "head")
+
+    # Data, not schema: load a feed store that has no products yet (the demo
+    # store on a fresh database) and re-embed vectors from another model
+    import catalog_sync
+
+    catalog_sync.ensure_catalogues()
 
 
 @contextmanager

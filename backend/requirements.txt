@@ -2,7 +2,6 @@ fastapi==0.115.6
 uvicorn[standard]==0.34.0
 httpx==0.28.1
 python-dotenv==1.0.1
-chromadb>=1.0.0,<2.0.0
 openai>=1.60.0,<2.0.0
 psycopg2-binary>=2.9.9,<3.0.0
 sqlmodel>=0.0.22,<1.0.0
@@ -12,3 +11,10 @@ itsdangerous>=2.2.0,<3.0.0
 bcrypt>=4.2.0,<5.0.0
 Pillow>=10.4,<12
 alembic>=1.14,<2
+pgvector>=0.3,<1
+cryptography>=43,<47
+# Local embedding models (common/embeddings.py): no PyTorch needed
+onnxruntime>=1.20,<2
+tokenizers>=0.20,<1
+huggingface_hub>=0.25,<2
+numpy>=1.26,<3

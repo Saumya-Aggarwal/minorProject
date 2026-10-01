@@ -234,6 +234,7 @@ def create_order_from_items(
                     price_inr=_money(item["price_inr"]),
                     size=item.get("size") or "",
                     quantity=int(item["quantity"]),
+                    variant_id=item.get("variant_id"),
                 )
             )
         return order.order_id
@@ -261,6 +262,7 @@ def create_order_for_product(
                 "product_name": product["name"],
                 "price_inr": product["price"],
                 "size": size,
+                "variant_id": _variant_id(product, size),
                 "quantity": quantity,
             }
         ],
@@ -292,6 +294,7 @@ def create_order_from_cart(
                 "product_name": item["name"],
                 "price_inr": item["price_inr"],
                 "size": item["size"],
+                "variant_id": item["variant_id"],
                 "quantity": item["quantity"],
             }
             for item in lines
@@ -667,6 +670,11 @@ def _require_size(name: str, size: str, sizes_available: list[str]) -> None:
         raise ValueError(f"choose a size for {name}")
 
 
+def _variant_id(product: Optional[dict[str, Any]], size: str) -> Optional[int]:
+    """The variant a chosen size means; None until a size is chosen."""
+    return (product or {}).get("variant_ids", {}).get(size) if size else None
+
+
 def _resolve_size(product: dict[str, Any], size: str) -> str:
     """Validate a chosen size; auto-pick when the product has only one."""
     sizes = product.get("sizes_available") or []
@@ -699,11 +707,13 @@ def add_to_cart(
         product_id=product_id,
         size=size,
         quantity=quantity,
+        variant_id=_variant_id(product, size),
         added_at=utcnow(),
     )
     statement = statement.on_conflict_do_update(
         constraint="uq_cart_user_product_size",
-        set_={"quantity": table.c.quantity + statement.excluded.quantity},
+        set_={"quantity": table.c.quantity + statement.excluded.quantity,
+              "variant_id": statement.excluded.variant_id},
     )
     with session_scope() as db:
         db.exec(statement)
@@ -736,6 +746,9 @@ def get_cart(user_id: int) -> dict[str, Any]:
                 "price_inr": price,
                 "mrp_inr": float(product.get("mrp") or price) if product else 0.0,
                 "size": size,
+                # Looked up rather than read from the row: a line sized before
+                # variants existed, or whose variant was re-created, still resolves
+                "variant_id": _variant_id(product, size),
                 "sizes_available": product.get("sizes_available", []) if product else [],
                 "image_url": product.get("image_url") if product else None,
                 "quantity": quantity,
@@ -796,9 +809,11 @@ def update_cart_item_size(user_id: int, cart_item_id: int, size: str) -> bool:
         ).first()
         if twin is not None:
             twin.quantity += row.quantity
+            twin.variant_id = _variant_id(product, size)
             db.delete(row)
         else:
             row.size = size
+            row.variant_id = _variant_id(product, size)
         return True
 
 

@@ -1,43 +1,125 @@
-"""Read access to the product catalog.
+"""Read access to the product catalogue, per store.
 
-Products live in data/products.json, not Postgres: orders snapshot the name and
-price at purchase time, so nothing needs a foreign key into the catalog.
+Products live in Postgres (products + product_variants, written only by
+catalog_sync.py). Every function here answers for the current store
+(tenancy.py) and returns the same dicts data/products.json always held, so
+nothing that reads a product had to change when the catalogue moved.
 
-Everything goes through this module so the backing store can become a database
-table later without touching any caller.
+Stock and sizes come from the variants; the rest of a record is the source's
+own fields. Orders still snapshot name and price, so an order never follows
+a later catalogue edit.
+
+Each store's catalogue is cached in memory for CACHE_SECONDS, and a sync
+clears it at once.
 """
 
-import json
-import os
-from functools import lru_cache
-from pathlib import Path
+import time
 from typing import Any, Optional
 
-import chromadb
+from sqlalchemy import text
+from sqlmodel import select
 
+import tenancy
 from common import embeddings
 
-CATALOG_PATH = Path(__file__).resolve().parents[1] / "data" / "products.json"
+CACHE_SECONDS = 60
+
+# store_id -> (loaded_at, products in catalogue order, products by code)
+_cache: dict[int, tuple[float, list[dict[str, Any]], dict[str, dict[str, Any]]]] = {}
 
 
-@lru_cache(maxsize=1)
-def _load() -> list[dict[str, Any]]:
-    if not CATALOG_PATH.exists():
-        print(f"[catalog] missing {CATALOG_PATH}")
-        return []
-    return json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
+def invalidate(store_id: Optional[int] = None) -> None:
+    """Forget a store's cached catalogue (all stores when None)."""
+    if store_id is None:
+        _cache.clear()
+    else:
+        _cache.pop(store_id, None)
+
+
+def _record(product: Any, variants: list[Any]) -> dict[str, Any]:
+    record = dict(product.data)
+    record["id"] = product.code
+    if variants:
+        record["sizes_available"] = [v.size for v in variants]
+        # How many, or 1 when the source only says "available": code asks "> 0?"
+        record["stock"] = {v.size: v.stock if v.stock is not None else int(v.available)
+                           for v in variants}
+        record["in_stock"] = bool(record.get("in_stock", True)) and any(
+            v.available and (v.stock is None or v.stock > 0) for v in variants)
+        record["variant_ids"] = {v.size: v.variant_id for v in variants}
+    return record
+
+
+def _load(store_id: Optional[int] = None) -> tuple[list[dict[str, Any]], dict[str, dict[str, Any]]]:
+    from db import session_scope
+    from models import Product, ProductVariant
+
+    sid = tenancy.store_id() if store_id is None else store_id
+    hit = _cache.get(sid)
+    if hit and time.time() - hit[0] < CACHE_SECONDS:
+        return hit[1], hit[2]
+    with session_scope() as db:
+        products = db.exec(select(Product).where(Product.store_id == sid, Product.active)
+                           .order_by(Product.code)).all()
+        variants: dict[int, list[Any]] = {}
+        for v in db.exec(select(ProductVariant).where(ProductVariant.store_id == sid)
+                         .order_by(ProductVariant.product_pk, ProductVariant.position)).all():
+            variants.setdefault(v.product_pk, []).append(v)
+        records = [_record(p, variants.get(p.product_pk, [])) for p in products]
+    by_code = {r["id"]: r for r in records}
+    _cache[sid] = (time.time(), records, by_code)
+    return records, by_code
 
 
 def get_all() -> list[dict[str, Any]]:
-    return list(_load())
+    return list(_load()[0])
 
 
 def get_by_id(product_id: str) -> Optional[dict[str, Any]]:
-    return next((p for p in _load() if p["id"] == product_id), None)
+    return _load()[1].get(product_id)
 
 
 def categories() -> list[str]:
-    return sorted({p["category"] for p in _load()})
+    return sorted({p["category"] for p in _load()[0] if p["category"]})
+
+
+def ranked_by_vector(vector: list[float], exclude: Optional[set[str]] = None,
+                     gender: Optional[str] = None, limit: Optional[int] = None) -> list[tuple[str, float]]:
+    """(code, cosine distance) for the current store's products, nearest first.
+
+    An exact scan: with hundreds of products per store, reading every vector
+    is faster than maintaining an approximate index, and never skips one.
+    """
+    from db import session_scope
+
+    sql = ["SELECT code, embedding <=> CAST(:vector AS vector) AS distance FROM products",
+           "WHERE store_id = :store AND active AND embedding_model = :model"]
+    params: dict[str, Any] = {"vector": str(list(vector)), "store": tenancy.store_id(),
+                              "model": embeddings.model_name()}
+    if exclude:
+        sql.append("AND NOT (code = ANY(:exclude))")
+        params["exclude"] = list(exclude)
+    if gender:
+        sql.append("AND gender = :gender")
+        params["gender"] = gender
+    sql.append("ORDER BY distance, code")
+    if limit:
+        sql.append("LIMIT :limit")
+        params["limit"] = limit
+    with session_scope() as db:
+        return [(code, float(distance)) for code, distance in db.exec(text(" ".join(sql)).bindparams(**params)).all()]
+
+
+def stored_vector(product_id: str) -> Optional[list[float]]:
+    """A product's own embedding (current model only)."""
+    from db import session_scope
+    from models import Product
+
+    with session_scope() as db:
+        vector = db.exec(select(Product.embedding).where(
+            Product.store_id == tenancy.store_id(), Product.code == product_id,
+            Product.embedding_model == embeddings.model_name())).first()
+    return None if vector is None else [float(x) for x in vector]
 
 
 # --- browsing: filters, sort, facet counts ---------------------------------------
@@ -152,18 +234,10 @@ def bestsellers(limit: int = 8) -> list[dict[str, Any]]:
     return sort_products(get_all(), "popular")[:limit]
 
 
-# --- recommendations (feature/rag) ---------------------------------------------
-
-def _get_collection() -> Any:
-    client = chromadb.HttpClient(
-        host=os.getenv("CHROMA_HOST", "localhost"),
-        port=int(os.getenv("CHROMA_PORT", "8001")),
-    )
-    return client.get_or_create_collection(name="products")
-
+# --- recommendations ---------------------------------------------
 
 def _top_rated(exclude_ids: set[str], k: int, gender: str | None) -> list[dict[str, Any]]:
-    products = [product for product in _load() if product["id"] not in exclude_ids]
+    products = [product for product in get_all() if product["id"] not in exclude_ids]
     if gender:
         products = [product for product in products if product.get("gender") == gender]
     return sorted(
@@ -181,12 +255,12 @@ def get_similar_products(
 ) -> list[dict[str, Any]]:
     """Return full catalog records similar to the supplied products.
 
-    Recommendations use the same Chroma collection as chat search. If there is
+    Recommendations use the same vectors as chat search. If there is
     no purchase history or vector search is unavailable, popular catalog items
     provide a deterministic fallback for the storefront.
     """
     excluded = set(exclude_ids) | set(product_ids)
-    source_products = [product for product in _load() if product["id"] in product_ids]
+    source_products = [product for product in get_all() if product["id"] in product_ids]
     if not source_products:
         return _top_rated(excluded, k, gender)
 
@@ -204,23 +278,8 @@ def get_similar_products(
     )
 
     try:
-        where = {"gender": {"$eq": gender}} if gender else None
-        result = _get_collection().query(
-            query_embeddings=[embeddings.embed_one(query)],
-            n_results=min(max(k + len(excluded), k), 20),
-            where=where,
-        )
-        metadata = [item or {} for item in result.get("metadatas", [[]])[0]]
-        recommendations = []
-        for item in metadata:
-            product_id = str(item.get("id", ""))
-            if product_id in excluded:
-                continue
-            product = get_by_id(product_id)
-            if product is not None:
-                recommendations.append(product)
-            if len(recommendations) == k:
-                break
+        ranked = ranked_by_vector(embeddings.embed_query(query), exclude=excluded, gender=gender, limit=k)
+        recommendations = [p for p in (get_by_id(code) for code, _ in ranked) if p is not None]
         return recommendations or _top_rated(excluded, k, gender)
     except Exception as exc:
         print(f"[catalog] recommendation lookup failed, using top-rated items: {exc!r}")

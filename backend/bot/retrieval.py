@@ -1,10 +1,11 @@
 """One retrieval engine for the bot, the assistant's tools and the website search.
 
-Meaning comes from the vector index (Chroma, built by scripts/ingest_catalog.py);
-hard constraints (gender, category, budget, stock) come from the catalogue
-itself and are applied in Python. With 84 products that is one Chroma round
-trip ranking the whole catalogue, then exact filtering — no metadata filter can
-silently match nothing because of a misspelt category.
+Meaning comes from the product vectors in Postgres (pgvector, written by
+catalog_sync.py); hard constraints (gender, category, budget, stock) come from
+the catalogue itself and are applied in Python. One SQL query ranks the whole
+store's catalogue exactly, then the filters run — no metadata filter can
+silently match nothing because of a misspelt category, and relaxing a filter
+needs the whole ranking anyway.
 
 Why this replaced the earlier Chroma `where` filters, with real examples:
   "jacket to wear over my kurta"  -> filtered on category "Jacket", which does
@@ -19,21 +20,26 @@ empty result relaxes the filters step by step and says which one it dropped.
 
 from __future__ import annotations
 
-import os
 import re
 from dataclasses import dataclass, field, replace
 from typing import Any, Optional
 
 import catalog
+import tenancy
 from common import embeddings
 
-COLLECTION_NAME = "products"
 
-# Squared L2 distance on normalised MiniLM vectors, range 0..4. Strong matches
-# score ~0.4-0.9, loose but relevant ones up to ~1.35, unrelated text above ~1.6.
-# Applied only to open-ended queries: when the customer named a category or a
-# budget, the filters already guarantee relevance.
-MAX_DISTANCE = 1.55
+def __getattr__(name: str) -> Any:
+    """MAX_DISTANCE depends on the embedding model (common/embeddings.THRESHOLDS).
+
+    Cosine distance (0..2) above which an open-ended query has no real match:
+    "asdfgh" returns nothing rather than noise. Applied only to open-ended
+    queries: when the customer named a category or a budget, the filters
+    already guarantee relevance.
+    """
+    if name == "MAX_DISTANCE":
+        return embeddings.max_distance()
+    raise AttributeError(name)
 
 
 # --- what the customer asked for ----------------------------------------------
@@ -336,8 +342,18 @@ def normalise_filters(gender: Any = None, categories: Any = None, max_price: Any
                    occasion=str(occasion).strip().lower() if occasion else None)
 
 
+_mapping_checked: set[int] = set()
+
+
 def _check_mapping() -> None:
-    """Fail loudly at import if a garment word maps onto a category we do not sell."""
+    """Warn once if a garment word maps onto a category the demo store does not sell.
+
+    The vocabulary above was written for the demo's ethnic wear; another
+    store's categories are its own (P2 makes this vocabulary per catalogue).
+    """
+    if tenancy.store_id() != tenancy.DEMO_STORE_ID or tenancy.DEMO_STORE_ID in _mapping_checked:
+        return
+    _mapping_checked.add(tenancy.DEMO_STORE_ID)
     real = set(catalog.categories())
     for key in _GARMENTS:
         value = _resolve(key)
@@ -350,62 +366,37 @@ def _check_mapping() -> None:
 
 # --- ranking ----------------------------------------------------------------------
 
-_collection_cache: dict[str, Any] = {}
-
-
-def _collection() -> Any:
-    if "c" not in _collection_cache:
-        import chromadb
-
-        client = chromadb.HttpClient(
-            host=os.getenv("CHROMA_HOST", "localhost"),
-            port=int(os.getenv("CHROMA_PORT", "8001")),
-        )
-        _collection_cache["c"] = client.get_collection(COLLECTION_NAME)
-    return _collection_cache["c"]
-
-
 def _haystack(p: dict[str, Any]) -> str:
     return " ".join([p["title"], p["category"], p["subcategory"], p["color"], p["fabric"],
                      p["gender"], " ".join(p["occasion"]), p["description"]]).lower()
 
 
 def rank(query: str) -> tuple[list[tuple[dict[str, Any], float]], bool]:
-    """Every catalogue product with its distance to the query, nearest first.
+    """Every product of the current store with its distance to the query, nearest first.
 
-    Returns (ranked, semantic). semantic=False means Chroma was unreachable and
-    the order comes from keyword overlap instead; the search still answers.
+    Returns (ranked, semantic). semantic=False means vector search failed (no
+    model, no vectors yet) and the order comes from keyword overlap instead;
+    the search still answers. Products without a vector for the current
+    model rank after every embedded one.
     """
     products = catalog.get_all()
     try:
-        collection = _collection()
-        vector = embeddings.embed_one(query)
-        result = collection.query(
-            query_embeddings=[vector],
-            n_results=max(1, min(len(products), collection.count())),
-            include=["distances"],
-        )
         by_id = {p["id"]: p for p in products}
-        ranked = [(by_id[pid], dist) for pid, dist in zip(result["ids"][0], result["distances"][0])
-                  if pid in by_id]
-        # HNSW is approximate: asked for the whole collection it can still skip
-        # an item (with 84 products it dropped EW080). Score any it skipped
-        # exactly, with Chroma's metric (squared L2), so nothing is unfindable.
-        missing = [pid for pid in by_id if pid not in {p["id"] for p, _ in ranked}]
-        if missing:
-            stored = collection.get(ids=missing, include=["embeddings"])
-            for pid, emb in zip(stored["ids"], stored["embeddings"]):
-                ranked.append((by_id[pid], float(sum((a - b) ** 2 for a, b in zip(vector, emb)))))
-            ranked.sort(key=lambda pair: pair[1])
+        ranked = [(by_id[code], distance)
+                  for code, distance in catalog.ranked_by_vector(embeddings.embed_query(query))
+                  if code in by_id]
+        if not ranked and products:
+            raise RuntimeError("no product has a vector for the current model yet")
+        placed = {p["id"] for p, _ in ranked}
+        ranked += [(p, 9.0) for p in products if p["id"] not in placed]
         return ranked, True
     except Exception as exc:
-        _collection_cache.clear()   # reconnect next time, e.g. after Chroma restarts
         print(f"[retrieval] vector search unavailable, ranking by keywords: {exc!r}")
         words = [w for w in _tokens(query) if len(w) > 2]
         scored = [(p, sum(w in _haystack(p) for w in words)) for p in products]
         scored.sort(key=lambda pair: -pair[1])
         # Pretend distances so the same cut-off logic applies: no overlap = no match
-        return [(p, 0.5 if score else 9.0) for p, score in scored], False
+        return [(p, 0.1 if score else 9.0) for p, score in scored], False
 
 
 def _in_stock(p: dict[str, Any]) -> bool:
@@ -454,6 +445,7 @@ def search(query: str, filters: Optional[Filters] = None, k: int = 3,
     prices), category (the garment is not stocked), gender. An open-ended query
     with nothing relevant ("asdfgh") returns no products rather than noise.
     """
+    _check_mapping()
     query = (query or "").strip()
     f = filters if filters is not None else parse_query(query)
     meaning = f"{query} {f.occasion}" if f.occasion and f.occasion not in query.lower() else query
@@ -476,7 +468,7 @@ def search(query: str, filters: Optional[Filters] = None, k: int = 3,
     for current, relaxed in attempts:
         matches = [(p, d) for p, d in ranked if _passes(p, current)]
         if current.is_empty():
-            matches = [(p, d) for p, d in matches if d <= MAX_DISTANCE]
+            matches = [(p, d) for p, d in matches if d <= embeddings.max_distance()]
         if not matches:
             continue
         products = [p for p, _ in matches]
@@ -506,5 +498,3 @@ def _describe_categories(categories: list[str]) -> str:
     names = [c.lower() + ("s" if not c.endswith(("s", "wear", "Western", "Gharara")) else "") for c in categories[:2]]
     return " or ".join(names)
 
-
-_check_mapping()

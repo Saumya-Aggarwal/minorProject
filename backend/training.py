@@ -37,8 +37,18 @@ from common import embeddings
 from db import session_scope
 from models import BotReply, Feedback, User, utcnow
 
-SIMILAR = 0.75          # cosine similarity at which two questions count as the same
 CACHE_SECONDS = 30      # owner rules are re-read at most this often
+
+
+def __getattr__(name: str) -> Any:
+    """SIMILAR: the cosine similarity at which two questions count as the same.
+
+    It depends on the embedding model (common/embeddings.THRESHOLDS): a
+    threshold tuned for one model means nothing for another.
+    """
+    if name == "SIMILAR":
+        return embeddings.similar_threshold()
+    raise AttributeError(name)
 
 # "at": when the cache was last emptied (0 = stale now); "rules": store_id -> rules
 _rules_cache: dict[str, Any] = {"at": 0.0, "rules": {}}
@@ -46,7 +56,7 @@ _rules_cache: dict[str, Any] = {"at": 0.0, "rules": {}}
 
 @lru_cache(maxsize=512)
 def _embed(text: str) -> tuple[float, ...]:
-    return tuple(embeddings.embed_one(text.strip().lower()))
+    return tuple(embeddings.embed_similarity(text.strip().lower()))
 
 
 def _cosine(a: Any, b: Any) -> float:
@@ -119,7 +129,13 @@ def _owner_rules() -> list[dict[str, Any]]:
             "id": f.feedback_id, "rating": f.rating, "product_id": f.product_id,
             "question": f.question, "embedding": f.embedding, "note": f.note,
             "answer": reply.answer if reply else "",
-        } for f, reply in rows if f.embedding]
+        } for f, reply in rows if f.question.strip()]
+        # A rating stored by another embedding model (EMBEDDING_PROVIDER
+        # changed since) cannot be compared: re-embed its question once
+        width = len(_embed("width check"))
+        for rule, (f, _) in zip(rules, [(f, r) for f, r in rows if f.question.strip()]):
+            if not rule["embedding"] or len(rule["embedding"]) != width:
+                rule["embedding"] = f.embedding = list(_embed(f.question))
     _rules_cache["rules"][store] = rules
     return rules
 
@@ -133,7 +149,7 @@ def ranking_adjustments(question: str) -> dict[str, int]:
         vector = _embed(question)
         net: dict[str, int] = {}
         for rule in rules:
-            if _cosine(vector, rule["embedding"]) >= SIMILAR:
+            if _cosine(vector, rule["embedding"]) >= embeddings.similar_threshold():
                 net[rule["product_id"]] = net.get(rule["product_id"], 0) + rule["rating"]
         return {pid: score for pid, score in net.items() if score}
     except Exception as exc:
@@ -153,7 +169,7 @@ def guidance(question: str, k: int = 2) -> dict[str, list[str]]:
         vector = _embed(question)
         scored = sorted(((_cosine(vector, r["embedding"]), r) for r in rules),
                         key=lambda pair: -pair[0])
-        close = [r for score, r in scored if score >= SIMILAR - 0.1]
+        close = [r for score, r in scored if score >= embeddings.similar_threshold() - 0.1]
         examples = [f"Customer: {r['question'][:160]}\nYou: {r['answer'].split(chr(10) + chr(10))[0][:220]}"
                     for r in close if r["rating"] > 0 and r["answer"]][:k]
         notes = [r["note"][:160] for r in close if r["note"]][:k]

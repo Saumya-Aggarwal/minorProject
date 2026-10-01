@@ -1,4 +1,4 @@
-"""SQLModel tables for users, conversation sessions, and orders.
+"""SQLModel tables: stores, their products, customers, sessions, carts and orders.
 
 Column names follow the schema agreed in the sprint plan. Timestamps are
 timezone-aware; Postgres stores them as TIMESTAMPTZ.
@@ -17,6 +17,7 @@ from sqlalchemy import (
     UniqueConstraint,
     text,
 )
+from pgvector.sqlalchemy import Vector
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
@@ -71,6 +72,75 @@ class Store(SQLModel, table=True):
     handoff: Optional[dict[str, Any]] = Field(default=None, sa_column=Column(JSONB))
     created_at: datetime = Field(default_factory=utcnow, sa_column=_tstz(nullable=False))
     updated_at: datetime = Field(default_factory=utcnow, sa_column=_tstz(nullable=False))
+
+
+class Product(SQLModel, table=True):
+    """One product of one store, as customers see it: a style in one colour.
+
+    A Shopify product sold in three colours becomes three rows (one photo and
+    one embedding each, so "black oversized tee" finds the black one); its
+    sizes are the variants. `code` is what a customer types in chat (EW006)
+    and what carts, orders and ratings call product_id.
+
+    `data` keeps the full catalogue record (the 32 fields of data/products.json
+    for the demo store), so catalog.py hands every caller the same dict as
+    before. Stock and sizes come live from product_variants.
+    """
+
+    __tablename__ = "products"
+    __table_args__ = (
+        UniqueConstraint("store_id", "code", name="uq_products_store_code"),
+        UniqueConstraint("store_id", "external_id", name="uq_products_store_external"),
+    )
+
+    product_pk: Optional[int] = Field(default=None, primary_key=True)
+    store_id: int = Field(foreign_key="stores.store_id", index=True)
+    code: str = Field(max_length=40)
+    # The source's id: the feed's id, or "<shopify product id>:<colour>"
+    external_id: Optional[str] = Field(default=None, max_length=120)
+    name: str = Field(max_length=200)
+    category: str = Field(default="", max_length=60)
+    gender: str = Field(default="", max_length=20)
+    price: Decimal = Field(sa_column=Column(Numeric(10, 2), nullable=False))
+    mrp: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(10, 2)))
+    image_url: Optional[str] = Field(default=None, max_length=500)
+    # False once the source stops listing it: carts and orders still name it
+    active: bool = Field(default=True)
+    data: dict[str, Any] = Field(sa_column=Column(JSONB, nullable=False))
+    # The text that was embedded, kept so a model change can re-embed without the source
+    search_text: str = ""
+    # Untyped vector, any width: embedding_model says which model made it, and
+    # rows from another model are re-embedded rather than compared
+    embedding: Optional[list[float]] = Field(default=None, sa_column=Column(Vector()))
+    embedding_model: Optional[str] = Field(default=None, max_length=80)
+    updated_at: datetime = Field(default_factory=utcnow, sa_column=_tstz(nullable=False))
+
+
+class ProductVariant(SQLModel, table=True):
+    """One purchasable size of a product, with its own stock and price."""
+
+    __tablename__ = "product_variants"
+    __table_args__ = (
+        UniqueConstraint("product_pk", "size", name="uq_variants_product_size"),
+        UniqueConstraint("store_id", "external_id", name="uq_variants_store_external"),
+    )
+
+    variant_id: Optional[int] = Field(default=None, primary_key=True)
+    product_pk: int = Field(foreign_key="products.product_pk", index=True, ondelete="CASCADE")
+    store_id: int = Field(foreign_key="stores.store_id", index=True)
+    # Shopify's variant id: what its cart and checkout need (P3)
+    external_id: Optional[str] = Field(default=None, max_length=60)
+    sku: Optional[str] = Field(default=None, max_length=80)
+    # "" for a product sold in one size only
+    size: str = Field(default="", max_length=30)
+    color: str = Field(default="", max_length=60)
+    price: Decimal = Field(sa_column=Column(Numeric(10, 2), nullable=False))
+    mrp: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(10, 2)))
+    # None: the source says only whether it is available, not how many
+    stock: Optional[int] = None
+    available: bool = Field(default=True)
+    image_url: Optional[str] = Field(default=None, max_length=500)
+    position: int = 0
 
 
 class User(SQLModel, table=True):
@@ -212,13 +282,16 @@ class OrderItem(SQLModel, table=True):
 
     order_item_id: Optional[int] = Field(default=None, primary_key=True)
     order_id: int = Field(foreign_key="orders.order_id", index=True)
-    # Matches the product id in the catalogue and Chroma metadata, e.g. "EW001"
+    # The product's code in its store's catalogue, e.g. "EW001"
     product_id: str = Field(max_length=20)
     product_name: str = Field(max_length=200)
     price_inr: Decimal = Field(sa_column=Column(Numeric(10, 2), nullable=False))
     # "" when no size was chosen — see CartItem.size
     size: str = Field(default="", max_length=20)
     quantity: int = Field(default=1)
+    # The exact variant bought, while it still exists in the catalogue
+    variant_id: Optional[int] = Field(default=None, foreign_key="product_variants.variant_id",
+                                      ondelete="SET NULL")
 
 
 class CartItem(SQLModel, table=True):
@@ -247,6 +320,11 @@ class CartItem(SQLModel, table=True):
     # same item could be added twice as two separate rows.
     size: str = Field(default="", max_length=20, nullable=False)
     quantity: int = Field(default=1)
+    # Filled once the size is known (or the product has only one): the exact
+    # thing to buy, which a Shopify checkout needs. product_id + size stay the
+    # line's identity, because a line can exist before its size is chosen.
+    variant_id: Optional[int] = Field(default=None, foreign_key="product_variants.variant_id",
+                                      ondelete="SET NULL")
     added_at: datetime = Field(default_factory=utcnow, sa_column=_tstz(nullable=False))
 
 
