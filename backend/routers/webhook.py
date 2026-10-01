@@ -2,7 +2,6 @@ import asyncio
 import inspect
 import os
 import re
-from collections import OrderedDict
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -13,6 +12,7 @@ import checkout
 import payments
 import repository as repo
 import shipping
+import tenancy
 from bot import assistant
 from bot.chat import format_product_lines, get_product_recommendations, product_caption
 from common.schemas import ProductMatch
@@ -98,7 +98,8 @@ async def verify_webhook(request: Request):
     token = params.get("hub.verify_token")
     challenge = params.get("hub.challenge")
 
-    if mode == "subscribe" and token == os.environ["WHATSAPP_VERIFY_TOKEN"]:
+    # Each brand's Meta app has its own webhook and verify token; the demo's is in .env
+    if mode == "subscribe" and token and token in await asyncio.to_thread(tenancy.verify_tokens):
         print("[webhook] verification succeeded")
         # Must echo the challenge back as plain text, not JSON
         return Response(content=challenge, media_type="text/plain")
@@ -121,6 +122,15 @@ def _recommend(query: str, user_context: str | None, user_id: int | None = None)
     return get_product_recommendations(query, **extra)
 
 
+def _photo(product_id: str) -> "Path | str":
+    """The demo's photos are local files; an imported product's is a URL on its shop."""
+    local = PRODUCT_PHOTOS / f"{product_id}.jpg"
+    if local.exists():
+        return local
+    image_url = (catalog.get_by_id(product_id) or {}).get("image_url") or ""
+    return image_url if image_url.startswith("https://") else local
+
+
 async def _safe_send(to: str, reply: "Reply") -> None:
     """Send without letting a failure escape into the webhook response.
 
@@ -136,7 +146,7 @@ async def _safe_send(to: str, reply: "Reply") -> None:
             if reply.lead:
                 await send_whatsapp_message(to, reply.lead)
             for card in reply.cards:
-                photo = PRODUCT_PHOTOS / f"{card.product_id}.jpg"
+                photo = _photo(card.product_id)
                 try:
                     if card.buttons:
                         try:
@@ -1048,19 +1058,17 @@ def _asks_about_address(text: str) -> bool:
 
 
 # Meta redelivers a message when our 200 is slow or lost. Answering twice would
-# send two replies (or add to the cart twice), so recent message ids are kept.
-_SEEN_MESSAGES: "OrderedDict[str, None]" = OrderedDict()
-
-
+# send two replies (or add to the cart twice). Kept in Postgres, not memory, so
+# a restart (or a second worker) between the two deliveries still catches it.
 def _first_delivery(message_id: str | None) -> bool:
     if not message_id:
         return True
-    if message_id in _SEEN_MESSAGES:
-        return False
-    _SEEN_MESSAGES[message_id] = None
-    while len(_SEEN_MESSAGES) > 500:
-        _SEEN_MESSAGES.popitem(last=False)
-    return True
+    try:
+        return repo.claim_message(message_id, tenancy.store_id())
+    except Exception as exc:
+        # Better a rare double answer than no answer at all
+        print(f"[webhook] could not record message id {message_id}: {exc!r}")
+        return True
 
 
 async def _handle_button(sender: str, button_id: str, display_name: str | None) -> "str | Reply":
@@ -1097,21 +1105,25 @@ async def _handle_incoming(sender: str, text: str, display_name: str | None, but
 
 
 async def _answer_and_send(sender: str, text: str, display_name: str | None, button_id: str = "",
-                           message_id: str = "") -> None:
+                           message_id: str = "", store: int | None = None) -> None:
     """Background work for a real message: the LLM may take a few seconds.
 
     The customer sees blue ticks and "typing…" straight away, so a 3-5 second
     answer (or a slower one with photos) does not look like no answer at all.
     WhatsApp clears the bubble when our reply lands.
+
+    The store is passed in and set here rather than inherited: this runs after
+    the response, and must answer as the brand the customer wrote to.
     """
-    if message_id:
-        await mark_read_and_typing(message_id)
-    try:
-        reply = await _handle_incoming(sender, text, display_name, button_id)
-    except Exception as exc:
-        print(f"[webhook] could not answer {sender}: {exc!r}")
-        reply = "Sorry, something went wrong on our side. Please send that again."
-    await _safe_send(sender, reply if isinstance(reply, Reply) else Reply(reply))
+    with tenancy.use_store(tenancy.store_id() if store is None else store):
+        if message_id:
+            await mark_read_and_typing(message_id)
+        try:
+            reply = await _handle_incoming(sender, text, display_name, button_id)
+        except Exception as exc:
+            print(f"[webhook] could not answer {sender}: {exc!r}")
+            reply = "Sorry, something went wrong on our side. Please send that again."
+        await _safe_send(sender, reply if isinstance(reply, Reply) else Reply(reply))
 
 
 @router.post("/webhook")
@@ -1130,37 +1142,15 @@ async def receive_message(request: Request, background: BackgroundTasks):
         for entry in payload.get("entry", []):
             for change in entry.get("changes", []):
                 value = change.get("value", {})
-
-                if "statuses" in value:
-                    # sent/delivered/read receipts for messages we sent
-                    for status in value["statuses"]:
-                        print(f"[webhook] status: {status['status']} for {status['recipient_id']}")
-
-                names = _profile_names(value)
-
-                for message in value.get("messages", []):
-                    sender = message["from"]
-                    button = (message.get("interactive") or {}).get("button_reply") \
-                        if message["type"] == "interactive" else None
-                    if message["type"] != "text" and not button:
-                        print(f"[webhook] unhandled {message['type']!r} message from {sender}")
-                        continue
-                    # Local tests reuse one fake id; only Meta's real ids are unique
-                    if not local_test and not _first_delivery(message.get("id")):
-                        print(f"[webhook] duplicate delivery of {message.get('id')} ignored")
-                        continue
-                    button_id = (button or {}).get("id", "")
-                    text = message["text"]["body"] if not button else button.get("title", "")
-                    print(f"[webhook] {'button ' + button_id if button else 'message'} from {sender}: {text}")
-                    if not local_test:
-                        background.add_task(_answer_and_send, sender, text, names.get(sender),
-                                            button_id, message.get("id", ""))
-                        continue
-                    reply = await _handle_incoming(sender, text, names.get(sender), button_id)
-                    if isinstance(reply, str):
-                        reply = Reply(reply)
-                    responses.append({"to": sender, "body": reply.text, "cta_url": reply.cta_url,
-                                      "photos": [card.product_id for card in reply.cards]})
+                # Which brand's number this was sent to; the local simulator
+                # sends no metadata and means the demo store
+                phone_number_id = (value.get("metadata") or {}).get("phone_number_id")
+                store = await asyncio.to_thread(tenancy.store_for_phone_number, phone_number_id)
+                if store is None:
+                    print(f"[webhook] no live store owns number {phone_number_id}; ignored")
+                    continue
+                with tenancy.use_store(store):
+                    await _receive_change(value, store, local_test, background, responses)
     except Exception as e:
         # Deliberately broad: any uncaught error here becomes a 500, which Meta
         # reads as failed delivery and retries — the same message arrives again
@@ -1168,3 +1158,37 @@ async def receive_message(request: Request, background: BackgroundTasks):
         print(f"[webhook] handler error: {e!r} payload={payload}")
 
     return {"status": "received", "responses": responses}
+
+
+async def _receive_change(value: dict, store: int, local_test: bool, background: BackgroundTasks,
+                          responses: list) -> None:
+    """One change from Meta's payload, for one store: receipts and messages."""
+    if "statuses" in value:
+        # sent/delivered/read receipts for messages we sent
+        for status in value["statuses"]:
+            print(f"[webhook] status: {status['status']} for {status['recipient_id']}")
+
+    names = _profile_names(value)
+
+    for message in value.get("messages", []):
+        sender = message["from"]
+        button = (message.get("interactive") or {}).get("button_reply")             if message["type"] == "interactive" else None
+        if message["type"] != "text" and not button:
+            print(f"[webhook] unhandled {message['type']!r} message from {sender}")
+            continue
+        # Local tests reuse one fake id; only Meta's real ids are unique
+        if not local_test and not await asyncio.to_thread(_first_delivery, message.get("id")):
+            print(f"[webhook] duplicate delivery of {message.get('id')} ignored")
+            continue
+        button_id = (button or {}).get("id", "")
+        text = message["text"]["body"] if not button else button.get("title", "")
+        print(f"[webhook] {'button ' + button_id if button else 'message'} from {sender}: {text}")
+        if not local_test:
+            background.add_task(_answer_and_send, sender, text, names.get(sender),
+                                button_id, message.get("id", ""), store)
+            continue
+        reply = await _handle_incoming(sender, text, names.get(sender), button_id)
+        if isinstance(reply, str):
+            reply = Reply(reply)
+        responses.append({"to": sender, "body": reply.text, "cta_url": reply.cta_url,
+                          "photos": [card.product_id for card in reply.cards]})

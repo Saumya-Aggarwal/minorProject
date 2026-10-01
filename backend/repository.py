@@ -11,12 +11,13 @@ from decimal import Decimal
 from typing import Any, Optional
 
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlmodel import select
+from sqlmodel import delete, select
 
 import catalog
 import tenancy
 from db import session_scope
-from models import BotReply, CartItem, Feedback, LinkToken, Order, OrderItem, Session, User, utcnow
+from models import (BotReply, CartItem, Feedback, LinkToken, Order, OrderItem, ProcessedMessage, Session,
+                    User, utcnow)
 
 LINK_TOKEN_TTL_MINUTES = 10
 LINK_PREFIX = "LINK-"
@@ -383,6 +384,7 @@ def get_order(order_id: int) -> Optional[dict[str, Any]]:
             "customer_name": user.display_name if user else None,
             "customer_email": user.email if user else None,
             "whatsapp_number": user.whatsapp_number if user else None,
+            "store_id": order.store_id,
             "items": [
                 {
                     "product_id": line.product_id,
@@ -1112,3 +1114,19 @@ def sizes_chosen(user_id: int) -> dict[str, str]:
         if product and len(product.get("sizes_available") or []) > 1:
             sizes[product["category"]] = size       # later rows win
     return sizes
+
+
+def claim_message(message_id: str, store_id: int) -> bool:
+    """True the first time a message id is seen, False for a redelivery."""
+    with session_scope() as db:
+        claimed = db.exec(
+            pg_insert(ProcessedMessage.__table__)
+            .values(message_id=message_id, store_id=store_id, received_at=utcnow())
+            .on_conflict_do_nothing(index_elements=["message_id"])
+            .returning(ProcessedMessage.__table__.c.message_id)
+        ).first() is not None
+        if claimed and secrets.randbelow(200) == 0:
+            # Now and then, forget ids Meta will never redeliver
+            db.exec(delete(ProcessedMessage).where(
+                ProcessedMessage.received_at < utcnow() - timedelta(days=7)))
+        return claimed

@@ -382,10 +382,18 @@ def is_greeting(text: str) -> bool:
 # "Ask about this on WhatsApp" on the website pre-fills a message ending in the
 # product code, e.g. "Tell me about the Royal Blue Wedding Sherwani (EW006)".
 # A code never occurs in a natural search, so here a substring match is safe.
-_PRODUCT_CODE = re.compile(r"\b(EW\d{3})\b", re.IGNORECASE)
+# A product code as the site and the bot print it: the store's prefix and a
+# number (EW006 for the demo; each store has its own prefix). Only a code the
+# current store really sells counts, so "AB123" inside an address is ignored.
+_PRODUCT_CODE = re.compile(r"\b([A-Z]{1,4}\d{3,5})\b", re.IGNORECASE)
 
 
 def find_product_code(text: str) -> Optional[str]:
-    match = _PRODUCT_CODE.search(text)
-    return match.group(1).upper() if match else None
+    import catalog
+
+    for match in _PRODUCT_CODE.finditer(text):
+        code = match.group(1).upper()
+        if catalog.get_by_id(code) is not None:
+            return code
+    return None
 

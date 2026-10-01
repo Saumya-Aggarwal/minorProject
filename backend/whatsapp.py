@@ -1,10 +1,20 @@
+"""Sending to WhatsApp (Cloud API), as the current store.
+
+Every call sends with the credentials of the store in tenancy's context: a
+brand's own number and token, or backend/.env for the demo store. Product
+photos are uploaded once per store (media ids belong to one number) and the
+id cached.
+"""
+
 import asyncio
 import json
-import os
 import time
 from pathlib import Path
+from typing import Union
 
 import httpx
+
+import tenancy
 
 GRAPH_API_VERSION = "v21.0"
 
@@ -45,9 +55,9 @@ async def _send(body: dict) -> dict:
     timeout or a 5xx is therefore tried again; anything Meta actually refuses
     (bad token, recipient not allowed) is not, because it would refuse again.
     """
-    phone_number_id = os.environ["WHATSAPP_PHONE_NUMBER_ID"]
-    url = f"https://graph.facebook.com/{GRAPH_API_VERSION}/{phone_number_id}/messages"
-    headers = {"Authorization": f"Bearer {os.environ['WHATSAPP_ACCESS_TOKEN']}"}
+    credentials = tenancy.whatsapp_credentials()
+    url = f"https://graph.facebook.com/{GRAPH_API_VERSION}/{credentials['phone_number_id']}/messages"
+    headers = {"Authorization": f"Bearer {credentials['access_token']}"}
 
     for attempt in range(1, SEND_ATTEMPTS + 1):
         last = attempt == SEND_ATTEMPTS
@@ -70,8 +80,9 @@ async def _send(body: dict) -> dict:
         code = (data.get("error") or {}).get("code")
         if code == 190:
             print(
-                "[whatsapp] token expired — generate a new one in the App Dashboard "
-                "(WhatsApp > API Setup) and update WHATSAPP_ACCESS_TOKEN in backend/.env"
+                f"[whatsapp] token expired for store {tenancy.store_id()} — generate a new one in "
+                "the App Dashboard (WhatsApp > API Setup): backend/.env for the demo store, "
+                "scripts/stores.py set-whatsapp for others"
             )
         elif code == 131030:
             print(
@@ -134,9 +145,12 @@ def _load_media_cache() -> None:
     if _media_ids or not MEDIA_CACHE.exists():
         return
     try:
-        _media_ids.update(json.loads(MEDIA_CACHE.read_text(encoding="utf-8")))
+        saved = json.loads(MEDIA_CACHE.read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        pass
+        return
+    # Keys are "<store_id>:<file>"; ones from before stores existed are the demo's
+    _media_ids.update({key if ":" in key else f"{tenancy.DEMO_STORE_ID}:{key}": value
+                       for key, value in saved.items()})
 
 
 async def media_id_for(path: Path) -> str:
@@ -148,15 +162,15 @@ async def media_id_for(path: Path) -> str:
     30 days WhatsApp keeps media.
     """
     _load_media_cache()
-    key = path.name
+    key = f"{tenancy.store_id()}:{path.name}"
     cached = _media_ids.get(key)
     mtime = path.stat().st_mtime
     if cached and cached.get("mtime") == mtime and time.time() - cached.get("at", 0) < MEDIA_TTL_S:
         return cached["id"]
 
-    phone_number_id = os.environ["WHATSAPP_PHONE_NUMBER_ID"]
-    url = f"https://graph.facebook.com/{GRAPH_API_VERSION}/{phone_number_id}/media"
-    headers = {"Authorization": f"Bearer {os.environ['WHATSAPP_ACCESS_TOKEN']}"}
+    credentials = tenancy.whatsapp_credentials()
+    url = f"https://graph.facebook.com/{GRAPH_API_VERSION}/{credentials['phone_number_id']}/media"
+    headers = {"Authorization": f"Bearer {credentials['access_token']}"}
     async with httpx.AsyncClient(timeout=20) as client:
         response = await client.post(
             url, headers=headers,
@@ -174,25 +188,33 @@ async def media_id_for(path: Path) -> str:
     return media_id
 
 
-async def send_image(to: str, path: Path, caption: str = "") -> dict:
+Photo = Union[Path, str]
+
+
+async def _image(photo: Photo) -> dict:
+    """A local file is uploaded once; a URL (a Shopify CDN photo) Meta fetches itself."""
+    if isinstance(photo, str):
+        return {"link": photo}
+    return {"id": await media_id_for(photo)}
+
+
+async def send_image(to: str, photo: Photo, caption: str = "") -> dict:
     """Send a product photo with a caption (WhatsApp formatting works in captions)."""
-    media_id = await media_id_for(path)
-    return await _post(to, {"type": "image", "image": {"id": media_id, "caption": caption[:MAX_CAPTION]}})
+    return await _post(to, {"type": "image", "image": {**await _image(photo), "caption": caption[:MAX_CAPTION]}})
 
 
-async def send_product_card(to: str, path: Path, caption: str, buttons: list[tuple[str, str]]) -> dict:
+async def send_product_card(to: str, photo: Photo, caption: str, buttons: list[tuple[str, str]]) -> dict:
     """A product photo with up to three reply buttons under it.
 
     buttons: (id, title) pairs. When tapped, Meta sends an "interactive"
     message whose button_reply.id is that id (e.g. "hide:EW020"). Titles are
     capped at 20 characters and ids at 256 by WhatsApp.
     """
-    media_id = await media_id_for(path)
     return await _post(to, {
         "type": "interactive",
         "interactive": {
             "type": "button",
-            "header": {"type": "image", "image": {"id": media_id}},
+            "header": {"type": "image", "image": await _image(photo)},
             "body": {"text": caption[:MAX_CAPTION]},
             "action": {"buttons": [
                 {"type": "reply", "reply": {"id": button_id[:256], "title": title[:MAX_CTA_BUTTON]}}

@@ -31,6 +31,7 @@ os.environ["LLM_MODEL"] = "fake-primary"
 os.environ["LLM_FALLBACK_MODEL"] = "fake-fallback"
 
 from fastapi.testclient import TestClient  # noqa: E402
+from sqlalchemy import text  # noqa: E402
 from sqlmodel import select  # noqa: E402
 
 import repository as repo  # noqa: E402
@@ -95,6 +96,8 @@ chat._intro = lambda *args, **kwargs: ""   # the fallback path's one-liner: no n
 
 def cleanup() -> None:
     with session_scope() as db:
+        # Delivered message ids persist in Postgres since 2 Oct: forget this suite's own
+        db.exec(text("DELETE FROM processed_messages WHERE message_id LIKE 'wamid.unique-%'"))
         users = db.exec(select(User).where(User.whatsapp_number.in_([PHONE, OTHER, GUEST])
                                            | (User.email == WEB_EMAIL))).all()
         ids = [u.user_id for u in users]

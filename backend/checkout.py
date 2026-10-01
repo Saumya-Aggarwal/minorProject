@@ -18,6 +18,7 @@ from typing import Any, Optional
 
 import payments
 import repository as repo
+import tenancy
 from whatsapp import send_whatsapp_message
 
 
@@ -242,7 +243,10 @@ async def notify_paid(order: dict[str, Any]) -> None:
         lines.append(f"• {item['quantity']} × {item['product_name']}{size}")
     lines.append(f"Total paid: Rs. {order['total_inr']:,.0f}")
     try:
-        await send_whatsapp_message(number, "\n".join(lines))
+        # As the order's brand: this also runs from the reconciler and from
+        # Razorpay's webhook, where no store is set
+        with tenancy.use_store(order.get("store_id") or tenancy.DEMO_STORE_ID):
+            await send_whatsapp_message(number, "\n".join(lines))
     except Exception as exc:
         # The payment is recorded regardless; a lost message must not undo that
         print(f"[checkout] payment confirmation to {number} not delivered: {exc!r}")

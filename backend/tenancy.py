@@ -95,3 +95,42 @@ def store_for_phone_number(phone_number_id: Optional[str]) -> Optional[int]:
         return DEMO_STORE_ID if phone_number_id == os.getenv("WHATSAPP_PHONE_NUMBER_ID") else None
 
     return _cached(("phone", phone_number_id), load)
+
+
+def whatsapp_credentials(store: Optional[int] = None) -> dict[str, Optional[str]]:
+    """What whatsapp.py needs to send as this store.
+
+    A store's own (encrypted) credentials first. Only the demo store falls back
+    to backend/.env: another brand must never send with the demo's token.
+    """
+    import secrets_box
+
+    sid = store_id() if store is None else store
+    row = get_store(sid) or {}
+    token = secrets_box.decrypt(row.get("wa_access_token_enc")) if row.get("wa_access_token_enc") else None
+    if token and row.get("wa_phone_number_id"):
+        return {"phone_number_id": row["wa_phone_number_id"], "access_token": token,
+                "display_number": row.get("wa_display_number")}
+    if sid == DEMO_STORE_ID:
+        return {"phone_number_id": os.environ["WHATSAPP_PHONE_NUMBER_ID"],
+                "access_token": os.environ["WHATSAPP_ACCESS_TOKEN"],
+                "display_number": os.getenv("WHATSAPP_DISPLAY_NUMBER")}
+    raise RuntimeError(f"store {sid} has no WhatsApp credentials (scripts/stores.py set-whatsapp)")
+
+
+def verify_tokens() -> set[str]:
+    """Every webhook verify token Meta may present: the demo's and each store's."""
+    import secrets_box
+    from db import session_scope
+    from models import Store
+
+    tokens = {os.getenv("WHATSAPP_VERIFY_TOKEN", "")}
+    with session_scope() as db:
+        encrypted = db.exec(select(Store.wa_verify_token_enc).where(Store.wa_verify_token_enc.is_not(None))).all()
+    for value in encrypted:
+        try:
+            tokens.add(secrets_box.decrypt(value) or "")
+        except Exception as exc:
+            print(f"[tenancy] a store's verify token does not decrypt: {exc!r}")
+    tokens.discard("")
+    return tokens

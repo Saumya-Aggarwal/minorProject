@@ -402,6 +402,22 @@ class Feedback(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utcnow, sa_column=_tstz(nullable=False))
 
 
+class ProcessedMessage(SQLModel, table=True):
+    """A WhatsApp message id we have already answered.
+
+    Meta redelivers when our 200 is slow or lost; the primary key turns the
+    second delivery into a no-op. In Postgres rather than memory, so a restart
+    or a second worker between the deliveries still catches it. Rows older
+    than a week are pruned (Meta stops retrying long before that).
+    """
+
+    __tablename__ = "processed_messages"
+
+    message_id: str = Field(primary_key=True, max_length=128)
+    store_id: int = Field(foreign_key="stores.store_id")
+    received_at: datetime = Field(default_factory=utcnow, sa_column=_tstz(nullable=False, index=True))
+
+
 # Lookups go by razorpay_order_id rather than our own primary key; the unique
 # constraint on that column already provides the index.
 
