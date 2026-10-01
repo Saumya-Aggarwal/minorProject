@@ -12,6 +12,7 @@ import os
 import time
 from typing import Any
 
+import llm
 from bot import retrieval
 
 
@@ -62,15 +63,10 @@ def _intro(query: str, products: list[dict[str, Any]], user_context: str | None)
     question, so it invited "tell me your preferences" above a finished list
     and called a single dupatta "a great selection".
     """
-    api_key = os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY")
-    if not api_key or not products:
+    if not llm.available("chat") or not products:
         return ""
-    from openai import OpenAI
-
-    base_url = os.getenv("LLM_BASE_URL") or ("https://api.groq.com/openai/v1" if os.getenv("LLM_API_KEY") else None)
     names = "; ".join(f"{p['name']} ({p['category']}, {', '.join(p['occasion'][:3])})" for p in products)
     options: dict[str, Any] = {
-        "model": os.getenv("LLM_MODEL", os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")),
         "temperature": 0.4,
         "max_tokens": 400,
         "messages": [
@@ -87,14 +83,9 @@ def _intro(query: str, products: list[dict[str, Any]], user_context: str | None)
             )},
         ],
     }
-    if os.getenv("LLM_REASONING_EFFORT"):
-        options["reasoning_effort"] = os.getenv("LLM_REASONING_EFFORT")
-    client_args: dict[str, Any] = {"api_key": api_key, "timeout": 8.0, "max_retries": 0}
-    if base_url:
-        client_args["base_url"] = base_url
     try:
         started = time.perf_counter()
-        response = OpenAI(**client_args).chat.completions.create(**options)
+        response = llm.complete("chat", timeout=8.0, **options)
         print(f"[bot] intro in {(time.perf_counter() - started) * 1000:.0f} ms")
         text = (response.choices[0].message.content or "").strip().strip('"')
         # A question or a ramble means the model ignored the brief; drop it

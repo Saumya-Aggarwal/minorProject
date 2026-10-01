@@ -22,13 +22,13 @@ AssistantUnavailable, and the webhook answers with the plain retrieval path
 from __future__ import annotations
 
 import json
-import os
 import re
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
 import catalog
+import llm
 import repository as repo
 from bot import retrieval
 from selection import aliases, match_size, names_a_size, parse_bare_size
@@ -56,7 +56,7 @@ class AssistantReply:
 
 
 def enabled() -> bool:
-    return bool(os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY"))
+    return llm.available("chat")
 
 
 # --- prompt ---------------------------------------------------------------------
@@ -342,31 +342,17 @@ TOOL_FUNCTIONS: dict[str, Callable[..., str]] = {
 # --- the model --------------------------------------------------------------------
 
 def _models() -> list[str]:
-    """Primary model, then fallbacks. On Groq each model has its own free-tier
-    budget (8,000 tokens per minute each, measured), so a second and third
-    model roughly triple how fast a conversation can go before anything waits."""
-    primary = os.getenv("LLM_MODEL", "openai/gpt-oss-20b")
-    default = "openai/gpt-oss-120b,qwen/qwen3.8-27b" if os.getenv("LLM_API_KEY") else ""
-    fallbacks = [m.strip() for m in os.getenv("LLM_FALLBACK_MODEL", default).split(",") if m.strip()]
-    return list(dict.fromkeys([primary, *fallbacks]))
+    """The chat role's primary model, then fallbacks (llm.py). On Groq each
+    model has its own free-tier budget (8,000 tokens per minute each,
+    measured), so a second and third model roughly triple how fast a
+    conversation can go before anything waits."""
+    return llm.config("chat").models
 
 
 def _complete(model: str, messages: list[dict[str, Any]]) -> Any:
     """One chat completion with tools. Returns the message object. Tests replace this."""
-    from openai import OpenAI
-
-    api_key = os.getenv("LLM_API_KEY") or os.getenv("OPENAI_API_KEY")
-    base_url = os.getenv("LLM_BASE_URL") or ("https://api.groq.com/openai/v1" if os.getenv("LLM_API_KEY") else None)
-    client_args: dict[str, Any] = {"api_key": api_key, "timeout": 12.0, "max_retries": 0}
-    if base_url:
-        client_args["base_url"] = base_url
-    options: dict[str, Any] = {
-        "model": model, "messages": messages, "tools": TOOLS, "tool_choice": "auto",
-        "temperature": 0.3, "max_tokens": 1500,
-    }
-    if os.getenv("LLM_REASONING_EFFORT"):
-        options["reasoning_effort"] = os.getenv("LLM_REASONING_EFFORT")
-    response = OpenAI(**client_args).chat.completions.create(**options)
+    response = llm.complete("chat", messages, model=model, timeout=12.0, tools=TOOLS,
+                            tool_choice="auto", temperature=0.3, max_tokens=1500)
     usage = getattr(response, "usage", None)
     if usage is not None:
         print(f"[assistant]   tokens: {usage.prompt_tokens} in, {usage.completion_tokens} out")
