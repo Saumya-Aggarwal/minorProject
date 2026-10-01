@@ -262,6 +262,79 @@ Postgres, and the demo brand still works exactly as before.
 **Starter prompt:** *"Read plan.md. Plan P1 (Multi-store foundation) in detail: the
 schema, the migration order, and how every existing suite keeps passing. Then build it."*
 
+### P1 detailed plan (1 Oct)
+
+**Schema after P1** (new tables and columns only; everything else is unchanged)
+
+| Table | Columns | Keys and rules |
+|---|---|---|
+| `stores` | slug, name, platform (feed/shopify/woo/api), status (draft/live/paused), currency, code_prefix; `wa_phone_number_id`, `wa_display_number`, `wa_business_account_id`, `wa_app_id`; `wa_access_token_enc`, `wa_app_secret_enc`, `wa_verify_token_enc` (encrypted); `connector`, `brand` (greeting, what we sell, policies), `handoff` (settings + business hours) as JSONB | slug unique; `wa_phone_number_id` unique. Store #1 = `demo` |
+| `users` | + `store_id` | unique `(store_id, whatsapp_number)` and `(store_id, email)` replace the global uniques |
+| `orders`, `bot_replies`, `feedback` | + `store_id` | backfilled to 1; indexed |
+| `products` | store_id, `code` (what the customer types, e.g. EW006), external_id, name, category, gender, price, mrp, image_url, active, `data` JSONB (the full record), `search_text`, `embedding vector`, `embedding_model` | unique `(store_id, code)` and `(store_id, external_id)` |
+| `product_variants` | product_id, store_id, external_id (Shopify variant id), sku, size, color, price, mrp, stock (NULL = not tracked), available, image_url, position | unique `(product_id, size)` |
+| `cart_items` | + `variant_id` (set once a size is chosen) | unique key unchanged |
+| `order_items` | + `variant_id` (ON DELETE SET NULL) | — |
+| `processed_messages` | message_id, store_id, received_at | PK message_id (Meta delivery de-duplication) |
+
+**Design decisions taken in this chat** (each one is in the decision log below)
+- **A product is one style in one colour; a variant is one size.** A Shopify product with
+  a colour option becomes one product per colour. Every colour gets its own photo and
+  its own embedding ("black oversized tee" finds the black one), and the bot's
+  "pick one, then a size" flow stays as it is. `external_id` keeps the link back to
+  Shopify for P3.
+- **The cart keeps product code + size and gains `variant_id`.** The chat flow depends on
+  lines without a size yet ("add it", then "XL"). `variant_id` is filled when the size
+  is known, which is all P3's Shopify checkout needs.
+- **Catalogue records keep their dict shape.** `catalog.py` builds the same dict as
+  `products.json` (from `data`, with stock and sizes taken live from the variants), so
+  the ~40 call sites do not change. There is one in-process cache per store, cleared by
+  every sync.
+- **Vectors:** an untyped `vector` column plus `embedding_model`, so a model change is
+  detected and re-embedded instead of breaking. Exact scan, no index.
+  `retrieval.rank()` becomes one SQL query per store, ordered by cosine distance. The
+  hard filters and their relaxation stay in Python (they need the whole ranking).
+- **Current store** is a `ContextVar`. With nothing set it means the demo store, which
+  covers the website, scripts and every old test. The webhook sets it from
+  `metadata.phone_number_id`; a number no store owns is logged and ignored. Orders and
+  logs take their store from the **user row**, never from the context.
+- **Secrets:** Fernet (`cryptography`), keys in `MUNIM_SECRET_KEYS` (comma list, first one
+  encrypts). Rotation: put the new key first, run `scripts/stores.py rotate-keys`, then
+  drop the old one.
+- **Store rows exist before a brand connects** (`status=draft`). Only `live` stores are
+  answered.
+- **`/products.json` importer:** at most 1 request per second, `limit=250` pages,
+  honours `Retry-After` on 429 (5 tries), and sends a User-Agent naming Munim.
+
+**Migration order** (one commit per step, all suites green after each)
+1. Alembic baseline = today's schema. `init_db()` runs `upgrade head`. A database
+   without `alembic_version` first gets the old `ALTER` list, then `stamp 0001`.
+2. Postgres image → `pgvector/pgvector:pg15` by **dump and restore into a new volume**,
+   not by reusing the old one. The old image is Alpine (musl) and the new one Debian
+   (glibc). They sort text differently, so text indexes built by one are corrupt under
+   the other. The old volume is kept for rollback.
+3. `0002 tenancy`: `stores` (+ demo row), `store_id` columns backfilled to 1, the new
+   uniques. Repository, auth and training become store-scoped.
+4. `0003 catalogue`: products, variants, vectors, cart `variant_id`. `FeedConnector`
+   loads `products.json` (automatically when the demo store is empty). catalog,
+   retrieval, search and training move to Postgres. Chroma is removed from code, compose
+   and requirements. The MiniLM thresholds carry over exactly: squared L2 1.55 on unit
+   vectors = cosine distance 0.775.
+5. Embedder: EmbeddingGemma-300M (ONNX int8, CPU, no PyTorch) against MiniLM on the
+   46-case eval. Keep the better one and re-derive `MAX_DISTANCE` and `SIMILAR` from
+   measured distances.
+6. `0004`: `processed_messages`; WhatsApp credentials and media cache per store;
+   per-store product codes in chat.
+7. LLM module with roles (`chat`, `vision`, `stt`, `judge`), used by `assistant.py` and
+   `chat.py`. Tests keep patching `assistant._complete`.
+8. Shopify `/products.json` importer + `scripts/test_tenancy.py`.
+
+**How the old suites keep passing:** all existing data is store #1, and an unset
+context means store #1, so no test needs to know stores exist. The product codes,
+dict shapes and function names the tests use are unchanged. `test_training` measures
+the similarity threshold, so it follows the re-derived value automatically.
+`run_all_tests.py` gains `tenancy` and stops checking for Chroma.
+
 ---
 
 ## P2: Bot quality, part 1 (≈12 days)
