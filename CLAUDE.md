@@ -7,7 +7,7 @@ plan.md holds the phases (P0-P7), the decision log and a starter prompt for each
 phase, and each phase is planned in its own chat. The project is now SOLO: the
 Dev A / Dev B ownership rules below and in WORK_SPLIT.md no longer apply. The rest
 of this file describes the code as it stands and stays accurate until a phase
-changes it.
+changes it. P0 and P1 are done (see "Stores and tenancy (P1)" below).
 
 ## Context (September sprint)
 2-person team, 7-day sprint. Deadline: 23 September 2026.
@@ -21,15 +21,17 @@ never change a contract without syncing both devs. The sprint plan is archived a
 docs/archive/plan-sprint-19-23-sep.md.
 
 ## Stack
-- FastAPI (Python, async), SQLAlchemy + PostgreSQL
-- ChromaDB (persistent client) + OpenAI text-embedding-3-small
-- GPT-4o-mini for response generation
+- FastAPI (Python, async), SQLModel/SQLAlchemy + PostgreSQL 15 with pgvector,
+  migrations by Alembic (backend/migrations)
+- EmbeddingGemma-300M (ONNX, CPU) for product and question vectors
+- An OpenAI-compatible LLM per role (backend/llm.py; Groq gpt-oss today)
 - WhatsApp Cloud API v21.0, Razorpay (test mode)
 
 ## Repo layout
-/backend  - FastAPI app, routers, Postgres models
-/rag      - embedding scripts, ChromaDB retrieval, prompt construction
-/common   - shared Pydantic schemas (ProductMatch, etc.)
+/backend  - FastAPI app, routers, models, migrations, connectors/ (shop platforms)
+/backend/bot - assistant.py (LLM + tools), retrieval.py (search), chat.py (plain path)
+/common   - shared Pydantic schemas (ProductMatch), embeddings.py
+/scripts  - test suites, evals, sync_catalog.py, stores.py, export_training_data.py
 
 Backend runs from inside /backend: `uvicorn main:app --reload --port 8000`.
 Env is loaded from backend/.env by main.py (python-dotenv).
@@ -38,6 +40,38 @@ Every suite plus the retrieval eval, from the repo root (needs docker compose up
     backend/.venv/Scripts/python scripts/run_all_tests.py   (names pick a subset, -v streams)
 A new test script must call sys.stdout.reconfigure(encoding="utf-8") and exit
 non-zero on failure; add it to SUITES in run_all_tests.py.
+
+## Stores and tenancy (P1, 1-2 Oct)
+Munim serves several stores. Store #1 is the demo (Kurta & Co.), which owns
+everything made before stores existed.
+- tenancy.py: the current store is a ContextVar; UNSET = the demo store, so the
+  website, scripts and old tests need no changes. The webhook sets it from
+  value.metadata.phone_number_id (no metadata = demo; a number no live store
+  owns is ignored). Orders and logs take the store from the USER row.
+- Per store: users (unique (store_id, whatsapp_number) and (store_id, email)),
+  orders, bot_replies, feedback, products, product_variants. Carts, sessions and
+  link tokens follow user_id. A link code only binds a number of its own store.
+- Products: one row per style per colour (a Shopify product in 3 colours = 3
+  products); variants are sizes, with stock, price and Shopify's variant id.
+  `code` (EW006) is what customers type and what carts/orders call product_id.
+  Cart lines gain variant_id once a size is known. Codes in chat match any
+  store's prefix but only codes the current store sells.
+- catalog_sync.py is the only writer of products; connectors/ fetch records
+  (FeedConnector = data/products.json; ShopifyPublicConnector = a shop's public
+  /products.json, 1 req/s, Retry-After honoured). catalog.py returns the same
+  dicts as before, cached per store for 60 s and cleared by every sync.
+- WhatsApp: whatsapp.py sends with the current store's credentials; only the
+  demo store falls back to backend/.env. Secrets on stores are Fernet-encrypted
+  (secrets_box.py; rotation in its docstring). Media ids are cached per store.
+  Redeliveries are caught by processed_messages (Postgres), not memory.
+- llm.py: a role per job (chat, vision, stt, judge), LLM_<ROLE>_* settings
+  falling back to chat's. A key is only ever sent to its own endpoint.
+- scripts/stores.py lists/creates/configures stores; sync_catalog.py <slug>
+  imports one. A brand on Shopify: stores.py create <slug> "<Name>" --prefix XX
+  --shop <domain>, then sync_catalog.py <slug>.
+Verify: scripts/test_tenancy.py (53 checks: importer, and isolation of
+customers, carts, orders, catalogue, vectors, search, codes, training, link
+codes, credentials; webhook routing; secrets; redelivery).
 
 ## Shared contract (do not change without syncing both devs)
 get_product_recommendations(query: str, top_k: int = 3) -> tuple[str, List[ProductMatch]]
@@ -59,8 +93,13 @@ class ProductMatch(BaseModel):
 - Read env vars inside functions, not at import time (dotenv loads in main.py).
 - FastAPI routes are async. Outbound HTTP uses httpx.AsyncClient.
 - POST /webhook must always return 200, even on parse errors, or Meta retries.
-- Env vars: WHATSAPP_ACCESS_TOKEN, WHATSAPP_VERIFY_TOKEN, WHATSAPP_PHONE_NUMBER_ID,
-  OPENAI_API_KEY, RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, DATABASE_URL
+- Env vars: WHATSAPP_ACCESS_TOKEN, WHATSAPP_VERIFY_TOKEN, WHATSAPP_PHONE_NUMBER_ID
+  (the demo store's WhatsApp), LLM_API_KEY / LLM_* (llm.py), EMBEDDING_PROVIDER,
+  MUNIM_SECRET_KEYS (encrypts stores' secrets), RAZORPAY_KEY_ID,
+  RAZORPAY_KEY_SECRET, DATABASE_URL. backend/.env.example explains each.
+- Schema changes are Alembic revisions (autogenerate a draft from backend/:
+  .venv/Scripts/alembic revision --autogenerate -m "..."; write backfills by
+  hand); db.init_db() runs upgrade head on every start.
 
 ## WhatsApp test-number gotchas
 - Test number can only message recipients added in the dashboard "To" list.
@@ -73,8 +112,8 @@ class ProductMatch(BaseModel):
 - [x] Webhook verification (GET) passed in Meta dashboard
 - [x] POST /webhook receiving and processing incoming messages
 - [x] send_whatsapp_message() confirmed delivering to a real phone
-- [x] Docker Compose (Postgres + ChromaDB)
-- [x] ChromaDB populated with catalog (84 products, 384 dims, local MiniLM)
+- [x] Docker Compose (Postgres with pgvector; Chroma removed in P1)
+- [x] Catalogue in Postgres with vectors (84 products, EmbeddingGemma, 768 dims)
 - [x] get_product_recommendations() implemented
 - [x] Postgres models + CRUD (models.py, db.py, repository.py)
 - [x] Webhook wired to persistence (user upsert + session turn recording)
@@ -109,7 +148,7 @@ class ProductMatch(BaseModel):
   tailwind/input.css. Fonts are self-hosted woff2 in static/fonts/.
 - Shared Jinja setup is templating.py (inr filter, whatsapp_url(), NAV).
 - search.py serves site search, similar products and recommended-for-you from
-  the SAME Chroma collection as the bot; keyword fallback when Chroma is down.
+  the SAME vectors as the bot; keyword fallback when vector search fails.
 - catalog.py holds the listing filters, sort and facet counts (plain Python).
 - Checkout: GET/POST /checkout collects contact + delivery address
   (shipping.py validates: 10-digit mobile, 6-digit PIN), snapshots it on the
@@ -190,33 +229,42 @@ whatsapp_number violates ck_users_has_identity.
 
 Verify with: backend/.venv/Scripts/python scripts/test_linking.py  (18 checks)
 
-## Schema layers (three different things)
+## Schema layers
 1. Postgres tables  - backend/models.py, real types and constraints
 2. Pydantic contract - common/schemas.py, ProductMatch, validated in memory
-3. Chroma metadata   - untyped dicts in scripts/ingest_catalog.py, NOT validated
+3. Catalogue records - the dicts catalog.py returns (products.data JSONB, the
+   shape of data/products.json); catalog_sync.normalise() guarantees every key
 
-ProductMatch.from_raw() accepts both the Chroma key style (id/price/description)
+ProductMatch.from_raw() accepts both the catalogue key style (id/price/description)
 and the contract style (product_id/price_inr/rich_description). The webhook
 normalizes through it before storing, so neither side has to change first.
 
-Products are deliberately NOT in Postgres. orders copies product_name and
+Products live in Postgres since P1, but orders still copy product_name and
 price_inr at purchase time so an order records what was actually paid.
 
 ## Embeddings
-EMBEDDING_PROVIDER in backend/.env selects the model, used by both ingestion and
-retrieval through common/embeddings.py:
-  local  (default) all-MiniLM-L6-v2, 384 dims, CPU, no API key, cannot rate-limit
+EMBEDDING_PROVIDER in backend/.env selects the model, used by catalogue sync,
+search and owner training through common/embeddings.py:
+  gemma  (default) EmbeddingGemma-300M, 768 dims, multilingual, int8 ONNX on CPU
+  minilm           all-MiniLM-L6-v2, 384 dims, English only (the Sept model)
   openai           text-embedding-3-small, 1536 dims, needs OPENAI_API_KEY
-Switching provider changes vector width — re-run scripts/ingest_catalog.py after.
+Both local models run on onnxruntime + tokenizers (no PyTorch, no Chroma).
+Gemma takes a task prompt: embed_documents / embed_query / embed_similarity.
+products.embedding_model records which model made each vector; on start,
+db.init_db re-embeds rows from another model (~2 s for 84), and owner ratings
+are re-embedded when read. MAX_DISTANCE and SIMILAR are per model in
+common/embeddings.THRESHOLDS - a threshold from one model means nothing for
+another. Chosen 2 Oct by scripts/eval_embeddings.py: same 46/46, Hinglish
+requests 60% on target vs MiniLM's 22%, nonsense cleanly separated.
 
 Retrieval quality improved markedly with the richer 32-product catalog, because
 the embedded text now carries occasion, fabric, colour and fit vocabulary.
 Price and stock are deliberately NOT embedded: they are filters, not meaning.
 
 Retrieval is bot/retrieval.py, one engine for the bot, the assistant's tools and
-the website search. Chroma ranks the whole catalogue by meaning in one query;
-gender, category, budget and stock are then applied in Python from the
-catalogue. Garment words map onto categories that exist (checked at import:
+the website search. One SQL query ranks the store's whole catalogue by cosine
+distance (pgvector, exact scan, no index); gender, category, budget and stock
+are then applied in Python from the catalogue. Garment words map onto categories that exist (checked at import:
 "jacket" -> Nehru Jacket/Waistcoat, "kurta" for a woman -> Kurti/Salwar Suit).
 A garment after "my" is context, not the request ("jacket over my kurta").
 So is one after "match"/"with" ("bag to match a lehenga"); it still sets the
@@ -227,8 +275,8 @@ only when asked for, never in an open "haldi outfit" request. A function word
 (budget, then category) and the reply says so. Open-ended gibberish returns
 nothing (MAX_DISTANCE). Embeddings alone never respect hard constraints: "groom
 outfit" once ranked a women's kurta set first.
-Chroma's HNSW index is approximate: asked for all 84 items it skipped EW080, so
-rank() scores any skipped item exactly from its stored vector.
+Chroma's approximate HNSW index used to skip items (EW080, and EW040 from
+top-10s); the exact scan cannot. Distances match Chroma's: squared L2 = 2 x cosine.
 Verify: scripts/eval_retrieval.py (46 phrasings, every result must fit, plus
 every owner ✓/✕ rating; the first RAG version scored 8/10 on an easier 10-case set).
 
@@ -380,15 +428,18 @@ Headwear. Text was written after choosing each photo (e.g. EW039 is midnight
 teal, not the navy searched for). catalog.OCCASION_GROUPS are these functions
 and drive the shop's "Function" filter and the home page row.
 
-After editing the catalog, re-run scripts/ingest_catalog.py.
+After editing the catalog, run scripts/sync_catalog.py (the demo store; a slug for another).
 
 ## Known gaps
 - RAG code lives in backend/bot/chat.py, not /rag as this doc states.
-- No Alembic. Schema changes mean dropping and recreating tables. Fine while
-  the data is disposable; add migrations before this holds anything real.
 - /buy is a placeholder that writes an order row directly. Razorpay replaces it.
-- ingest_catalog.py and bot/chat.py still use the Chroma key style directly;
-  adopting ProductMatch there would remove the last of the drift.
+- bot/chat.py still uses the catalogue key style directly; adopting
+  ProductMatch there would remove the last of the drift.
+- The retrieval vocabulary (garment words, occasions) and prompts are written
+  for the demo's ethnic wear; P2 makes them work for any catalogue.
+- Razorpay keys, PUBLIC_BASE_URL and the website are the demo store's only.
+- Webhook POSTs are not yet checked against X-Hub-Signature-256 (each store's
+  app secret is stored for it; P3, before going public).
 
 ## Project history
 - Meta WhatsApp Cloud API webhook handshake, subscription, inbound message handling,

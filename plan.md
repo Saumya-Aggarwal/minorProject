@@ -32,7 +32,7 @@ workout clothes.
 | Phase | What | Focused days* | Depends on | Status |
 |---|---|---|---|---|
 | P0 | Cleanup and safety net | 0.5 | — | done 28 Sep |
-| P1 | Multi-store foundation (tenancy, products in Postgres, pgvector) | 7 | P0 | not started |
+| P1 | Multi-store foundation (tenancy, products in Postgres, pgvector) | 7 | P0 | built 2 Oct; friend's catalogue import waits for his shop domain |
 | P2 | Bot quality, part 1 (eval harness, fixes, works for any catalogue, model choice) | 12 | P1 | not started |
 | P3 | Shopify connector, deployment, pilot go-live | 8.5 | P1, P2 | not started |
 | P4 | Brand dashboard and minimal human hand-off | 5 | P3 | not started |
@@ -112,6 +112,15 @@ first the items marked *(can wait)*.
 | 14 | Our own business registration / Tech Provider | **Later**, done together. The pilot doesn't need it, because the friend's business owns his WhatsApp account | Now | Not blocking |
 | 15 | Friend's business verification | **Recommended but optional:** free Udyam registration → Meta business verification. It raises the limit from 250 to 2,000 users/day for messages *we* start (templates) | Stay unverified | Replies to customers who wrote first are not capped, so the pilot works either way |
 | 16 | Plan format | This file, one chat per phase | — | Owner's request, 27 Sep |
+| 17 | Product model | **A product is one style in one colour; a variant is one size.** A Shopify product in 3 colours = 3 products | One product with colour × size variants | Each colour gets its own photo and embedding ("black oversized tee" finds the black one), and the bot's "pick one, then a size" flow is unchanged. `external_id` keeps the link to Shopify |
+| 18 | Cart lines | Keep product code + size; add `variant_id` once the size is known | Cart keyed by `variant_id` only | Chat adds an item before its size is chosen; P3's checkout needs only sized lines' variants |
+| 19 | Current store | `ContextVar`; unset = demo store; orders/logs take the store from the user row | Pass `store_id` through every function; fail when unset | Old code and tests run unchanged; `test_tenancy.py` proves isolation where a store is set |
+| 20 | Postgres image switch | `pgvector/pgvector:pg15` (pinned by digest), data moved by dump and restore into a new volume | Reuse the Alpine volume | Alpine (musl) and Debian (glibc) sort text differently: reused text indexes would be corrupt |
+| 21 | Text embedder | **EmbeddingGemma-300M**, int8 ONNX on CPU (no PyTorch). MAX_DISTANCE 0.74, SIMILAR 0.87 | MiniLM (kept as an option); text-embedding-3-small (not measured: no OpenAI key) | Same 46/46; Hinglish requests 60% on target vs 22%; nonsense cleanly separated (`scripts/eval_embeddings.py`) |
+| 22 | Store secrets | Fernet with `MUNIM_SECRET_KEYS` (comma list; first encrypts, all decrypt); `stores.py rotate-keys` | Plain columns; a KMS | A dump alone leaks nothing; rotation without downtime; no extra service |
+| 23 | Brands before they connect | A `stores` row with `status=draft`; only `live` stores are answered | Rows only once connected | Onboarding state has somewhere to live; a half-set-up number is never answered |
+| 24 | `/products.json` politeness | ≤ 1 request/s, 250 per page, `Retry-After` honoured on 429/5xx, 5 tries, a User-Agent naming Munim | Parallel pages | It is an unofficial endpoint; a pilot catalogue is a few pages |
+| 25 | LLM keys | A key and its endpoint always come from the same settings level; the SDK's environment fallbacks are bypassed | Inherit keys across roles | Found by the security review: a role's key could reach another provider |
 
 ## Architecture target
 
@@ -334,6 +343,53 @@ context means store #1, so no test needs to know stores exist. The product codes
 dict shapes and function names the tests use are unchanged. `test_training` measures
 the similarity threshold, so it follows the re-derived value automatically.
 `run_all_tests.py` gains `tenancy` and stops checking for Chroma.
+
+### What was done (1-2 Oct)
+
+All eight steps, one commit each on `product/p1-multi-store`, every suite green after each:
+- 10 suites, all green: cart 126, assistant 79, payments 61, store 36, training 28,
+  live 20, linking 18, **tenancy 53 (new)**, live.js 15; retrieval eval 46/46 with owner
+  ratings 10/10. About 100 s in all, because each suite loads the embedding model.
+- **Alembic.** Migrations 0001 (baseline, diffed identical to the live schema), 0002
+  (tenancy), 0003 (catalogue + pgvector), 0004 (processed messages). Each was tested
+  up, down and up again, and `alembic check` finds no drift.
+- **pgvector against Chroma.** With the same model, the distances agree exactly. The only
+  ranking differences were EW040, which Chroma's approximate index skipped. Chroma is
+  gone from the code, compose, requirements and the venv.
+- **Old suites changed** (each explained in its commit):
+  - `eval_retrieval`: "kurta for my wife" now accepts Co-ord Set. The case predates the
+    co-ord sets (EW073 is a kurta-and-pant co-ord); the garment map was updated on 22 Sep.
+  - `test_assistant`: its cleanup forgets its own fixed message id, which now persists
+    in Postgres.
+- **Real server smoke test.** Shop, search, the product page, similar items, webhook
+  verification, and a simulated WhatsApp message through the live assistant.
+- **Security review findings on `llm.py`, fixed:**
+  - a role's key could reach another provider;
+  - the OpenAI SDK could pick up `OPENAI_API_KEY` from the environment by itself;
+  - the Postgres image is now pinned by digest.
+- **Local config changed:**
+  - `backend/.env` now has `EMBEDDING_PROVIDER=gemma` and a generated `MUNIM_SECRET_KEYS`
+    (back it up);
+  - a fresh dump is in `backups/`;
+  - the old Alpine volume `whatsappchatbot_postgres_data` and `whatsappchatbot_chroma_data`
+    are left for rollback. Delete them with `docker volume rm` once happy.
+
+**Not done yet:**
+- **The friend's real catalogue.** Needs his shop's domain. Then:
+  `scripts/stores.py create <slug> "<Name>" --prefix <XX> --shop <domain>` and
+  `scripts/sync_catalog.py <slug>`.
+- **The T-shirt eval set.** Built from that catalogue at the start of P2; until then,
+  P1's apparel checks run on an invented fixture.
+- **text-embedding-3-small.** Not measured, because there is no OpenAI key. Run
+  `scripts/eval_embeddings.py minilm gemma openai` once there is one.
+- **Webhook signature checks** (`X-Hub-Signature-256` against each store's app secret)
+  belong in P3, before the bot is public.
+
+**Open questions, answered:**
+- **A `stores` row for every future brand?** Yes, `status=draft` (decision 23).
+- **Key rotation?** A new key goes first in `MUNIM_SECRET_KEYS`, then `stores.py
+  rotate-keys`, then the old key is dropped (decision 22).
+- **Importer rate limits?** Yes (decision 24).
 
 ---
 
