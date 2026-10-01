@@ -1,0 +1,77 @@
+{
+  "_comment": "Invented brand, Shopify /products.json format, for scripts/test_tenancy.py. Not a real shop.",
+  "products": [
+    {
+      "id": 7001, "title": "Oversized Graphic Tee", "handle": "oversized-graphic-tee",
+      "body_html": "<p>Heavyweight <strong>240 GSM</strong> cotton with a dropped shoulder.</p><ul><li>Relaxed boxy fit</li><li>Screen-printed back graphic</li></ul>",
+      "vendor": "Zorvo Fit", "product_type": "T-Shirts",
+      "tags": ["oversized", "cotton", "streetwear", "Unisex"],
+      "options": [{"name": "Color", "position": 1, "values": ["Black", "White"]},
+                  {"name": "Size", "position": 2, "values": ["S", "M", "L", "XL"]}],
+      "variants": [
+        {"id": 900101, "option1": "Black", "option2": "S", "option3": null, "price": "699.00", "compare_at_price": "999.00", "available": true, "sku": "ZF-OGT-BLK-S", "featured_image": {"src": "https://cdn.example.com/zf/ogt-black.jpg"}},
+        {"id": 900102, "option1": "Black", "option2": "M", "option3": null, "price": "699.00", "compare_at_price": "999.00", "available": true, "sku": "ZF-OGT-BLK-M", "featured_image": {"src": "https://cdn.example.com/zf/ogt-black.jpg"}},
+        {"id": 900103, "option1": "Black", "option2": "L", "option3": null, "price": "699.00", "compare_at_price": "999.00", "available": true, "sku": "ZF-OGT-BLK-L", "featured_image": {"src": "https://cdn.example.com/zf/ogt-black.jpg"}},
+        {"id": 900104, "option1": "Black", "option2": "XL", "option3": null, "price": "699.00", "compare_at_price": "999.00", "available": true, "sku": "ZF-OGT-BLK-XL", "featured_image": {"src": "https://cdn.example.com/zf/ogt-black.jpg"}},
+        {"id": 900105, "option1": "White", "option2": "S", "option3": null, "price": "699.00", "compare_at_price": "999.00", "available": true, "sku": "ZF-OGT-WHT-S", "featured_image": null},
+        {"id": 900106, "option1": "White", "option2": "M", "option3": null, "price": "699.00", "compare_at_price": "999.00", "available": true, "sku": "ZF-OGT-WHT-M", "featured_image": null},
+        {"id": 900107, "option1": "White", "option2": "L", "option3": null, "price": "699.00", "compare_at_price": "999.00", "available": true, "sku": "ZF-OGT-WHT-L", "featured_image": null},
+        {"id": 900108, "option1": "White", "option2": "XL", "option3": null, "price": "699.00", "compare_at_price": "999.00", "available": false, "sku": "ZF-OGT-WHT-XL", "featured_image": null}
+      ],
+      "images": [{"src": "https://cdn.example.com/zf/ogt-black.jpg", "variant_ids": [900101, 900102, 900103, 900104]},
+                 {"src": "https://cdn.example.com/zf/ogt-white.jpg", "variant_ids": [900105, 900106, 900107, 900108]}]
+    },
+    {
+      "id": 7002, "title": "Dri-Fit Training Tee", "handle": "dri-fit-training-tee",
+      "body_html": "<p>Quick-dry polyester mesh for the gym &amp; running. Flatlock seams, no chafing.</p>",
+      "vendor": "Zorvo Fit", "product_type": "T-Shirts",
+      "tags": "gym, quick-dry, Men",
+      "options": [{"name": "Size", "position": 1, "values": ["M", "L"]},
+                  {"name": "Colour", "position": 2, "values": ["Navy", "Grey"]}],
+      "variants": [
+        {"id": 900201, "option1": "M", "option2": "Navy", "option3": null, "price": "899.00", "compare_at_price": null, "available": true, "sku": "ZF-DFT-NVY-M"},
+        {"id": 900202, "option1": "L", "option2": "Navy", "option3": null, "price": "899.00", "compare_at_price": null, "available": true, "sku": "ZF-DFT-NVY-L"},
+        {"id": 900203, "option1": "M", "option2": "Grey", "option3": null, "price": "849.00", "compare_at_price": null, "available": true, "sku": "ZF-DFT-GRY-M"},
+        {"id": 900204, "option1": "L", "option2": "Grey", "option3": null, "price": "849.00", "compare_at_price": null, "available": true, "sku": "ZF-DFT-GRY-L"}
+      ],
+      "images": [{"src": "https://cdn.example.com/zf/dft.jpg", "variant_ids": []}]
+    },
+    {
+      "id": 7003, "title": "Seamless Sports Bra", "handle": "seamless-sports-bra",
+      "body_html": "<p>Medium support, seamless knit, removable pads. Made for yoga and gym sessions.</p>",
+      "vendor": "Zorvo Fit", "product_type": "Sports Bras",
+      "tags": ["Women", "yoga", "gym"],
+      "options": [{"name": "Size", "position": 1, "values": ["S", "M", "L"]}],
+      "variants": [
+        {"id": 900301, "option1": "S", "option2": null, "option3": null, "price": "1099.00", "compare_at_price": "1499.00", "available": true, "sku": "ZF-SSB-S"},
+        {"id": 900302, "option1": "M", "option2": null, "option3": null, "price": "1099.00", "compare_at_price": "1499.00", "available": true, "sku": "ZF-SSB-M"},
+        {"id": 900303, "option1": "L", "option2": null, "option3": null, "price": "1099.00", "compare_at_price": "1499.00", "available": true, "sku": "ZF-SSB-L"}
+      ],
+      "images": [{"src": "https://cdn.example.com/zf/ssb.jpg", "variant_ids": []}]
+    },
+    {
+      "id": 7004, "title": "Tapered Joggers", "handle": "tapered-joggers",
+      "body_html": "<p>Brushed fleece joggers with a tapered leg and zip pockets.</p>",
+      "vendor": "Zorvo Fit", "product_type": "Joggers",
+      "tags": ["Men", "running", "winter"],
+      "options": [{"name": "Color", "position": 1, "values": ["Charcoal"]},
+                  {"name": "Size", "position": 2, "values": ["M", "L"]}],
+      "variants": [
+        {"id": 900401, "option1": "Charcoal", "option2": "M", "option3": null, "price": "1299.00", "compare_at_price": null, "available": true, "sku": "ZF-TJ-CHR-M"},
+        {"id": 900402, "option1": "Charcoal", "option2": "L", "option3": null, "price": "1299.00", "compare_at_price": null, "available": true, "sku": "ZF-TJ-CHR-L"}
+      ],
+      "images": [{"src": "https://cdn.example.com/zf/tj.jpg", "variant_ids": []}]
+    },
+    {
+      "id": 7005, "title": "Canvas Gym Tote", "handle": "canvas-gym-tote",
+      "body_html": "<p>Heavy canvas tote with a shoe pocket.</p>",
+      "vendor": "Zorvo Fit", "product_type": "Accessories",
+      "tags": [],
+      "options": [{"name": "Title", "position": 1, "values": ["Default Title"]}],
+      "variants": [
+        {"id": 900501, "option1": "Default Title", "option2": null, "option3": null, "price": "499.00", "compare_at_price": null, "available": true, "sku": "ZF-CGT"}
+      ],
+      "images": []
+    }
+  ]
+}

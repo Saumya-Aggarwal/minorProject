@@ -37,6 +37,7 @@ SUITES = [
     ("training", [PY, "scripts/test_training.py"]),
     ("live", [PY, "scripts/test_live.py"]),
     ("linking", [PY, "scripts/test_linking.py"]),
+    ("tenancy", [PY, "scripts/test_tenancy.py"]),
     ("live.js", ["node", "scripts/test_live_js.mjs"]),
     ("retrieval", [PY, "scripts/eval_retrieval.py"]),
 ]

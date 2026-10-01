@@ -111,6 +111,8 @@ def build_document(product: dict[str, Any]) -> str:
         part(("Suitable for", ", ".join(product["occasion"]))),
         product["description"],
         " ".join(product["highlights"]),
+        # Shopify tags ("oversized", "gym"); demo records have none
+        part(("Tags", ", ".join(product.get("tags") or []))),
     ]
     return ". ".join(piece for piece in pieces if piece)
 
