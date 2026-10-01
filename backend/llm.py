@@ -42,10 +42,25 @@ class RoleConfig:
         return self.models[0] if self.models else ""
 
 
+def _endpoint_and_key() -> tuple[Optional[str], Optional[str]]:
+    """The chat endpoint, then the only key allowed to go to it.
+
+    A key is never sent to an endpoint it was not configured with: an OpenAI
+    key does not go to LLM_BASE_URL, nor the Groq key to LLM_CHAT_BASE_URL.
+    """
+    chat_key, generic_key = os.getenv("LLM_CHAT_API_KEY"), os.getenv("LLM_API_KEY")
+    if os.getenv("LLM_CHAT_BASE_URL"):
+        return os.getenv("LLM_CHAT_BASE_URL"), chat_key
+    if os.getenv("LLM_BASE_URL"):
+        return os.getenv("LLM_BASE_URL"), chat_key or generic_key
+    if chat_key or generic_key:
+        return GROQ_URL, chat_key or generic_key
+    return None, os.getenv("OPENAI_API_KEY")          # None = OpenAI's own endpoint
+
+
 def _chat() -> RoleConfig:
     groq_key = os.getenv("LLM_API_KEY")
-    api_key = os.getenv("LLM_CHAT_API_KEY") or groq_key or os.getenv("OPENAI_API_KEY")
-    base_url = os.getenv("LLM_CHAT_BASE_URL") or os.getenv("LLM_BASE_URL") or (GROQ_URL if groq_key else None)
+    base_url, api_key = _endpoint_and_key()
     if groq_key:
         primary = os.getenv("LLM_CHAT_MODEL") or os.getenv("LLM_MODEL", "openai/gpt-oss-20b")
         default_fallbacks = "openai/gpt-oss-120b,qwen/qwen3.8-27b"
