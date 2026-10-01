@@ -4,7 +4,9 @@ services:
     # products (plan.md P1). Debian-based, unlike the old postgres:15-alpine, so
     # it has its own volume: the two sort text differently, and indexes built by
     # one are not valid under the other. Moving data = pg_dump, then pg_restore.
-    image: pgvector/pgvector:pg15
+    # Pinned by digest (pgvector 0.8.6, Postgres 15.19) so a re-pushed tag cannot
+    # swap the database image underneath us. Update deliberately: pull, test, re-pin.
+    image: pgvector/pgvector:pg15@sha256:a947c45cdc5906a1bc951f20a8709e321256343ee0f251e4ae00b5e7def4e6da
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-whatsapp}
