@@ -9,6 +9,8 @@ start and end; the demo store's own data is never touched.
 Run from the repo root:  backend/.venv/Scripts/python scripts/test_tenancy.py
 """
 
+import hashlib
+import hmac
 import json
 import os
 import sys
@@ -25,6 +27,7 @@ load_dotenv(ROOT / "backend" / ".env")
 os.environ["PAYMENT_RECONCILE_SECONDS"] = "0"
 os.environ["LLM_API_KEY"] = ""          # plain search: deterministic, no quota
 os.environ["OPENAI_API_KEY"] = ""
+os.environ["WHATSAPP_APP_SECRET"] = ""  # demo unsigned unless a check sets it
 os.environ.setdefault("MUNIM_SECRET_KEYS", "")
 
 import httpx  # noqa: E402
@@ -51,6 +54,7 @@ SLUG = "test-tenant-b"
 PNID_B = "TEST-PNID-B"
 PHONE = "910000000077"            # the same person messaging both brands
 TOKEN_B = "EAAG-test-token-for-store-b"
+APP_SECRET_B = "store-b-app-secret"
 QUESTION_MARK = "tenancy test"    # in every owner rating this suite makes, for cleanup
 FIXTURE = json.loads((ROOT / "scripts" / "fixtures" / "shopify_products.json").read_text(encoding="utf-8"))
 
@@ -123,7 +127,8 @@ def make_store_b() -> int:
     with session_scope() as db:
         store = Store(slug=SLUG, name="Zorvo Fit (test)", platform="shopify", status="live", code_prefix="TB",
                       connector={"shop_domain": "zorvo-test.myshopify.com"}, wa_phone_number_id=PNID_B,
-                      wa_display_number="910000000099", wa_access_token_enc=secrets_box.encrypt(TOKEN_B))
+                      wa_display_number="910000000099", wa_access_token_enc=secrets_box.encrypt(TOKEN_B),
+                      wa_app_secret_enc=secrets_box.encrypt(APP_SECRET_B))
         db.add(store)
         db.flush()
         store_id = store.store_id
@@ -271,9 +276,15 @@ def main() -> int:
                 value["metadata"] = {"display_phone_number": "x", "phone_number_id": pnid}
             return {"object": "whatsapp_business_account",
                     "entry": [{"id": "1", "changes": [{"field": "messages", "value": value}]}]}
+        def signed(data: dict, secret: str, extra: dict | None = None) -> dict:
+            """What Meta sends: the exact body bytes, and their HMAC under the app secret."""
+            body = json.dumps(data).encode()
+            digest = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+            return {"content": body, "headers": {"Content-Type": "application/json", "X-Local-Test": "true",
+                                                 "X-Hub-Signature-256": f"sha256={digest}", **(extra or {})}}
         with TestClient(app) as web:
             local = {"X-Local-Test": "true"}
-            reply = web.post("/webhook", json=payload("black oversized t-shirt", PNID_B), headers=local).json()
+            reply = web.post("/webhook", **signed(payload("black oversized t-shirt", PNID_B), APP_SECRET_B)).json()
             photos = reply["responses"][0]["photos"] if reply["responses"] else []
             check("a message to store B's number is answered from store B", photos and
                   all(c.startswith("TB") for c in photos), reply)
@@ -285,6 +296,46 @@ def main() -> int:
             check("...and creates no customer anywhere", stray is None)
             reply = web.post("/webhook", json=payload("hi", None), headers=local).json()
             check("no metadata (the simulator) means the demo store", reply["responses"] != [], reply)
+
+        print("\n6b. Only Meta's signed requests are answered")
+        stranger = "910000000079"
+        def customer_exists(phone: str) -> bool:
+            with session_scope() as db:
+                return db.exec(select(User).where(User.whatsapp_number == phone)).first() is not None
+        with TestClient(app) as web:
+            forged = payload("black oversized t-shirt", PNID_B, stranger)
+            response = web.post("/webhook", json=forged, headers={"X-Local-Test": "true"})
+            check("an unsigned request to store B is refused with 403", response.status_code == 403, response.status_code)
+            check("...and X-Local-Test does not get it past the check", not customer_exists(stranger))
+            response = web.post("/webhook", **signed(forged, "a-guessed-secret"))
+            check("a request signed with the wrong secret is refused", response.status_code == 403)
+            genuine = signed(forged, APP_SECRET_B)
+            tampered = {**genuine, "content": genuine["content"].replace(b"oversized", b"undersized")}
+            response = web.post("/webhook", **tampered)
+            check("a body changed after signing is refused", response.status_code == 403)
+            check("...and none of them created a customer", not customer_exists(stranger))
+            response = web.post("/webhook", **genuine)
+            check("the genuinely signed request is answered", response.status_code == 200
+                  and response.json()["responses"], response.text[:200])
+
+            os.environ["WHATSAPP_APP_SECRET"] = "demo-app-secret"
+            try:
+                response = web.post("/webhook", json=payload("hi", None), headers={"X-Local-Test": "true"})
+                check("once the demo has a secret, unsigned demo requests are refused", response.status_code == 403)
+                response = web.post("/webhook", **signed(payload("hi", None), "demo-app-secret"))
+                check("...and signed ones are answered", response.status_code == 200 and response.json()["responses"])
+            finally:
+                os.environ["WHATSAPP_APP_SECRET"] = ""
+
+            with session_scope() as db:
+                db.get(Store, b).wa_app_secret_enc = None
+            tenancy.forget()
+            response = web.post("/webhook", **signed(payload("black oversized t-shirt", PNID_B, "910000000080"),
+                                                     APP_SECRET_B))
+            check("a brand with no app secret on file is not answered at all", response.status_code == 403)
+            with session_scope() as db:
+                db.get(Store, b).wa_app_secret_enc = secrets_box.encrypt(APP_SECRET_B)
+            tenancy.forget()
 
         print("\n7. Linking codes do not cross stores")
         demo_web = repo.create_link_token(demo_user)

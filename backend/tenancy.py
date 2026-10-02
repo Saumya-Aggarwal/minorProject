@@ -134,3 +134,20 @@ def verify_tokens() -> set[str]:
             print(f"[tenancy] a store's verify token does not decrypt: {exc!r}")
     tokens.discard("")
     return tokens
+
+
+def app_secret(store: Optional[int] = None) -> Optional[str]:
+    """The Meta app secret that signs webhook POSTs for this store, if configured.
+
+    The demo store's is WHATSAPP_APP_SECRET in backend/.env; a brand's is stored
+    encrypted on its row (scripts/stores.py set-whatsapp).
+    """
+    import secrets_box
+
+    sid = store_id() if store is None else store
+    row = get_store(sid) or {}
+    if row.get("wa_app_secret_enc"):
+        return secrets_box.decrypt(row["wa_app_secret_enc"])
+    if sid == DEMO_STORE_ID:
+        return os.getenv("WHATSAPP_APP_SECRET") or None
+    return None

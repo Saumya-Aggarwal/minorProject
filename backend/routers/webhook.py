@@ -1,5 +1,8 @@
 import asyncio
+import hashlib
+import hmac
 import inspect
+import json
 import os
 import re
 from dataclasses import dataclass, field
@@ -1126,17 +1129,73 @@ async def _answer_and_send(sender: str, text: str, display_name: str | None, but
         await _safe_send(sender, reply if isinstance(reply, Reply) else Reply(reply))
 
 
+def signature_ok(body: bytes, header: str | None, secret: str) -> bool:
+    """Meta's X-Hub-Signature-256: "sha256=" + HMAC-SHA256 of the raw body, keyed
+    with the app secret. Compared in constant time."""
+    if not header or not header.startswith("sha256="):
+        return False
+    expected = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expected, header.removeprefix("sha256="))
+
+
+_warned_unsigned: set[int] = set()
+
+
+def _authentic(store: int, body: bytes, header: str | None) -> bool:
+    """Did Meta (the store's own Meta app) really send this?
+
+    A store with an app secret accepts only a valid signature. A brand without
+    one is not answered at all. The demo store without one is answered with a
+    warning, so local development works before the secret is set.
+    """
+    try:
+        secret = tenancy.app_secret(store)
+    except Exception as exc:
+        print(f"[webhook] store {store}: app secret unreadable ({exc!r}); request refused")
+        return False
+    if secret:
+        if signature_ok(body, header, secret):
+            return True
+        print(f"[webhook] store {store}: X-Hub-Signature-256 {'missing' if not header else 'does not match'}; "
+              "refused. If this was Meta, the app secret on file is wrong.")
+        return False
+    if store == tenancy.DEMO_STORE_ID:
+        if store not in _warned_unsigned:
+            _warned_unsigned.add(store)
+            print("[webhook] WARNING: WHATSAPP_APP_SECRET is not set, so anyone who knows this URL "
+                  "can post messages as WhatsApp. Set it (Meta App Dashboard > Settings > Basic).")
+        return True
+    print(f"[webhook] store {store} has no app secret on file; refused (scripts/stores.py set-whatsapp)")
+    return False
+
+
 @router.post("/webhook")
 async def receive_message(request: Request, background: BackgroundTasks):
     """Receives incoming messages and status updates from WhatsApp.
 
+    Every change is checked against the signature of the store it is for
+    (_authentic) before anything is read from it. A request in which nothing
+    passes gets a 403: a forged request deserves no 200, and if it was Meta
+    with a wrong secret on file, Meta retries and flags the webhook rather
+    than the messages being dropped in silence. Anything else - unreadable
+    JSON, a handler error - is still acknowledged with 200, or Meta retries.
+
     Real messages are answered in a background task, so Meta gets its 200 at
     once however long the assistant thinks. Local tests (X-Local-Test) are
-    answered inline and the reply is returned in the response body instead.
+    answered inline and the reply is returned in the response body instead;
+    the header changes how a reply is delivered, never whether it is checked.
     """
-    payload = await request.json()
+    body = await request.body()
+    signature = request.headers.get("X-Hub-Signature-256")
     local_test = request.headers.get("X-Local-Test") == "true"
-    responses = []
+    responses: list = []
+    verdicts: dict[int, bool] = {}
+
+    try:
+        payload = json.loads(body)
+    except ValueError:
+        print(f"[webhook] body is not JSON ({len(body)} bytes); ignored")
+        return {"status": "received", "responses": responses}
 
     try:
         for entry in payload.get("entry", []):
@@ -1149,6 +1208,10 @@ async def receive_message(request: Request, background: BackgroundTasks):
                 if store is None:
                     print(f"[webhook] no live store owns number {phone_number_id}; ignored")
                     continue
+                if store not in verdicts:
+                    verdicts[store] = await asyncio.to_thread(_authentic, store, body, signature)
+                if not verdicts[store]:
+                    continue
                 with tenancy.use_store(store):
                     await _receive_change(value, store, local_test, background, responses)
     except Exception as e:
@@ -1157,6 +1220,8 @@ async def receive_message(request: Request, background: BackgroundTasks):
         # and fails again. Acking 200 is always the right answer.
         print(f"[webhook] handler error: {e!r} payload={payload}")
 
+    if verdicts and not any(verdicts.values()):
+        raise HTTPException(status_code=403, detail="Invalid signature")
     return {"status": "received", "responses": responses}
 
 

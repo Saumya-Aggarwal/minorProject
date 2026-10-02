@@ -19,6 +19,7 @@ sys.stdout.reconfigure(encoding="utf-8")  # Rs sign in output; a Windows pipe is
 from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(ROOT / "backend" / ".env")
+os.environ["WHATSAPP_APP_SECRET"] = ""   # unsigned test messages; signatures: test_tenancy.py
 
 from fastapi.testclient import TestClient  # noqa: E402
 from sqlmodel import select  # noqa: E402

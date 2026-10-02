@@ -69,7 +69,7 @@ def cmd_create(args) -> None:
 def cmd_set_whatsapp(args) -> None:
     secrets = {
         "wa_access_token_enc": getpass.getpass("Access token (permanent system-user token): "),
-        "wa_app_secret_enc": getpass.getpass("App secret (blank to skip): "),
+        "wa_app_secret_enc": getpass.getpass("App secret (Meta App Dashboard > Settings > Basic; without it messages are refused): "),
         "wa_verify_token_enc": getpass.getpass("Webhook verify token (blank to skip): "),
     }
     with session_scope() as db:

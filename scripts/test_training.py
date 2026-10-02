@@ -23,6 +23,7 @@ sys.stdout.reconfigure(encoding="utf-8")  # Rs sign in output; a Windows pipe is
 from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(ROOT / "backend" / ".env")
+os.environ["WHATSAPP_APP_SECRET"] = ""   # unsigned test messages; signatures: test_tenancy.py
 os.environ["PAYMENT_RECONCILE_SECONDS"] = "0"
 os.environ["ADMIN_EMAILS"] = "test-owner@example.com"
 os.environ["LLM_API_KEY"] = ""          # plain path unless a test installs a fake model

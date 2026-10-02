@@ -66,12 +66,21 @@ everything made before stores existed.
   Redeliveries are caught by processed_messages (Postgres), not memory.
 - llm.py: a role per job (chat, vision, stt, judge), LLM_<ROLE>_* settings
   falling back to chat's. A key is only ever sent to its own endpoint.
+- Webhook signatures (2 Oct): every change in a POST is checked against
+  X-Hub-Signature-256 (HMAC-SHA256 of the RAW body) with the app secret of the
+  store it is for: stores.wa_app_secret_enc, or WHATSAPP_APP_SECRET for the
+  demo. A brand without a secret is never answered; the demo without one is,
+  with a warning (local dev). A request where nothing verifies gets 403, so a
+  wrong secret shows up as Meta retrying, not as silently lost messages.
+  X-Local-Test changes how the reply is returned, never whether it is checked;
+  simulate_webhook.py signs when WHATSAPP_APP_SECRET is set. Old suites set
+  WHATSAPP_APP_SECRET="" (they post unsigned to the demo store).
 - scripts/stores.py lists/creates/configures stores; sync_catalog.py <slug>
   imports one. A brand on Shopify: stores.py create <slug> "<Name>" --prefix XX
   --shop <domain>, then sync_catalog.py <slug>.
-Verify: scripts/test_tenancy.py (53 checks: importer, and isolation of
+Verify: scripts/test_tenancy.py (62 checks: importer, and isolation of
 customers, carts, orders, catalogue, vectors, search, codes, training, link
-codes, credentials; webhook routing; secrets; redelivery).
+codes, credentials; webhook routing and signatures; secrets; redelivery).
 
 ## Shared contract (do not change without syncing both devs)
 get_product_recommendations(query: str, top_k: int = 3) -> tuple[str, List[ProductMatch]]
@@ -93,8 +102,9 @@ class ProductMatch(BaseModel):
 - Read env vars inside functions, not at import time (dotenv loads in main.py).
 - FastAPI routes are async. Outbound HTTP uses httpx.AsyncClient.
 - POST /webhook must always return 200, even on parse errors, or Meta retries.
+  The one exception: a request whose signature does not verify gets 403.
 - Env vars: WHATSAPP_ACCESS_TOKEN, WHATSAPP_VERIFY_TOKEN, WHATSAPP_PHONE_NUMBER_ID
-  (the demo store's WhatsApp), LLM_API_KEY / LLM_* (llm.py), EMBEDDING_PROVIDER,
+  and WHATSAPP_APP_SECRET (the demo store's WhatsApp), LLM_API_KEY / LLM_* (llm.py), EMBEDDING_PROVIDER,
   MUNIM_SECRET_KEYS (encrypts stores' secrets), RAZORPAY_KEY_ID,
   RAZORPAY_KEY_SECRET, DATABASE_URL. backend/.env.example explains each.
 - Schema changes are Alembic revisions (autogenerate a draft from backend/:
@@ -438,8 +448,8 @@ After editing the catalog, run scripts/sync_catalog.py (the demo store; a slug f
 - The retrieval vocabulary (garment words, occasions) and prompts are written
   for the demo's ethnic wear; P2 makes them work for any catalogue.
 - Razorpay keys, PUBLIC_BASE_URL and the website are the demo store's only.
-- Webhook POSTs are not yet checked against X-Hub-Signature-256 (each store's
-  app secret is stored for it; P3, before going public).
+- The demo store accepts unsigned webhook POSTs until WHATSAPP_APP_SECRET is
+  set in backend/.env; set it before the URL is public.
 
 ## Project history
 - Meta WhatsApp Cloud API webhook handshake, subscription, inbound message handling,

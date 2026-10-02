@@ -382,8 +382,12 @@ All eight steps, one commit each on `product/p1-multi-store`, every suite green 
   P1's apparel checks run on an invented fixture.
 - **text-embedding-3-small.** Not measured, because there is no OpenAI key. Run
   `scripts/eval_embeddings.py minilm gemma openai` once there is one.
-- **Webhook signature checks** (`X-Hub-Signature-256` against each store's app secret)
-  belong in P3, before the bot is public.
+- ~~Webhook signature checks~~ **done 2 Oct**, pulled forward from P3: every webhook
+  POST is checked against `X-Hub-Signature-256` with the receiving store's app secret,
+  and a forged or unsigned request gets 403. The demo store still accepts unsigned
+  requests until `WHATSAPP_APP_SECRET` is set in `backend/.env`. Set it before the
+  URL is public. The 9 new tenancy checks have not yet been run against Postgres:
+  Docker was off. The logic passed 12/12 with the database stubbed.
 
 **Open questions, answered:**
 - **A `stores` row for every future brand?** Yes, `status=draft` (decision 23).
@@ -561,8 +565,8 @@ and pay in his Shopify checkout.
    - The owner switches it on through a deep link.
 8. **The friend's WhatsApp**, set up by hand (Meta checklist below).
    - Bump the Graph API from **v21.0** (retired 21 Jan 2027) to v25/v26.
-   - **Verify Meta's `X-Hub-Signature-256`** with that store's app secret. The webhook
-     doesn't check it today.
+   - Enter his app secret (`scripts/stores.py set-whatsapp`): the webhook checks
+     Meta's `X-Hub-Signature-256` (built 2 Oct) and refuses a brand without one.
    - Submit message templates now (up to 24 h review): `order_confirmed`, `shipped`,
      `exchange_update` as utility; `abandoned_checkout` as marketing.
 9. **Deploy.**
