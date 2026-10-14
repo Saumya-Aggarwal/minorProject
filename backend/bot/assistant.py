@@ -146,6 +146,10 @@ TOOLS = [
                 "categories": {**_LIST, "description": "Garment types, e.g. ['Sherwani'] or ['Saree','Lehenga']"},
                 "max_price": {**_NUMBER, "description": "Budget ceiling in rupees"},
                 "min_price": _NUMBER,
+                "colour": {**_TEXT, "description": "A colour they asked for, e.g. 'black' or 'pastel pink'. "
+                           "Only products in it are returned"},
+                "fabric": {**_TEXT, "description": "A fabric they asked for, e.g. 'cotton', 'silk'"},
+                "fit": {**_TEXT, "description": "A fit they asked for, e.g. 'oversized', 'slim', 'relaxed'"},
             }, ["query"]),
     _schema("get_product_details", "Full details of one product: sizes in stock, fabric, care, delivery and returns.",
             {"product_id": {"type": "string"}}, ["product_id"]),
@@ -195,17 +199,27 @@ def _product_line(p: dict[str, Any]) -> str:
 
 
 def tool_search_products(user_id: int, query: str = "", gender: Any = None, categories: Any = None,
-                         max_price: Any = None, min_price: Any = None, **_: Any) -> str:
+                         max_price: Any = None, min_price: Any = None, colour: Any = None, fabric: Any = None,
+                         fit: Any = None, *, customer_text: str = "", **_: Any) -> str:
+    """customer_text (supplied by respond(), never the model) fills in what the
+    model's query left out: the 14 Oct eval asked for a "black suit" and the
+    model searched "black wedding suit" with no colour filter, then showed a
+    white one. Their own colour, fabric, fit, occasion and budget count."""
     # Start from what the words say, then let the model's explicit choices win
     parsed = retrieval.parse_query(query)
-    given = retrieval.normalise_filters(gender, categories, max_price, min_price)
+    said = retrieval.parse_query(customer_text) if customer_text else retrieval.Filters()
+    given = retrieval.normalise_filters(gender, categories, max_price, min_price,
+                                        colour=colour, fabric=fabric, fit=fit)
     filters = retrieval.Filters(
         gender=given.gender if (given.gender or given.both_genders) else parsed.gender,
         both_genders=given.both_genders or (parsed.both_genders and not given.gender),
         categories=given.categories or parsed.categories,
-        max_price=given.max_price or parsed.max_price,
-        min_price=given.min_price or parsed.min_price,
-        occasion=parsed.occasion,
+        max_price=given.max_price or parsed.max_price or said.max_price,
+        min_price=given.min_price or parsed.min_price or said.min_price,
+        occasion=parsed.occasion or said.occasion,
+        colours=given.colours or parsed.colours or said.colours,
+        fabrics=given.fabrics or parsed.fabrics or said.fabrics,
+        fits=given.fits or parsed.fits or said.fits,
     )
     result = retrieval.search(query, filters, k=6, user_id=user_id)
     if not result.products:
@@ -1119,6 +1133,8 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
                         args.update(customer_text=consent_text, customer_recent=customer_recent)
                     if name in ("add_to_cart", "remove_from_cart"):
                         args["ledger"] = ledger
+                    if name == "search_products":
+                        args["customer_text"] = text
                     result = TOOL_FUNCTIONS[name](user_id, **args)
                     args.pop("ledger", None)
                 except Exception as exc:

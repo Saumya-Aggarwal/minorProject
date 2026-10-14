@@ -29,6 +29,7 @@ from dotenv import load_dotenv  # noqa: E402
 
 load_dotenv(ROOT / "backend" / ".env")
 
+import attributes  # noqa: E402
 from bot import retrieval  # noqa: E402
 
 
@@ -44,6 +45,9 @@ class Case:
     relaxed: str | None = None      # this filter must be reported as relaxed
     occasion: str | None = None     # the first result must be tagged for this function
     no_accessories: bool = False    # an outfit request must not return shoes, bags or safas
+    colour: str | None = None       # every result is in this colour family (attributes.py)
+    not_colour: str | None = None   # no result is in this colour family
+    fabric: str | None = None       # every result is in this fabric family
 
 
 ACCESSORIES = ("Footwear", "Bags", "Headwear")
@@ -84,7 +88,8 @@ CASES = (
     Case("matching outfits for the couple", both_genders=True),
     # Second collection (84 products): functions, footwear, accessories
     Case("haldi outfit for my brother", gender="Men", occasion="Haldi", no_accessories=True),
-    Case("something yellow for haldi for my mom", gender="Women", occasion="Haldi", no_accessories=True),
+    Case("something yellow for haldi for my mom", gender="Women", occasion="Haldi", no_accessories=True,
+         colour="yellow"),
     Case("mehendi lehenga under 5000", categories=("Lehenga",), max_price=5000),
     Case("garba outfit for navratri", occasion="Navratri", no_accessories=True),
     Case("chaniya choli", categories=("Lehenga",), gender="Women"),
@@ -103,6 +108,18 @@ CASES = (
     Case("potli bag to match a lehenga", categories=("Bags",), gender="Women"),
     Case("safa for the baraat", categories=("Headwear",), gender="Men"),
     Case("heels under 1000", categories=("Footwear",), relaxed="budget"),
+    # Colour, fabric and fit are enforced (P2 step 4). The 14 Oct conversation
+    # eval: a black suit got a white one; a yellow kurta got tangerine and lime
+    Case("black suit for my wedding", gender="Men", colour="black"),
+    Case("yellow kurta for my brother's haldi", gender="Men", colour="yellow"),
+    Case("bhai ki haldi ke liye pila kurta dikhao", gender="Men", colour="yellow"),
+    Case("pink lehenga for my sangeet", categories=("Lehenga",), colour="pink"),
+    Case("teal sherwani", categories=("Sherwani",), colour="blue"),
+    Case("cotton kurta for men", gender="Men", fabric="cotton"),
+    Case("silk saree for a wedding", categories=("Saree",), fabric="silk"),
+    Case("purple sherwani", categories=("Sherwani",), relaxed="attributes"),
+    Case("dupatta to go with my red lehenga", categories=("Dupatta",)),
+    Case("anything but black for my sister's sangeet", gender="Women", not_colour="black"),
 )
 
 
@@ -127,6 +144,14 @@ def judge(case: Case, result: retrieval.SearchResult) -> tuple[bool, str]:
         return (False, "only one gender shown")
     if case.no_accessories and any(p["category"] in ACCESSORIES for p in products):
         return (False, "an outfit request returned an accessory")
+    for p in products:
+        families = attributes.product_colours(p)
+        if case.colour and "attributes" not in result.relaxed and case.colour not in families:
+            return (False, f"{p['name']} is {p['color']}, not {case.colour}")
+        if case.not_colour and case.not_colour in families:
+            return (False, f"{p['name']} is {p['color']}")
+        if case.fabric and case.fabric not in attributes.product_fabrics(p):
+            return (False, f"{p['name']} is {p['fabric']}, not {case.fabric}")
     if case.occasion and case.occasion not in products[0]["occasion"]:
         return (False, f"{products[0]['name']} is not tagged {case.occasion}")
     return (True, "")

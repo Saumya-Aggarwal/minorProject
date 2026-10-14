@@ -145,10 +145,25 @@ Nothing the bot says about the shop is written for one brand any more.
   used to be in retrieval.py), keeping only categories the store sells.
 - Product codes are any store's PREFIX+digits, recognised only when the
   current store sells them (assistant._strip_codes, selection.find_product_code).
-Verify: scripts/test_brands.py (38 checks: a second store built from
+Verify: scripts/test_brands.py (40 checks: a second store built from
 evals/catalogues/fitwear.json, an invented activewear brand, through the
 Shopify importer; and the demo unchanged). evals/catalogues/fitwear.json is
 made by scripts/fixtures/make_fitwear_catalogue.py.
+
+## Colour, fabric and fit (P2 step 4, 15 Oct)
+attributes.py reads them from a request and from each product, and
+retrieval enforces them like gender and budget (Filters.colours / fabrics /
+fits). Colours match by family (teal = blue + green, tangerine = orange,
+"pila" = yellow); a product's from its colour field (Shopify's colour
+option), else its name; fabric and fit from those fields, its tags and name.
+A colour describing something else is ignored ("dupatta to go with my red
+lehenga", "anything but black"). With nothing in that colour, search relaxes
+it before dropping the garment, and the note says so ("We do not have
+sherwanis in purple right now"). search_products takes colour / fabric /
+fit; the customer's own words fill in what the model's query left out
+(colour, fabric, fit, occasion, budget).
+Verify: scripts/eval_retrieval.py (56 phrasings, 10 of them colour, fabric
+and context cases), test_brands.py (black oversized tee, navy sports bra).
 
 ## Shared contract (do not change without syncing both devs)
 get_product_recommendations(query: str, top_k: int = 3) -> tuple[str, List[ProductMatch]]
@@ -355,7 +370,7 @@ nothing (MAX_DISTANCE). Embeddings alone never respect hard constraints: "groom
 outfit" once ranked a women's kurta set first.
 Chroma's approximate HNSW index used to skip items (EW080, and EW040 from
 top-10s); the exact scan cannot. Distances match Chroma's: squared L2 = 2 x cosine.
-Verify: scripts/eval_retrieval.py (46 phrasings, every result must fit, plus
+Verify: scripts/eval_retrieval.py (56 phrasings, every result must fit, plus
 every owner ✓/✕ rating; the first RAG version scored 8/10 on an easier 10-case set).
 
 ## Assistant (bot/assistant.py)
@@ -434,7 +449,7 @@ Seen live 22 Sep and now enforced in code: "yes"/a size answering our own
 "added"/"removed" without a successful cart tool is sent back once, then the
 claim is cut; a product the model focuses on is selected, and "choose blush
 pink one" selects by name (selection.parse_named_selection), so "46" next adds it.
-Verify: scripts/test_assistant.py (95 checks, scripted fake model, no quota).
+Verify: scripts/test_assistant.py (96 checks, scripted fake model, no quota).
 Other suites blank LLM_API_KEY so they stay deterministic.
 
 ## Training (backend/training.py, /admin/training)

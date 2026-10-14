@@ -708,6 +708,15 @@ def main() -> int:
             check("a repaired reply that types out its products is asked again for product ids",
                   "Marigold Lehenga with Orange Dupatta" in reply and len(script.models) == 3, reply[:160])
 
+            script = Script(calls(("search_products", {"query": "wedding suit", "gender": "Men",
+                                                       "categories": ["Jodhpuri Suit", "Pathani Suit"]})),
+                            calls(("send_reply", {"message": "A suit for the day.", "product_ids": ["EW008"]})))
+            run(script)
+            send("suit for wedding for me black color")
+            found = next(m["content"] for m in script.seen[1] if m["role"] == "tool")
+            check("the customer's colour is enforced though the model's search left it out",
+                  found.startswith("EW008") and "White" not in found and "Grey" not in found, found[:200])
+
             repo.clear_cart(user)
             repo.record_selection(user, {"product_id": "EW006", "name": "Royal Blue Wedding Sherwani",
                                          "price_inr": 8999, "rich_description": ""})

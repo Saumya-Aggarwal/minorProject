@@ -24,6 +24,7 @@ import re
 from dataclasses import dataclass, field, replace
 from typing import Any, Optional
 
+import attributes
 import catalog
 import tenancy
 import tracing
@@ -54,10 +55,24 @@ class Filters:
     max_price: Optional[float] = None
     min_price: Optional[float] = None
     occasion: Optional[str] = None        # soft: added to the query's meaning
+    # Enforced like the rest (attributes.py): colour families, fabrics, fits
+    colours: list[str] = field(default_factory=list)
+    fabrics: list[str] = field(default_factory=list)
+    fits: list[str] = field(default_factory=list)
 
     def is_empty(self) -> bool:
         return not (self.gender or self.both_genders or self.categories
-                    or self.max_price or self.min_price)
+                    or self.max_price or self.min_price or self.has_attributes())
+
+    def has_attributes(self) -> bool:
+        return bool(self.colours or self.fabrics or self.fits)
+
+    def without_attributes(self) -> "Filters":
+        return replace(self, colours=[], fabrics=[], fits=[])
+
+    def attribute_words(self) -> str:
+        """"black cotton": how the note names what was asked for."""
+        return " ".join([*self.colours, *self.fabrics, *self.fits])
 
 
 @dataclass
@@ -74,6 +89,11 @@ class SearchResult:
         what = _describe_categories(f.categories) or "matches"
         if "category" in self.relaxed:
             return f"We do not have {what} for that right now — these are the closest pieces."
+        if "attributes" in self.relaxed:
+            budget = (f" under Rs. {f.max_price:,.0f}" if f.max_price and "budget" not in self.relaxed else "")
+            noun = _describe_categories(f.categories) or "anything"
+            return (f"We do not have {noun} in {f.attribute_words()}{budget} right now — "
+                    "these are the closest.")
         if f.max_price:
             return f"No {what} under Rs. {f.max_price:,.0f} right now — these are the closest by price."
         if f.min_price:
@@ -171,9 +191,14 @@ def _garment_mentions(words: list[str], context: Optional[list[str]] = None) -> 
         if key is None:
             continue
         skip_next = key == pair
-        before = words[i - 1] if i > 0 else ""
+        # "with my red lehenga": look past colour, fabric and fit words
+        j = i - 1
+        while j >= 0 and (words[j] in attributes.COLOURS or words[j] in attributes.FABRICS
+                          or words[j] in attributes.FITS):
+            j -= 1
+        before = words[j] if j >= 0 else ""
         if before in _POSSESSIVE or before in _CONTEXT or (
-                before in _ARTICLES and i > 1 and words[i - 2] in _CONTEXT):
+                before in _ARTICLES and j > 0 and words[j - 1] in _CONTEXT):
             if context is not None:
                 context.append(key)
             continue
@@ -237,11 +262,14 @@ def parse_query(text: str) -> Filters:
         gender=gender, both_genders=both,
         categories=_categories_for(garments, gender),
         max_price=max_price, min_price=min_price, occasion=occasion,
+        colours=attributes.colours_asked(lowered), fabrics=attributes.fabrics_asked(lowered),
+        fits=attributes.fits_asked(lowered),
     )
 
 
 def normalise_filters(gender: Any = None, categories: Any = None, max_price: Any = None,
-                      min_price: Any = None, occasion: Any = None) -> Filters:
+                      min_price: Any = None, occasion: Any = None, colour: Any = None,
+                      fabric: Any = None, fit: Any = None) -> Filters:
     """Filters from structured arguments (the assistant's tool call), validated.
 
     Anything the model sends that does not map onto the catalogue is dropped
@@ -271,7 +299,9 @@ def normalise_filters(gender: Any = None, categories: Any = None, max_price: Any
 
     return Filters(gender=gender_value, both_genders=both, categories=wanted,
                    max_price=price(max_price), min_price=price(min_price),
-                   occasion=str(occasion).strip().lower() if occasion else None)
+                   occasion=str(occasion).strip().lower() if occasion else None,
+                   colours=attributes.normalise(colour, "colour"), fabrics=attributes.normalise(fabric, "fabric"),
+                   fits=attributes.normalise(fit, "fit"))
 
 
 # --- ranking ----------------------------------------------------------------------
@@ -325,6 +355,8 @@ def _passes(p: dict[str, Any], f: Filters) -> bool:
         return False
     if f.min_price and p["price"] < f.min_price:
         return False
+    if f.has_attributes() and not attributes.fits_request(p, f.colours, f.fabrics, f.fits):
+        return False
     return True
 
 
@@ -352,7 +384,7 @@ def search(query: str, filters: Optional[Filters] = None, k: int = 3,
 
     filters=None parses them from the text. If nothing passes, the filters are
     relaxed in this order and the result says so: budget (show the nearest
-    prices), category (the garment is not stocked), gender. An open-ended query
+    prices), colour/fabric/fit, category (the garment is not stocked). An open-ended query
     with nothing relevant ("asdfgh") returns no products rather than noise.
     Inside a customer message, the search is recorded on its trace (tracing.py).
     """
@@ -375,12 +407,22 @@ def _search(query: str, filters: Optional[Filters], k: int, user_id: Optional[in
     if hidden:
         ranked = [(p, d) for p, d in ranked if p["id"] not in hidden]
 
+    budget = bool(f.max_price or f.min_price)
+    no_budget = replace(f, max_price=None, min_price=None)
     attempts = [(f, [])]
-    if f.max_price or f.min_price:
-        attempts.append((replace(f, max_price=None, min_price=None), ["budget"]))
+    if budget:
+        attempts.append((no_budget, ["budget"]))
+    if f.has_attributes():
+        # "black sherwani" with none in black: other sherwanis, said honestly,
+        # rather than black things that are not sherwanis
+        attempts.append((f.without_attributes(), ["attributes"]))
+        if budget:
+            attempts.append((no_budget.without_attributes(), ["budget", "attributes"]))
     if f.categories:
-        attempts.append((replace(f, max_price=None, min_price=None, categories=[]), ["budget", "category"]
-                         if (f.max_price or f.min_price) else ["category"]))
+        attempts.append((replace(no_budget, categories=[]), ["budget", "category"] if budget else ["category"]))
+        if f.has_attributes():
+            attempts.append((replace(no_budget, categories=[]).without_attributes(),
+                             (["budget"] if budget else []) + ["attributes", "category"]))
 
     for current, relaxed in attempts:
         matches = [(p, d) for p, d in ranked if _passes(p, current)]
@@ -395,7 +437,7 @@ def _search(query: str, filters: Optional[Filters], k: int, user_id: Optional[in
             tags = vocab.current().occasion_tags.get(f.occasion, {f.occasion})
             # Occasion tags (the demo) or Shopify tags ("gym", "yoga")
             products.sort(key=lambda p: not tags & {o.lower() for o in [*p["occasion"], *(p.get("tags") or [])]})
-        if "budget" in relaxed and "category" not in relaxed:
+        if "budget" in relaxed and "category" not in relaxed and "attributes" not in relaxed:
             # Nearest to what they wanted to spend, not the most similar at any price
             target = f.max_price or f.min_price or 0
             products.sort(key=lambda p: abs(p["price"] - target))

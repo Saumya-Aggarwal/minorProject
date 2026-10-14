@@ -33,7 +33,7 @@ workout clothes.
 |---|---|---|---|---|
 | P0 | Cleanup and safety net | 0.5 | — | done 28 Sep |
 | P1 | Multi-store foundation (tenancy, products in Postgres, pgvector) | 7 | P0 | built 2 Oct; friend's catalogue import waits for his shop domain |
-| P2 | Bot quality, part 1 (eval harness, fixes, works for any catalogue, model choice) | 12 | P1 | started 3 Oct; 14 Oct: tracing, harness, step 2 (60/63), step 3 done; step 4 next |
+| P2 | Bot quality, part 1 (eval harness, fixes, works for any catalogue, model choice) | 12 | P1 | started 3 Oct; tracing, harness, steps 2-4 done by 15 Oct; step 5 (model A/B) next |
 | P3 | Shopify connector, deployment, pilot go-live | 8.5 | P1, P2 | not started |
 | P4 | Brand dashboard and minimal human hand-off | 5 | P3 | not started |
 | P5 | Order status, exchanges, abandoned-checkout recovery | 6 | P3 (P4 helps) | not started |
@@ -560,8 +560,21 @@ and 20–40 real customer questions from his DMs, with names removed (30 minutes
   today; a handle in a pasted product link could be added with P3's links).
   The conversation eval was not re-run: the demo's prompt, vocabulary and routing are
   unchanged, and the day's Groq quota was spent.
-- **Next:** step 4 (enforced attribute filters: colour first; it is 2 of the 3 cases
-  still failing), then step 5 (model A/B).
+- **15 Oct, step 4 (attribute filters):** colour (by family, Hinglish included),
+  fabric and fit, read from requests and products (`attributes.py`), enforced in
+  search and relaxed before the garment with an honest note; `search_products`
+  takes them, and the customer's own words fill in what the model's query drops
+  (colour, fabric, fit, occasion, budget). A garment after "my red ..." is context
+  too now. Retrieval eval 56/56 (10 new colour/fabric/context phrasings), owner
+  ratings 10/10; conversation eval 23/23 graded so far, no regressions, before the
+  day's Groq quota ran out. To finish (after ~16:00, when 14 Oct's usage ages out):
+  `eval_conversations.py --config gpt-oss-20b --resume evals/runs/20261015-0132-kurta-gpt-oss-20b`
+  then `--save-baseline` if no regressions.
+  Not done: hybrid search (Postgres full-text + trigram + vector, merged by
+  reciprocal rank fusion); sleeve and neck attributes. Both wait for the pilot's
+  catalogue, which shows whether they are needed.
+- **Next:** step 5 (model A/B through the harness), then step 6 (fewer WhatsApp
+  messages per answer). Step 5 needs a provider key and quota for each candidate.
 
 **Starter prompt:** *"Read plan.md. Plan P2 (Bot quality part 1) in detail, starting with
 the eval harness design and the case format. Build the harness first and record a

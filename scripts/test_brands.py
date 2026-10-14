@@ -151,6 +151,14 @@ def main() -> int:
             shown = retrieval.search("gym bag").products
             check("'gym bag' does show the bag", any(p["category"] == "Accessories" for p in shown),
                   [p["name"] for p in shown])
+            shown = retrieval.search("black oversized tee", k=6).products
+            check("'black oversized tee': black (Shopify's colour option), oversized (its tags)",
+                  shown and all(p["color"] == "Black" and "oversized" in p["tags"] for p in shown),
+                  [(p["name"], p["color"], p["tags"]) for p in shown])
+            shown = retrieval.search("navy sports bra", k=6).products
+            check("'navy sports bra': only the navy one", shown and all(p["color"] == "Navy" and
+                                                                       p["category"] == "Sports Bras" for p in shown),
+                  [p["name"] for p in shown])
             shown = retrieval.search("something comfy for running", k=6).products
             check("an open request never shows socks or caps first",
                   shown and shown[0]["category"] != "Accessories", [p["name"] for p in shown])
