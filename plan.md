@@ -531,10 +531,12 @@ and 20–40 real customer questions from his DMs, with names removed (30 minutes
     "accessories ... around 10k" showed sarees and men's wear;
   - "what 4 items do i have": the cart is not attached (no "cart" word);
   - photos and voice notes get no reply (2) → step 2.
-- **14 Oct, step 2 (quick fixes): 56/59 graded cases pass (from 47/63), checks 99.5%,
-  0 regressions, 12 baseline failures fixed.** 4 cases still to re-run once Groq's
-  free daily quota (200k tokens/model) refills:
-  `eval_conversations.py --resume evals/runs/20261014-1954-kurta-gpt-oss-20b`.
+- **14 Oct, step 2 (quick fixes): 60/63 cases pass (from 47/63), checks 913/917,
+  no regressions; saved as the new baseline (`evals/baselines/kurta-gpt-oss-20b.json`).**
+  Cost of it: ~2,835 tokens in per model turn (was ~2,424: sizes in the context, and
+  retries when a check sends a reply back), p50 2.6 s / p95 4.9 s (was 1.9 / 3.4);
+  still ~Rs 1.4 per 100 conversations. Groq's free tier allows 200k tokens a day per
+  model, about one full run plus a few re-runs.
   Done: checkout matcher ("i wanna pay", "chedckout", "proceed to payment"); a
   `checkout` tool that runs the real CHECKOUT; payment-button claims sent back then
   cut; cart tools take quantity (and size for remove) and fill a ledger from which
@@ -547,8 +549,7 @@ and 20–40 real customer questions from his DMs, with names removed (30 minutes
   (the catalogue vocabulary belongs to step 3).
   Still failing: "only male options" asks who again; accessories within a budget show
   sarees; colour is not a filter (black suit, yellow kurta) → steps 3-4 and P7.
-- **Next:** finish the 4 re-runs and save the new baseline (`--save-baseline`), then
-  step 3 (work for any catalogue).
+- **Next:** step 3 (work for any catalogue).
 
 **Starter prompt:** *"Read plan.md. Plan P2 (Bot quality part 1) in detail, starting with
 the eval harness design and the case format. Build the harness first and record a

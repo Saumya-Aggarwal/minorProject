@@ -121,8 +121,8 @@ fallbacks (evals/configs.yaml). Baselines in evals/baselines/; runs (model
 outputs) in evals/runs/ are private. --dry plays everything with a canned
 model, for free. Write expectations for the behaviour we want: a failing case
 is a to-do, and the baseline records it.
-Verify: scripts/test_eval_harness.py (44 checks, no quota). Baseline 14 Oct, gpt-oss-20b:
-47/63 cases, 889/918 checks (plan.md P2 has the fix list it produced).
+Verify: scripts/test_eval_harness.py (44 checks, no quota). Baseline (after P2 step 2), gpt-oss-20b:
+60/63 cases, 913/917 checks (was 47/63 before step 2; plan.md P2 has the history).
 
 ## Shared contract (do not change without syncing both devs)
 get_product_recommendations(query: str, top_k: int = 3) -> tuple[str, List[ProductMatch]]

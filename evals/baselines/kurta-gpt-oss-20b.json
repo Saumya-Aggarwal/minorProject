@@ -3,7 +3,7 @@
  "config": "gpt-oss-20b",
  "model": "openai/gpt-oss-20b",
  "reasoning_effort": "low",
- "started": "2026-10-14T13:15+00:00",
+ "started": "2026-10-14T15:19+00:00",
  "cases_dir": "evals/cases/kurta",
  "usd_inr": 88,
  "waited_s": 0.0,
@@ -11,14 +11,14 @@
  "cases": {
   "total": 63,
   "graded": 63,
-  "passed": 47,
+  "passed": 60,
   "setup_errors": 0,
   "not_run": 0
  },
  "checks": {
-  "total": 918,
-  "failed": 29,
-  "pass_rate": 0.9684
+  "total": 917,
+  "failed": 4,
+  "pass_rate": 0.9956
  },
  "per_check": {
   "address_pending": {
@@ -38,12 +38,12 @@
   },
   "cart": {
    "runs": 1,
-   "fails": 1,
+   "fails": 0,
    "universal": 0
   },
   "cart_has": {
    "runs": 13,
-   "fails": 1,
+   "fails": 0,
    "universal": 0
   },
   "cart_shown_once": {
@@ -63,7 +63,7 @@
   },
   "cta": {
    "runs": 10,
-   "fails": 4,
+   "fails": 0,
    "universal": 0
   },
   "no_code": {
@@ -78,7 +78,7 @@
   },
   "no_fallback": {
    "runs": 69,
-   "fails": 2,
+   "fails": 0,
    "universal": 1
   },
   "no_fragments": {
@@ -93,7 +93,7 @@
   },
   "order_placed": {
    "runs": 11,
-   "fails": 4,
+   "fails": 0,
    "universal": 0
   },
   "path": {
@@ -103,22 +103,22 @@
   },
   "pay_claim_backed": {
    "runs": 69,
-   "fails": 4,
+   "fails": 0,
    "universal": 1
   },
   "profile_gender": {
    "runs": 4,
-   "fails": 1,
+   "fails": 0,
    "universal": 0
   },
   "replied": {
    "runs": 69,
-   "fails": 2,
+   "fails": 0,
    "universal": 1
   },
   "reply_has": {
    "runs": 32,
-   "fails": 5,
+   "fails": 0,
    "universal": 0
   },
   "reply_lacks": {
@@ -133,11 +133,11 @@
   },
   "shown_fit": {
    "runs": 17,
-   "fails": 3,
+   "fails": 2,
    "universal": 0
   },
   "shows": {
-   "runs": 25,
+   "runs": 24,
    "fails": 1,
    "universal": 0
   },
@@ -167,7 +167,7 @@
   },
   "cart": {
    "cases": 17,
-   "passed": 13
+   "passed": 17
   },
   "category": {
    "cases": 8,
@@ -175,19 +175,19 @@
   },
   "checkout": {
    "cases": 9,
-   "passed": 4
+   "passed": 9
   },
   "colour": {
    "cases": 3,
-   "passed": 1
+   "passed": 2
   },
   "consent": {
    "cases": 3,
-   "passed": 2
+   "passed": 3
   },
   "discovery": {
    "cases": 21,
-   "passed": 16
+   "passed": 18
   },
   "hinglish": {
    "cases": 1,
@@ -195,11 +195,11 @@
   },
   "lookup": {
    "cases": 8,
-   "passed": 7
+   "passed": 8
   },
   "media": {
    "cases": 2,
-   "passed": 0
+   "passed": 2
   },
   "memory": {
    "cases": 1,
@@ -219,11 +219,11 @@
   },
   "profile": {
    "cases": 1,
-   "passed": 0
+   "passed": 1
   },
   "quantity": {
    "cases": 1,
-   "passed": 0
+   "passed": 1
   },
   "reorder": {
    "cases": 2,
@@ -235,7 +235,7 @@
   },
   "size": {
    "cases": 11,
-   "passed": 10
+   "passed": 11
   },
   "smalltalk": {
    "cases": 4,
@@ -243,11 +243,11 @@
   },
   "typo": {
    "cases": 5,
-   "passed": 4
+   "passed": 5
   },
   "wearer": {
    "cases": 6,
-   "passed": 4
+   "passed": 5
   }
  },
  "judge": {
@@ -256,45 +256,44 @@
  },
  "metrics": {
   "turns": 69,
-  "model_turns": 45,
-  "latency_ms_p50": 1908,
-  "latency_ms_p95": 3401,
-  "llm_calls_per_model_turn": 1.67,
-  "tokens_in_per_model_turn": 2424,
-  "tokens_out_per_model_turn": 105,
-  "usd_per_conversation": 0.000152,
-  "inr_per_100_conversations": 1.34,
-  "wa_messages_per_turn": 1.65,
+  "model_turns": 40,
+  "latency_ms_p50": 2629,
+  "latency_ms_p95": 4936,
+  "llm_calls_per_model_turn": 1.62,
+  "tokens_in_per_model_turn": 2835,
+  "tokens_out_per_model_turn": 102,
+  "usd_per_conversation": 0.000154,
+  "inr_per_100_conversations": 1.36,
+  "wa_messages_per_turn": 1.62,
   "guards": {
-   "listing_cut": 5,
-   "tool_use_retry": 3,
-   "model_dropped": 2,
-   "fallback": 2,
-   "products_attached": 1
+   "listing_cut": 6,
+   "repaired_tool_call": 4,
+   "products_attached": 1,
+   "nudge_send_reply": 1
   }
  },
  "case_results": {
   "cart-add-asks-size": true,
   "cart-size-answer-adds": true,
   "cart-ordinal-typo": true,
-  "cart-remove-some-of-a-line": false,
+  "cart-remove-some-of-a-line": true,
   "cart-add-named-with-size": true,
   "cart-pick-by-name-then-size": true,
   "cart-size-in-a-sentence": true,
   "cart-size-typo": true,
   "cart-free-size-gift": true,
-  "cart-add-in-size-after-pick": false,
-  "cart-yes-to-our-offer": false,
+  "cart-add-in-size-after-pick": true,
+  "cart-yes-to-our-offer": true,
   "cart-yes-to-buy-this": true,
   "cart-add-without-asking": true,
-  "checkout-i-wanna-pay": false,
-  "checkout-i-wanna-checkout": false,
+  "checkout-i-wanna-pay": true,
+  "checkout-i-wanna-checkout": true,
   "checkout-can-i-checkout-pls": true,
-  "checkout-typo": false,
-  "checkout-proceed-to-payment": false,
+  "checkout-typo": true,
+  "checkout-proceed-to-payment": true,
   "checkout-command": true,
   "checkout-asks-address-first": true,
-  "checkout-empty-cart": false,
+  "checkout-empty-cart": true,
   "checkout-size-missing": true,
   "find-haldi-brother": true,
   "find-haldi-brother-budget": true,
@@ -304,11 +303,11 @@
   "find-haldi-who-and-budget": true,
   "find-haldi-sister-5k": true,
   "find-fit-advice-without-chart": true,
-  "find-black-wedding-suit": false,
+  "find-black-wedding-suit": true,
   "find-accessories-wife": true,
   "find-accessories-wedding-10k": false,
   "find-friend-wedding-wear": true,
-  "find-friend-wedding-male": false,
+  "find-friend-wedding-male": true,
   "find-dress-typos": true,
   "find-groom-sherwani-budget": true,
   "find-office-saree": true,
@@ -319,7 +318,7 @@
   "find-not-stocked": true,
   "find-groom-not-guest": true,
   "lookup-cart-casual": true,
-  "lookup-cart-quantities": false,
+  "lookup-cart-quantities": true,
   "lookup-cart-count-confusion": true,
   "lookup-past-orders": true,
   "lookup-order-detail": true,
@@ -335,7 +334,7 @@
   "chat-greeting": true,
   "reorder-old-order": true,
   "reorder-pick-adds-same-size": true,
-  "media-photo": false,
-  "media-voice-note": false
+  "media-photo": true,
+  "media-voice-note": true
  }
 }
