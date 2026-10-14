@@ -8,7 +8,8 @@ phase, and each phase is planned in its own chat. The project is now SOLO: the
 Dev A / Dev B ownership rules below and in WORK_SPLIT.md no longer apply. The rest
 of this file describes the code as it stands and stays accurate until a phase
 changes it. P0 and P1 are done (see "Stores and tenancy (P1)" below). P2 has
-started: every message is now traced (see "Traces (P2)"); the eval harness is next.
+started: every message is traced (see "Traces (P2)") and graded by the eval
+harness (see "Conversation evals (P2)"); fixing what it finds is next.
 
 ## Context (September sprint)
 2-person team, 7-day sprint. Deadline: 23 September 2026.
@@ -104,6 +105,24 @@ with a fake model at llm.client: one saved trace per turn, and identical
 replies, model requests and database state with every tracing internal
 failing (tracing._faults). --record/--compare check against the code from
 before tracing (both runs were identical on 14 Oct).
+
+## Conversation evals (P2, 14 Oct)
+scripts/eval_conversations.py plays evals/cases/<brand>/*.yaml through the real
+routing (webhook._receive_change, answered inline, tracing.channel="eval") and
+grades every turn by code from the trace and before/after state; evals/README.md
+is the case format. Pieces in scripts/eval_harness/: cases.py (load, validate
+against the catalogue, {order1}/{shown1} placeholders), state.py (a throwaway
+customer per case, numbers +9900..., removed after), runner.py (scripted model
+for preludes, the model under test for graded turns, payments and WhatsApp
+faked), checks.py (expectations + 11 checks on every turn), pacing.py (free-tier
+pacing; a per-day 429 stops the run, --resume continues), report.py, judge.py
+(optional, --judge, a different model family). A config tests ONE model with no
+fallbacks (evals/configs.yaml). Baselines in evals/baselines/; runs (model
+outputs) in evals/runs/ are private. --dry plays everything with a canned
+model, for free. Write expectations for the behaviour we want: a failing case
+is a to-do, and the baseline records it.
+Verify: scripts/test_eval_harness.py (42 checks, no quota). Baseline 14 Oct, gpt-oss-20b:
+47/63 cases, 889/918 checks (plan.md P2 has the fix list it produced).
 
 ## Shared contract (do not change without syncing both devs)
 get_product_recommendations(query: str, top_k: int = 3) -> tuple[str, List[ProductMatch]]

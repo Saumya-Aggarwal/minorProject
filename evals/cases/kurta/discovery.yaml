@@ -1,0 +1,230 @@
+# Finding something: who it is for, the function, the budget, colour, category.
+# When the words do not say who will wear it, the assistant asks (CLAUDE.md, Assistant).
+
+- id: find-haldi-brother
+  source: reply 124 (21 Sep), rated good by the owner
+  tags: [discovery, wearer]
+  turns:
+    - say: i would like to buy haldi outfits for my brother
+      expect:
+        shown_fit: {gender: Men}
+        profile_gender: null
+        cart_unchanged: true
+
+- id: find-haldi-brother-budget
+  source: reply 125 (21 Sep); owner rated EW045, EW040, EW001 good and EW047 wrong
+  tags: [discovery, budget]
+  prelude:
+    - say: i would like to buy haldi outfits for my brother
+      model:
+        - send_reply: {message: "Lovely! What budget should I keep to?"}
+  turns:
+    - say: around 7k
+      expect:
+        shows: true
+        shown_fit: {gender: Men, max_price: 7000}
+        shows_any: [EW045, EW033, EW011]
+        profile_gender: null
+
+- id: find-night-wedding-who
+  source: reply 175 (22 Sep); showed a bridal lehenga to a man
+  tags: [discovery, wearer]
+  turns:
+    - say: umm i wanna buy something for a night wedding
+      expect:
+        asks: true
+        shows: false
+
+- id: find-only-male
+  source: reply 176 (22 Sep)
+  tags: [discovery, wearer]
+  prelude:
+    - say: umm i wanna buy something for a night wedding
+      model:
+        - send_reply: {message: "A few for a night wedding.", product_ids: [EW063, EW039, EW006, EW019]}
+  turns:
+    - say: ionly male options
+      expect:
+        shows: true
+        shown_fit: {gender: Men, occasion: [wedding, reception, engagement, cocktail, sangeet, evening, party]}
+
+- id: find-shoes-for-sherwani
+  source: reply 415 (22 Sep); "shervani"
+  tags: [discovery, category, typo]
+  turns:
+    - say: ohk rn i wanna buy some shoes to go with my shervani
+      expect:
+        shows: true
+        shown_fit: {gender: Men, categories: [Footwear]}
+
+- id: find-haldi-who-and-budget
+  source: reply 577 (22 Sep)
+  tags: [discovery, wearer]
+  turns:
+    - say: i want to buy for haldi function
+      expect:
+        asks: true
+        shows: false
+
+- id: find-haldi-sister-5k
+  source: reply 578 (22 Sep); "The." fragment; owner rated EW068 wrong
+  tags: [discovery, budget]
+  prelude:
+    - say: i want to buy for haldi function
+      model:
+        - send_reply: {message: "Happy to help! Who is it for, and what budget?"}
+  turns:
+    - say: its for my sister, my budget is around 5k
+      expect:
+        shows: true
+        shown_fit: {gender: Women, max_price: 5000}
+        shows_any: [EW055, EW056, EW076, EW082, EW081]
+        profile_gender: null
+
+- id: find-fit-advice-without-chart
+  source: reply 579 (22 Sep); "a size M or L would fit well" from nothing
+  tags: [size, advice]
+  prelude:
+    - say: haldi outfit for my sister around 5k
+      model:
+        - send_reply: {message: "Haldi picks for your sister.", product_ids: [EW076, EW055, EW056, EW068]}
+    - say: "1"
+  turns:
+    - say: my sis is 5'8 which size would fit her well
+      expect:
+        cart_unchanged: true
+      judge: Does not claim a particular size will fit from her height alone; offers the sizes the item comes in, or asks for a measurement such as bust or waist.
+
+- id: find-black-wedding-suit
+  source: reply 581 (22 Sep); colour ignored, showed a white suit
+  tags: [discovery, colour]
+  turns:
+    - say: suit for wedding for me black color
+      expect:
+        shows: true
+        shown_fit: {gender: Men, colour: black}
+        shows_any: [EW008, EW038]
+
+- id: find-accessories-wife
+  source: reply 771 (22 Sep)
+  tags: [discovery, category]
+  turns:
+    - say: hmm so accessiroes for my wife
+      expect:
+        shown_fit: {gender: Women, categories: [Bags, Footwear, Dupatta]}
+        cart_unchanged: true
+
+- id: find-accessories-wedding-10k
+  source: reply 772 (22 Sep); showed sarees instead of accessories
+  tags: [discovery, category, budget]
+  prelude:
+    - say: hmm so accessiroes for my wife
+      model:
+        - send_reply: {message: "Sure! Which occasion is it for, and do you have a budget?"}
+  turns:
+    - say: its for a wedding around 10k
+      expect:
+        shows: true
+        shown_fit: {gender: Women, categories: [Bags, Footwear, Dupatta], max_price: 10000}
+
+- id: find-friend-wedding-wear
+  source: replies 1388-1487 (23 Sep); asked "is your friend a man or a woman?"
+  tags: [discovery, wearer]
+  turns:
+    - say: hi i would like to buy something to wear on a wedding of my friend
+      expect:
+        asks: true
+        shows: false
+        reply_lacks: ["friend (?:is )?a man", "is your friend"]
+
+- id: find-friend-wedding-male
+  source: reply 1490 (23 Sep)
+  tags: [discovery, wearer, profile]
+  prelude:
+    - say: hi i would like to buy something to wear on a wedding of my friend
+      model:
+        - send_reply: {message: "Happy to help! Menswear or womenswear, and what budget?"}
+  turns:
+    - say: male
+      expect:
+        shows: true
+        shown_fit: {gender: Men}
+        profile_gender: Men
+
+- id: find-dress-typos
+  source: reply 1489 (23 Sep); "i want ti buy a dress fir weeding" answered with a question about a friend
+  tags: [discovery, typo]
+  turns:
+    - say: i want ti buy a dress fir weeding
+      expect:
+        reply_lacks: [friend]
+        shown_fit: {occasion: [wedding, reception, engagement, sangeet, bridal]}
+
+- id: find-groom-sherwani-budget
+  tags: [discovery, budget, category]
+  turns:
+    - say: sherwani for my wedding, i am the groom, budget 10k
+      expect:
+        shows: true
+        shown_fit: {gender: Men, categories: [Sherwani], max_price: 10000}
+
+- id: find-office-saree
+  tags: [discovery, category]
+  turns:
+    - say: saree for office
+      expect:
+        shows: true
+        shown_fit: {gender: Women, categories: [Saree], occasion: [office, daytime, casual]}
+
+- id: find-garba-under-4000
+  tags: [discovery, budget, category]
+  turns:
+    - say: chaniya choli for garba under 4000
+      expect:
+        shows: true
+        shown_fit: {max_price: 4000, occasion: [garba, navratri]}
+        shows_any: [EW058, EW070]
+
+- id: find-hinglish-yellow-kurta
+  tags: [discovery, hinglish, colour]
+  turns:
+    - say: bhai ki haldi ke liye yellow kurta dikhao
+      expect:
+        shows: true
+        shown_fit: {gender: Men, colour: [yellow, mustard, sunflower]}
+        shows_any: [EW033, EW011]
+
+- id: find-pink-lehenga-sangeet
+  tags: [discovery, colour, category]
+  turns:
+    - say: pink lehenga for my sangeet
+      expect:
+        shows: true
+        shown_fit: {gender: Women, categories: [Lehenga], colour: pink}
+
+- id: find-budget-impossible
+  tags: [discovery, budget]
+  turns:
+    - say: sherwani under 2000
+      expect:
+        reply_has: ["(?:no|don't have|do not have|nothing|closest|starts? (?:at|from)|above|over)"]
+        shown_fit: {categories: [Sherwani]}
+
+- id: find-not-stocked
+  tags: [discovery, category]
+  turns:
+    - say: do you have jeans?
+      expect:
+        reply_has: ["(?:don't|do not|no|not)\\b.*(?:jeans|stock|carry|sell)|only|ethnic"]
+
+- id: find-groom-not-guest
+  source: plan.md P2 evidence ("groom vs guest")
+  tags: [discovery, occasion]
+  given:
+    profile: {gender: Men}
+  turns:
+    - say: what should i wear to my own wedding
+      note: Asking which function (ceremony, reception...) is fair; asking who will wear it is not
+      expect:
+        shown_fit: {gender: Men, occasion: [groom, wedding]}
+        reply_lacks: ["who (?:is|will|are)", "for whom"]

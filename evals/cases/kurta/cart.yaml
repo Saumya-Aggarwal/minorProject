@@ -1,0 +1,170 @@
+# Changing the cart in words: sizes, quantities, "the second one", typos.
+
+- id: cart-add-asks-size
+  source: reply 132 (21 Sep)
+  tags: [cart, size]
+  prelude:
+    - say: EW045
+  turns:
+    - say: add this one to cart
+      note: Adding it unsized and asking for the size is the design (the line waits for one)
+      expect:
+        cart_has: [{product: EW045}]
+        reply_has: ["size", "XXL"]
+
+- id: cart-size-answer-adds
+  source: replies 133-134 (21 Sep); "xxl" was refused twice
+  tags: [cart, size]
+  prelude:
+    - say: EW045
+    - say: add this one to cart
+  turns:
+    - say: xxl
+      expect:
+        cart_has: [{product: EW045, size: XXL}]
+
+- id: cart-ordinal-typo
+  source: replies 1491-1492 (23 Sep)
+  tags: [cart, size, typo]
+  prelude:
+    - say: man
+      model:
+        - send_reply: {message: "Some wedding sherwanis for you.", product_ids: [EW042, EW006, EW054, EW039]}
+  turns:
+    - say: add 2nd ine to my cart
+      expect:
+        cart_unchanged: true
+        asks: true
+        reply_has: [Royal Blue]
+    - say: ad 42
+      expect:
+        cart_has: [{product: EW006, size: "42"}]
+
+- id: cart-remove-some-of-a-line
+  source: reply 174 (21 Sep); said "Removed 2", the tool has no quantity
+  tags: [cart, quantity]
+  given:
+    cart:
+      - {product: EW071, size: Free Size, qty: 3}
+      - {product: EW045, size: XXL, qty: 1}
+  turns:
+    - say: ohk can u remove 2 aqua chanderi saree
+      expect:
+        cart:
+          - {product: EW071, size: Free Size, qty: 1}
+          - {product: EW045, size: XXL, qty: 1}
+
+- id: cart-add-named-with-size
+  source: reply 182 (22 Sep)
+  tags: [cart, size]
+  given:
+    cart: [{product: EW045, size: XXL, qty: 1}]
+  turns:
+    - say: The Blush Pink Groom Sherwani (size 46) add this in cart
+      expect:
+        cart_has: [{product: EW042, size: "46"}, {product: EW045, size: XXL}]
+
+- id: cart-pick-by-name-then-size
+  source: replies 177-180 (22 Sep); offered S-XXL for a sherwani sold in 38-46
+  tags: [cart, size, selection]
+  prelude:
+    - say: only male options for a night wedding
+      model:
+        - send_reply: {message: "Men's picks for an evening wedding.", product_ids: [EW039, EW054, EW006, EW042]}
+  turns:
+    - say: choose blush pink one
+      expect:
+        selected: EW042
+        cart_unchanged: true
+    - say: XL
+      expect:
+        cart_unchanged: true
+        reply_has: ["38", "46"]
+    - say: "46"
+      expect:
+        cart_has: [{product: EW042, size: "46"}]
+
+- id: cart-size-in-a-sentence
+  source: reply 416 (22 Sep); promised "I'll add the mojari in UK 11", added nothing
+  tags: [cart, size]
+  prelude:
+    - say: shoes to go with my sherwani
+      model:
+        - send_reply: {message: "Two pairs that suit a sherwani.", product_ids: [EW052, EW053]}
+    - say: "1"
+  turns:
+    - say: i think 11 size would be the best for me
+      expect:
+        cart_has: [{product: EW052, size: UK 11}]
+
+- id: cart-size-typo
+  source: reply 494 (22 Sep); asked for the size it had just been given
+  tags: [cart, size, typo]
+  prelude:
+    - say: shoes to go with my sherwani
+      model:
+        - send_reply: {message: "Two pairs that suit a sherwani.", product_ids: [EW052, EW053]}
+  turns:
+    - say: i want 11 sizr of the silver paisley
+      expect:
+        cart_has: [{product: EW052, size: UK 11}]
+
+- id: cart-free-size-gift
+  source: 'replies 774-775 (22 Sep); invented "Sizes: S, M, L, XL" for a clutch, then "in Medium"'
+  tags: [cart, size]
+  prelude:
+    - say: accessories for my wife for a wedding, around 10k
+      model:
+        - send_reply: {message: "Wedding accessories for her.", product_ids: [EW080, EW079, EW084, EW077]}
+  turns:
+    - say: would 1 be a good gift for my wife?
+      expect:
+        cart_unchanged: true
+    - say: i think medium would look good on her
+      expect:
+        cart_has: [{product: EW080}]
+
+- id: cart-add-in-size-after-pick
+  source: reply 580 (22 Sep); the cart was shown twice
+  tags: [cart, size]
+  prelude:
+    - say: haldi outfit for my sister around 5k
+      model:
+        - send_reply: {message: "Haldi picks for your sister.", product_ids: [EW076, EW055, EW056, EW068]}
+    - say: "1"
+  turns:
+    - say: pls add L to my cart
+      expect:
+        cart_has: [{product: EW076, size: L}]
+
+- id: cart-yes-to-our-offer
+  source: replies 178-179 (22 Sep); "yes pls add" after we offered
+  tags: [cart, consent]
+  prelude:
+    - say: EW006
+    - say: I like it in 42
+      model:
+        - send_reply: {message: "Shall I add the Royal Blue Wedding Sherwani in 42 to your cart?"}
+  turns:
+    - say: yes pls add
+      expect:
+        cart_has: [{product: EW006, size: "42"}]
+
+- id: cart-yes-to-buy-this
+  source: reply 974 (22 Sep)
+  tags: [cart, consent]
+  prelude:
+    - say: EW080
+  turns:
+    - say: yes i would like to buy this
+      expect:
+        cart_has: [{product: EW080}]
+
+- id: cart-add-without-asking
+  tags: [cart, consent]
+  prelude:
+    - say: EW045
+  turns:
+    - say: is this one cotton?
+      expect:
+        cart_unchanged: true

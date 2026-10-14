@@ -1,0 +1,103 @@
+# Questions about their own cart, orders and address: facts, answered from the database.
+# Sources are reply ids in evals/raw/bot_replies.json (exported 27 Sep).
+
+- id: lookup-cart-casual
+  source: reply 92 (21 Sep)
+  tags: [lookup, cart]
+  given:
+    cart: [{product: EW071, size: Free Size, qty: 3}]
+  turns:
+    - say: Hi can u pls check my cart rn
+      expect:
+        reply_has: [Aqua Chanderi Saree, "6,?897"]
+        cart_unchanged: true
+        shows: false
+
+- id: lookup-cart-quantities
+  source: reply 172 (21 Sep); owner's note "u also need to tell me the quantity"
+  tags: [lookup, cart]
+  given:
+    cart:
+      - {product: EW071, size: Free Size, qty: 3}
+      - {product: EW045, size: XXL, qty: 1}
+  turns:
+    - say: what 4 items do i have
+      expect:
+        reply_has: [Aqua Chanderi Saree, Tangerine Embroidered Kurta, "\\b3\\b", "8,?796"]
+        cart_unchanged: true
+        shows: false
+
+- id: lookup-cart-count-confusion
+  source: reply 173 (21 Sep)
+  tags: [lookup, cart]
+  given:
+    cart:
+      - {product: EW071, size: Free Size, qty: 3}
+      - {product: EW045, size: XXL, qty: 1}
+  turns:
+    - say: these are just 2 items how does it shows my cart has 4 items
+      expect:
+        reply_has: ["\\b3\\b", "Aqua|saree"]
+        cart_unchanged: true
+      judge: Explains that the 4 items are 3 of the Aqua saree plus 1 kurta, without contradicting itself.
+
+- id: lookup-past-orders
+  source: reply 413 (22 Sep)
+  tags: [lookup, orders]
+  given:
+    orders:
+      - {items: [{product: EW045, size: XXL}, {product: EW042, size: "46"}], days_ago: 5}
+      - {items: [{product: EW006, size: "42"}, {product: EW045, size: XL}], days_ago: 9}
+  turns:
+    - say: can u show me my past orders
+      expect:
+        path: [lookup, command:orders]
+        reply_has: ["#{order1}", "#{order2}", "14,?898"]
+        shows: false
+
+- id: lookup-order-detail
+  source: reply 414 (22 Sep)
+  tags: [lookup, orders]
+  given:
+    orders:
+      - {items: [{product: EW045, size: XXL}, {product: EW042, size: "46"}], days_ago: 5}
+  turns:
+    - say: "#{order1} show full details of that order"
+      expect:
+        reply_has: [Tangerine, Blush Pink, "14,?898"]
+        cart_unchanged: true
+
+- id: lookup-address-show
+  source: replies 709 and 770 (22 Sep); the model once refused ("I can only assist with ethnic wear")
+  tags: [lookup, address]
+  given:
+    address: default
+  turns:
+    - say: hi can u show me my adress?
+      expect:
+        reply_has: [Test Street, "560001"]
+        address_pending: false
+
+- id: lookup-address-none-yet
+  tags: [lookup, address]
+  turns:
+    - say: what address do you have for me
+      expect:
+        reply_has: [address]
+        address_pending: true
+        shows: false
+
+- id: lookup-address-change
+  tags: [lookup, address]
+  given:
+    address: default
+  turns:
+    - say: i want to change my delivery address
+      expect:
+        address_pending: true
+        reply_has: [Test Street]
+    - say: "Ravi Kumar, 9812345678\n44 Park Street\nKolkata 700016, West Bengal"
+      expect:
+        address_pending: false
+        reply_has: [Park Street, "700016"]
+        order_placed: false

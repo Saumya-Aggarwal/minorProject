@@ -1,0 +1,341 @@
+{
+ "brand": "kurta",
+ "config": "gpt-oss-20b",
+ "model": "openai/gpt-oss-20b",
+ "reasoning_effort": "low",
+ "started": "2026-10-14T13:15+00:00",
+ "cases_dir": "evals/cases/kurta",
+ "usd_inr": 88,
+ "waited_s": 0.0,
+ "rate_limited": 0,
+ "cases": {
+  "total": 63,
+  "graded": 63,
+  "passed": 47,
+  "setup_errors": 0,
+  "not_run": 0
+ },
+ "checks": {
+  "total": 918,
+  "failed": 29,
+  "pass_rate": 0.9684
+ },
+ "per_check": {
+  "address_pending": {
+   "runs": 6,
+   "fails": 0,
+   "universal": 0
+  },
+  "amounts_real": {
+   "runs": 69,
+   "fails": 0,
+   "universal": 1
+  },
+  "asks": {
+   "runs": 4,
+   "fails": 0,
+   "universal": 0
+  },
+  "cart": {
+   "runs": 1,
+   "fails": 1,
+   "universal": 0
+  },
+  "cart_has": {
+   "runs": 13,
+   "fails": 1,
+   "universal": 0
+  },
+  "cart_shown_once": {
+   "runs": 69,
+   "fails": 0,
+   "universal": 1
+  },
+  "cart_unchanged": {
+   "runs": 20,
+   "fails": 0,
+   "universal": 0
+  },
+  "claims_backed": {
+   "runs": 69,
+   "fails": 0,
+   "universal": 1
+  },
+  "cta": {
+   "runs": 10,
+   "fails": 4,
+   "universal": 0
+  },
+  "no_code": {
+   "runs": 69,
+   "fails": 0,
+   "universal": 1
+  },
+  "no_errors": {
+   "runs": 69,
+   "fails": 0,
+   "universal": 1
+  },
+  "no_fallback": {
+   "runs": 69,
+   "fails": 2,
+   "universal": 1
+  },
+  "no_fragments": {
+   "runs": 69,
+   "fails": 0,
+   "universal": 1
+  },
+  "no_markdown": {
+   "runs": 69,
+   "fails": 0,
+   "universal": 1
+  },
+  "order_placed": {
+   "runs": 11,
+   "fails": 4,
+   "universal": 0
+  },
+  "path": {
+   "runs": 4,
+   "fails": 0,
+   "universal": 0
+  },
+  "pay_claim_backed": {
+   "runs": 69,
+   "fails": 4,
+   "universal": 1
+  },
+  "profile_gender": {
+   "runs": 4,
+   "fails": 1,
+   "universal": 0
+  },
+  "replied": {
+   "runs": 69,
+   "fails": 2,
+   "universal": 1
+  },
+  "reply_has": {
+   "runs": 32,
+   "fails": 5,
+   "universal": 0
+  },
+  "reply_lacks": {
+   "runs": 5,
+   "fails": 0,
+   "universal": 0
+  },
+  "selected": {
+   "runs": 1,
+   "fails": 0,
+   "universal": 0
+  },
+  "shown_fit": {
+   "runs": 17,
+   "fails": 3,
+   "universal": 0
+  },
+  "shows": {
+   "runs": 25,
+   "fails": 1,
+   "universal": 0
+  },
+  "shows_any": {
+   "runs": 6,
+   "fails": 1,
+   "universal": 0
+  },
+  "sizes_real": {
+   "runs": 69,
+   "fails": 0,
+   "universal": 1
+  }
+ },
+ "per_tag": {
+  "address": {
+   "cases": 4,
+   "passed": 4
+  },
+  "advice": {
+   "cases": 1,
+   "passed": 1
+  },
+  "budget": {
+   "cases": 6,
+   "passed": 5
+  },
+  "cart": {
+   "cases": 17,
+   "passed": 13
+  },
+  "category": {
+   "cases": 8,
+   "passed": 7
+  },
+  "checkout": {
+   "cases": 9,
+   "passed": 4
+  },
+  "colour": {
+   "cases": 3,
+   "passed": 1
+  },
+  "consent": {
+   "cases": 3,
+   "passed": 2
+  },
+  "discovery": {
+   "cases": 21,
+   "passed": 16
+  },
+  "hinglish": {
+   "cases": 1,
+   "passed": 0
+  },
+  "lookup": {
+   "cases": 8,
+   "passed": 7
+  },
+  "media": {
+   "cases": 2,
+   "passed": 0
+  },
+  "memory": {
+   "cases": 1,
+   "passed": 1
+  },
+  "occasion": {
+   "cases": 1,
+   "passed": 1
+  },
+  "offtopic": {
+   "cases": 2,
+   "passed": 2
+  },
+  "orders": {
+   "cases": 2,
+   "passed": 2
+  },
+  "profile": {
+   "cases": 1,
+   "passed": 0
+  },
+  "quantity": {
+   "cases": 1,
+   "passed": 0
+  },
+  "reorder": {
+   "cases": 2,
+   "passed": 2
+  },
+  "selection": {
+   "cases": 1,
+   "passed": 1
+  },
+  "size": {
+   "cases": 11,
+   "passed": 10
+  },
+  "smalltalk": {
+   "cases": 4,
+   "passed": 4
+  },
+  "typo": {
+   "cases": 5,
+   "passed": 4
+  },
+  "wearer": {
+   "cases": 6,
+   "passed": 4
+  }
+ },
+ "judge": {
+  "judged": 0,
+  "passed": 0
+ },
+ "metrics": {
+  "turns": 69,
+  "model_turns": 45,
+  "latency_ms_p50": 1908,
+  "latency_ms_p95": 3401,
+  "llm_calls_per_model_turn": 1.67,
+  "tokens_in_per_model_turn": 2424,
+  "tokens_out_per_model_turn": 105,
+  "usd_per_conversation": 0.000152,
+  "inr_per_100_conversations": 1.34,
+  "wa_messages_per_turn": 1.65,
+  "guards": {
+   "listing_cut": 5,
+   "tool_use_retry": 3,
+   "model_dropped": 2,
+   "fallback": 2,
+   "products_attached": 1
+  }
+ },
+ "case_results": {
+  "cart-add-asks-size": true,
+  "cart-size-answer-adds": true,
+  "cart-ordinal-typo": true,
+  "cart-remove-some-of-a-line": false,
+  "cart-add-named-with-size": true,
+  "cart-pick-by-name-then-size": true,
+  "cart-size-in-a-sentence": true,
+  "cart-size-typo": true,
+  "cart-free-size-gift": true,
+  "cart-add-in-size-after-pick": false,
+  "cart-yes-to-our-offer": false,
+  "cart-yes-to-buy-this": true,
+  "cart-add-without-asking": true,
+  "checkout-i-wanna-pay": false,
+  "checkout-i-wanna-checkout": false,
+  "checkout-can-i-checkout-pls": true,
+  "checkout-typo": false,
+  "checkout-proceed-to-payment": false,
+  "checkout-command": true,
+  "checkout-asks-address-first": true,
+  "checkout-empty-cart": false,
+  "checkout-size-missing": true,
+  "find-haldi-brother": true,
+  "find-haldi-brother-budget": true,
+  "find-night-wedding-who": true,
+  "find-only-male": false,
+  "find-shoes-for-sherwani": true,
+  "find-haldi-who-and-budget": true,
+  "find-haldi-sister-5k": true,
+  "find-fit-advice-without-chart": true,
+  "find-black-wedding-suit": false,
+  "find-accessories-wife": true,
+  "find-accessories-wedding-10k": false,
+  "find-friend-wedding-wear": true,
+  "find-friend-wedding-male": false,
+  "find-dress-typos": true,
+  "find-groom-sherwani-budget": true,
+  "find-office-saree": true,
+  "find-garba-under-4000": true,
+  "find-hinglish-yellow-kurta": false,
+  "find-pink-lehenga-sangeet": true,
+  "find-budget-impossible": true,
+  "find-not-stocked": true,
+  "find-groom-not-guest": true,
+  "lookup-cart-casual": true,
+  "lookup-cart-quantities": false,
+  "lookup-cart-count-confusion": true,
+  "lookup-past-orders": true,
+  "lookup-order-detail": true,
+  "lookup-address-show": true,
+  "lookup-address-none-yet": true,
+  "lookup-address-change": true,
+  "chat-thanks": true,
+  "chat-good-boy": true,
+  "chat-unsafe-item": true,
+  "chat-write-code": true,
+  "chat-what-were-we-discussing": true,
+  "chat-no-thank-you": true,
+  "chat-greeting": true,
+  "reorder-old-order": true,
+  "reorder-pick-adds-same-size": true,
+  "media-photo": false,
+  "media-voice-note": false
+ }
+}

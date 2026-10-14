@@ -1,0 +1,112 @@
+# Paying: however they say it, a ready cart gets a Pay Now button, never "reply CHECKOUT".
+
+- id: checkout-i-wanna-pay
+  source: reply 183 (22 Sep); "Here's your secure Pay Now button" and no button
+  tags: [checkout]
+  given:
+    address: default
+    cart: [{product: EW045, size: XXL, qty: 1}, {product: EW042, size: "46", qty: 1}]
+  turns:
+    - say: i wanna pay
+      expect:
+        cta: true
+        order_placed: true
+
+- id: checkout-i-wanna-checkout
+  source: reply 582 (22 Sep); "Reply CHECKOUT to pay"
+  tags: [checkout]
+  given:
+    address: default
+    cart: [{product: EW076, size: L, qty: 1}]
+  turns:
+    - say: i wanna checkout
+      expect:
+        cta: true
+        order_placed: true
+
+- id: checkout-can-i-checkout-pls
+  source: reply 777 (22 Sep)
+  tags: [checkout]
+  given:
+    address: default
+    cart: [{product: EW080, size: Free Size, qty: 1}]
+  turns:
+    - say: can i checkout pls
+      expect:
+        cta: true
+        order_placed: true
+
+- id: checkout-typo
+  source: reply 1493 (23 Sep); "chedckout"
+  tags: [checkout, typo]
+  given:
+    address: default
+    cart: [{product: EW006, size: "42", qty: 1}]
+  turns:
+    - say: chedckout
+      expect:
+        cta: true
+        order_placed: true
+
+- id: checkout-proceed-to-payment
+  tags: [checkout]
+  given:
+    address: default
+    cart: [{product: EW006, size: "42", qty: 1}]
+  turns:
+    - say: ok lets proceed to payment
+      expect:
+        cta: true
+        order_placed: true
+
+- id: checkout-command
+  tags: [checkout]
+  given:
+    address: default
+    cart: [{product: EW006, size: "42", qty: 1}]
+  turns:
+    - say: CHECKOUT
+      expect:
+        path: command:checkout
+        cta: true
+        order_placed: true
+
+- id: checkout-asks-address-first
+  tags: [checkout, address]
+  given:
+    cart: [{product: EW006, size: "42", qty: 1}]
+  turns:
+    - say: CHECKOUT
+      expect:
+        address_pending: true
+        cta: false
+        order_placed: false
+        reply_has: [address]
+    - say: "Asha Verma, 9876501234\n12 MG Road, Indiranagar\nBengaluru 560038, Karnataka"
+      expect:
+        address_pending: false
+        cta: true
+        order_placed: true
+
+- id: checkout-empty-cart
+  tags: [checkout]
+  given:
+    address: default
+  turns:
+    - say: i wanna pay
+      expect:
+        cta: false
+        order_placed: false
+        reply_has: ["empty|nothing in your cart|no items"]
+
+- id: checkout-size-missing
+  tags: [checkout, size]
+  given:
+    address: default
+    cart: [{product: EW045, qty: 1}]
+  turns:
+    - say: CHECKOUT
+      expect:
+        cta: false
+        order_placed: false
+        reply_has: ["size"]

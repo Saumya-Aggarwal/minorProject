@@ -27,7 +27,7 @@ own errors, and save() runs after the reply is built. `_faults` makes every
 internal here raise, so scripts/test_trace_neutrality.py can prove that a
 customer gets exactly the same answers when tracing is broken.
 
-The clock: elapsed() is wall time minus `paused_s`, time the eval harness
+The clock: now()/elapsed() are wall time minus `paused_s`, time the eval harness
 spent waiting out a provider's rate limit. In production nothing pauses, so it
 is plain wall time; in an eval, a wait for quota never counts toward the
 assistant's 25-second turn budget or the measured latency.
@@ -161,15 +161,26 @@ def end(trace: Optional[Trace], token: Any, reply: Any = None, error: str = "") 
             _current.set(None)
 
 
-def elapsed(started: float, trace: Optional[Trace] = None) -> float:
-    """Seconds since `started` (a perf_counter value), minus harness pauses."""
+def now(trace: Optional[Trace] = None) -> float:
+    """The trace's clock: perf_counter minus the harness pauses so far.
+
+    Take a start time from here and pass it to elapsed(): only pauses that
+    happen in between are left out. (A per-call time that subtracted every
+    pause of the turn, including earlier ones, once came out negative.)
+    """
     try:
         _check()
         trace = trace or _current.get()
         paused = trace.paused_s if trace is not None else 0.0
     except Exception:
         paused = 0.0
-    return time.perf_counter() - started - paused
+    return time.perf_counter() - paused
+
+
+def elapsed(started: float, trace: Optional[Trace] = None) -> float:
+    """Seconds since `started`, a value from now() (a Trace's own `started`
+    is one: nothing has paused when it begins), minus pauses since then."""
+    return now(trace) - started
 
 
 def pause(seconds: float) -> None:

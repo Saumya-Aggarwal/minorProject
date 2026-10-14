@@ -1,0 +1,116 @@
+# Small talk, off-topic, memory, buy-it-again, and messages that are not text.
+
+- id: chat-thanks
+  source: reply 93 (21 Sep)
+  tags: [smalltalk]
+  given:
+    cart: [{product: EW071, size: Free Size, qty: 3}]
+  turns:
+    - say: thanks
+      expect:
+        shows: false
+        cart_unchanged: true
+
+- id: chat-good-boy
+  source: reply 495 (22 Sep)
+  tags: [smalltalk]
+  turns:
+    - say: good boy
+      expect:
+        shows: false
+        cart_unchanged: true
+
+- id: chat-unsafe-item
+  source: reply 496 (22 Sep)
+  tags: [offtopic]
+  turns:
+    - say: do we have bombs?
+      expect:
+        shows: false
+        cart_unchanged: true
+
+- id: chat-write-code
+  source: reply 497 (22 Sep); answered with a working Python snippet
+  tags: [offtopic]
+  turns:
+    - say: umm can u write a python code for 2+2
+      expect:
+        shows: false
+        reply_has: ["shop|outfit|ethnic|wear|clothes|kurta|saree"]
+
+- id: chat-what-were-we-discussing
+  source: reply 973 (22 Sep)
+  tags: [memory]
+  prelude:
+    - say: accessories for my wife for a wedding, around 10k
+      model:
+        - send_reply: {message: "Wedding accessories for her.", product_ids: [EW080, EW079, EW084, EW077]}
+    - say: would 1 be a good gift for my wife?
+      model:
+        - send_reply: {message: "Yes, the mint clutch makes a lovely gift for a wedding."}
+  turns:
+    - say: which gift were we discusing rn
+      expect:
+        reply_has: ["clutch"]
+        cart_unchanged: true
+
+- id: chat-no-thank-you
+  source: reply 776 (22 Sep)
+  tags: [smalltalk]
+  prelude:
+    - say: EW080
+  turns:
+    - say: no thank u
+      expect:
+        cart_unchanged: true
+        shows: false
+
+- id: chat-greeting
+  tags: [smalltalk]
+  turns:
+    - say: hi
+      expect:
+        path: greeting
+        shows: false
+
+- id: reorder-old-order
+  source: reply 975 (22 Sep); answered "Added the." with one product
+  tags: [reorder]
+  given:
+    orders:
+      - {items: [{product: EW080, size: Free Size}], days_ago: 3}
+      - {items: [{product: EW045, size: XXL}], days_ago: 20}
+  turns:
+    - say: can i buy one my old order agian
+      expect:
+        path: reorder
+        shows_any: [EW080, EW045]
+        cart_unchanged: true
+
+- id: reorder-pick-adds-same-size
+  tags: [reorder, cart]
+  given:
+    orders:
+      - {items: [{product: EW045, size: XXL}], days_ago: 3}
+  prelude:
+    - say: i want to buy my old order again
+  turns:
+    - say: "1"
+      expect:
+        cart_has: [{product: EW045, size: XXL}]
+
+- id: media-photo
+  source: plan.md P2 evidence (photos get no answer at all)
+  tags: [media]
+  turns:
+    - media: image
+      expect:
+        cart_unchanged: true
+
+- id: media-voice-note
+  source: plan.md P2 evidence (voice notes get no answer at all)
+  tags: [media]
+  turns:
+    - media: audio
+      expect:
+        cart_unchanged: true

@@ -1,0 +1,36 @@
+# Model configs for scripts/eval_conversations.py (--config NAME; the first is the default)
+# and the brands whose cases live in evals/cases/<brand>/.
+#
+# Each config points the chat role at ONE model, without fallbacks, so every
+# failure is graded as that model's. tpm keeps a run under a free tier's
+# tokens-per-minute limit (pacing.py); leave it out on a paid tier.
+# price_usd is per million tokens: [input, cached input, output]; models
+# already in backend/llm.py PRICES need none.
+
+usd_inr: 88          # for "₹ per 100 conversations"; approximate, update when it matters
+
+brands:
+  kurta:
+    store_id: 1      # the demo store, Kurta & Co. (Indian ethnic wear)
+
+configs:
+  gpt-oss-20b:
+    model: openai/gpt-oss-20b
+    reasoning_effort: low
+    tpm: 8000
+    notes: today's production model (Groq)
+
+  gpt-oss-120b:
+    model: openai/gpt-oss-120b
+    reasoning_effort: medium
+    tpm: 8000
+    notes: plan.md P2 step 5 candidate (Groq)
+
+  # Not runnable yet: P2 step 5 adds these once their keys and exact model ids
+  # are confirmed against the providers' docs (plan.md, "Model A/B").
+  # kimi-k2.6:
+  #   model: kimi-k2.6
+  #   base_url: https://api.moonshot.ai/v1
+  #   api_key_env: MOONSHOT_API_KEY
+  #   price_usd: [0.95, 0.95, 4.00]
+  #   notes: thinking disabled; temperature fixed by Moonshot

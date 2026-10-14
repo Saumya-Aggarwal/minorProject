@@ -33,7 +33,7 @@ workout clothes.
 |---|---|---|---|---|
 | P0 | Cleanup and safety net | 0.5 | — | done 28 Sep |
 | P1 | Multi-store foundation (tenancy, products in Postgres, pgvector) | 7 | P0 | built 2 Oct; friend's catalogue import waits for his shop domain |
-| P2 | Bot quality, part 1 (eval harness, fixes, works for any catalogue, model choice) | 12 | P1 | started 3 Oct: tracing done 14 Oct; harness next |
+| P2 | Bot quality, part 1 (eval harness, fixes, works for any catalogue, model choice) | 12 | P1 | started 3 Oct: tracing + harness + baseline (47/63) done 14 Oct; fixes next |
 | P3 | Shopify connector, deployment, pilot go-live | 8.5 | P1, P2 | not started |
 | P4 | Brand dashboard and minimal human hand-off | 5 | P3 | not started |
 | P5 | Order status, exchanges, abandoned-checkout recovery | 6 | P3 (P4 helps) | not started |
@@ -510,8 +510,29 @@ and 20–40 real customer questions from his DMs, with names removed (30 minutes
   checks, fallbacks) and retrieval (searches). `test_trace_neutrality.py` passes
   6/6 and its 60 turns are identical to a recording made on the code from before
   tracing. It is now in `run_all_tests.py`.
-- **Next:** `scripts/eval_harness/runner.py` and `scripts/eval_conversations.py`, about
-  50 cases from `evals/raw`, then a baseline score before any bot change.
+- **14 Oct, harness:** `scripts/eval_conversations.py` + `scripts/eval_harness/`, 63
+  cases in `evals/cases/kurta/` (from the 54 logged turns plus the plan's evidence),
+  format in `evals/README.md`, self-test `test_eval_harness.py` (42 checks, no quota).
+- **Baseline, gpt-oss-20b (14 Oct, Groq free tier): 47/63 cases, 889/918 checks.**
+  p50 1.9 s / p95 3.4 s per model turn, 1.67 calls and ~2,400 tokens in per model
+  turn, ~₹1.3 per 100 conversations, 1.65 WhatsApp messages per turn
+  (`evals/baselines/kurta-gpt-oss-20b.json`). The 16 failures are the fix list:
+  - checkout in words never pays (4 cases: "i wanna pay", "i wanna checkout",
+    "chedckout", "proceed to payment"); with an empty cart it still promises Pay Now
+    → step 2, checkout tool;
+  - "yes pls add" after "Shall I add it in 42?" adds it unsized (the code's ADD
+    path ignores the offered size); "remove 2 of the sarees" (no quantity) → step 2,
+    action ledger;
+  - malformed tool calls Groq rejects and the repair cannot rescue → plain-search
+    fallback (2 cases);
+  - colour is not a filter: black suit → a white one, yellow kurta → orange, lime,
+    olive (2) → step 4;
+  - "only male options" asked who again; "male" not saved to the profile;
+    "accessories ... around 10k" showed sarees and men's wear;
+  - "what 4 items do i have": the cart is not attached (no "cart" word);
+  - photos and voice notes get no reply (2) → step 2.
+- **Next:** step 2, the quick fixes, each checked against this baseline
+  (`eval_conversations.py` exits 1 on a regression).
 
 **Starter prompt:** *"Read plan.md. Plan P2 (Bot quality part 1) in detail, starting with
 the eval harness design and the case format. Build the harness first and record a

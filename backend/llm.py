@@ -31,7 +31,6 @@ environment when given None) are never used: client() passes both explicitly.
 from __future__ import annotations
 
 import os
-import time
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
@@ -145,7 +144,7 @@ def complete(role: str, messages: list[dict[str, Any]], model: Optional[str] = N
     if settings.reasoning_effort:
         options.setdefault("reasoning_effort", settings.reasoning_effort)
     chosen = model or settings.model
-    started = time.perf_counter()
+    started = tracing.now()
     try:
         # The raw form only to read the rate-limit headers; parse() is the same
         # response object a plain create() returns
