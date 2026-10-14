@@ -14,7 +14,7 @@ Why this replaced the earlier Chroma `where` filters, with real examples:
   "sherwani under 3000"           -> no sherwani is that cheap, so nothing,
                                      instead of "the closest start at Rs. 8,999"
   "me and my wife ..."            -> filtered to women only
-Every filter here maps onto categories that exist (checked at import), and an
+Every filter here maps onto categories the store sells (vocab.py), and an
 empty result relaxes the filters step by step and says which one it dropped.
 """
 
@@ -27,6 +27,7 @@ from typing import Any, Optional
 import catalog
 import tenancy
 import tracing
+import vocab
 from common import embeddings
 
 
@@ -80,64 +81,8 @@ class SearchResult:
         return "These are the closest matches I have."
 
 
-# Words that name a garment -> categories that really exist in data/products.json.
-# A tuple of three means (any gender, men, women) where the word is shared.
-_GARMENTS: dict[str, Any] = {
-    "kurta": (["Kurta", "Kurta Set", "Kurti"], ["Kurta", "Kurta Set"], ["Kurti", "Salwar Suit", "Co-ord Set"]),
-    "kurtas": "kurta",
-    "kurti": ["Kurti"], "kurtis": ["Kurti"], "tunic": ["Kurti"],
-    "jacket": ["Nehru Jacket", "Waistcoat"], "jackets": "jacket", "nehru": "jacket",
-    "koti": "jacket", "modi jacket": "jacket",
-    "waistcoat": ["Waistcoat", "Nehru Jacket"], "vest": "waistcoat", "waistcoats": "waistcoat",
-    "bandhgala": ["Jodhpuri Suit"], "bandgala": "bandhgala", "jodhpuri": "bandhgala",
-    "prince coat": "bandhgala",
-    "indo western": (["Indo-Western", "Jodhpuri Suit", "Gown"], ["Indo-Western", "Jodhpuri Suit"],
-                     ["Indo-Western", "Gown"]),
-    "indowestern": "indo western", "fusion": "indo western",
-    "sherwani": ["Sherwani"], "sherwanis": "sherwani", "achkan": "sherwani",
-    "pathani": ["Pathani Suit"],
-    "suit": (["Salwar Suit", "Pathani Suit", "Jodhpuri Suit"], ["Pathani Suit", "Jodhpuri Suit"], ["Salwar Suit", "Anarkali"]),
-    "suits": "suit", "salwar": ["Salwar Suit"], "salwar kameez": ["Salwar Suit"],
-    "sharara": ["Sharara & Gharara", "Salwar Suit"], "shararas": "sharara", "gharara": "sharara",
-    "ghararas": "sharara", "palazzo suit": ["Salwar Suit"],
-    "co ord": ["Co-ord Set"], "coord": "co ord", "co ords": "co ord", "coords": "co ord",
-    "saree": ["Saree"], "sarees": "saree", "sari": "saree", "saris": "saree",
-    "lehenga": ["Lehenga"], "lehengas": "lehenga", "lehnga": "lehenga", "ghagra": "lehenga",
-    "chaniya": "lehenga", "chaniya choli": "lehenga", "choli": "lehenga", "chaniyacholi": "lehenga",
-    "anarkali": ["Anarkali"], "gown": ["Gown"], "gowns": "gown",
-    "dupatta": (["Dupatta"], ["Stole"], ["Dupatta"]), "dupattas": "dupatta", "phulkari": "dupatta",
-    "stole": ["Stole", "Dupatta"], "stoles": "stole", "shawl": "stole",
-    "churidar": ["Bottomwear"], "pyjama": ["Bottomwear"],
-    "pajama": ["Bottomwear"], "pants": ["Bottomwear"], "bottoms": ["Bottomwear"],
-    "palazzo": ["Bottomwear", "Salwar Suit"], "palazzos": "palazzo",
-    "kurta pyjama": ["Kurta Set"], "kurta pajama": "kurta pyjama", "kurta set": (["Kurta Set", "Salwar Suit"], ["Kurta Set"], ["Salwar Suit", "Co-ord Set"]),
-    "dhoti": ["Dhoti Kurta Set", "Bottomwear"], "dhoti kurta": ["Dhoti Kurta Set"],
-    "veshti": "dhoti", "dhotis": "dhoti",
-    # Accessories
-    "safa": ["Headwear"], "saafa": "safa", "turban": "safa", "turbans": "safa", "pagdi": "safa",
-    "pagri": "safa", "pag": "safa", "headwear": "safa",
-    "shoes": ["Footwear"], "shoe": "shoes", "footwear": "shoes", "sandals": "shoes",
-    "sandal": "shoes", "chappal": "shoes", "chappals": "shoes", "slippers": "shoes",
-    "flats": "shoes", "heels": "shoes", "heel": "shoes", "jutti": "shoes", "juttis": "shoes",
-    "juti": "shoes", "jootis": "shoes", "mojari": "shoes", "mojaris": "shoes", "mojri": "shoes",
-    "nagra": "shoes", "kolhapuri": "shoes", "kolhapuris": "shoes", "footware": "shoes",
-    "bag": ["Bags"], "bags": "bag", "potli": "bag", "potlis": "bag", "clutch": "bag",
-    "clutches": "bag", "purse": "bag", "purses": "bag", "handbag": "bag", "sling": "bag",
-    "accessories": (["Footwear", "Bags", "Headwear", "Dupatta", "Stole"],
-                    ["Footwear", "Headwear", "Stole"], ["Footwear", "Bags", "Dupatta"]),
-    "accessory": "accessories",
-}
-# Garment words that also settle whose outfit it is
-_MENS_GARMENTS = {"sherwani", "sherwanis", "achkan", "pathani", "bandhgala", "bandgala",
-                  "jodhpuri", "prince coat", "dhoti", "koti", "modi jacket", "nehru",
-                  "kurta pyjama", "kurta pajama", "dhoti kurta", "veshti", "dhotis", "safa", "saafa",
-                  "turban", "turbans", "pagdi", "pagri", "pag", "mojari", "mojaris", "mojri", "nagra"}
-_WOMENS_GARMENTS = {"saree", "sarees", "sari", "saris", "lehenga", "lehengas", "lehnga",
-                    "ghagra", "kurti", "kurtis", "anarkali", "sharara", "gown", "gowns",
-                    "dupatta", "dupattas", "palazzo", "palazzos", "salwar", "salwar kameez",
-                    "palazzo suit", "shararas", "gharara", "ghararas", "chaniya", "chaniya choli",
-                    "choli", "chaniyacholi", "phulkari", "heels", "heel", "jutti", "juttis", "juti",
-                    "jootis", "potli", "potlis", "clutch", "clutches", "purse", "purses", "handbag"}
+# Which words name a category, settle a gender or name an occasion depends on
+# the store: vocab.current() (built from its catalogue, or its vertical pack).
 
 _MEN = {"men", "mens", "man", "male", "gents", "boy", "boys", "groom", "husband",
         "brother", "father", "dad", "papa", "son", "grandfather", "uncle", "him",
@@ -156,24 +101,6 @@ _POSSESSIVE = {"my", "his", "her", "their", "our", "your"}
 # "bag to match a lehenga", "shoes to go with the sherwani": the garment is context too
 _CONTEXT = {"match", "with", "over", "complement", "alongside"}
 _ARTICLES = {"a", "an", "the", "this", "that"}
-# Shown only when asked for: "haldi outfit" should not return chappals
-_ACCESSORIES = {"Footwear", "Bags", "Headwear"}
-
-_OCCASIONS = {
-    "wedding", "reception", "sangeet", "mehendi", "mehndi", "haldi", "engagement",
-    "diwali", "eid", "navratri", "puja", "pooja", "office", "party", "cocktail",
-    "festive", "festival", "casual", "daytime", "evening", "temple", "summer", "winter",
-    "garba", "dandiya", "onam", "vishu", "lohri", "baraat", "bridal", "ceremony", "pheras",
-}
-# Occasion word -> the tags products carry for it (products tagged first, see search)
-_OCCASION_TAGS = {
-    "mehndi": {"mehendi"}, "pooja": {"puja"}, "festival": {"festive"},
-    "garba": {"garba", "navratri"}, "dandiya": {"garba", "navratri"}, "navratri": {"navratri", "garba"},
-    "ceremony": {"wedding", "bridal"}, "pheras": {"wedding", "bridal"}, "bridal": {"bridal"},
-    "baraat": {"baraat", "groom"}, "summer": {"summer wedding"}, "winter": {"winter wedding"},
-    "party": {"party", "cocktail"}, "cocktail": {"cocktail", "party"},
-}
-
 _NUM = r"(?:rs\.?|inr|₹)?\s*(\d[\d,]*(?:\.\d+)?)\s*(k|thousand|lakh)?"
 _MAX = re.compile(r"\b(?:under|below|less\s+than|upto|up\s+to|within|max(?:imum)?|"
                   r"not\s+more\s+than|no\s+more\s+than|cheaper\s+than|budget(?:\s+(?:of|is))?)\s*" + _NUM)
@@ -232,6 +159,7 @@ def _garment_mentions(words: list[str], context: Optional[list[str]] = None) -> 
     garments are collected into `context` when given (they still say whose
     outfit it is: "shoes to go with my sherwani" are men's shoes).
     """
+    garments = vocab.current().garments
     found: list[str] = []
     skip_next = False
     for i, word in enumerate(words):
@@ -239,7 +167,7 @@ def _garment_mentions(words: list[str], context: Optional[list[str]] = None) -> 
             skip_next = False
             continue
         pair = f"{word} {words[i + 1]}" if i + 1 < len(words) else ""
-        key = pair if pair in _GARMENTS else word if word in _GARMENTS else None
+        key = pair if pair in garments else word if word in garments else None
         if key is None:
             continue
         skip_next = key == pair
@@ -254,9 +182,10 @@ def _garment_mentions(words: list[str], context: Optional[list[str]] = None) -> 
 
 
 def _resolve(key: str) -> Any:
-    value = _GARMENTS[key]
+    garments = vocab.current().garments
+    value = garments[key]
     while isinstance(value, str):
-        value = _GARMENTS[value]
+        value = garments[value]
     return value
 
 
@@ -280,8 +209,10 @@ def parse_query(text: str) -> Filters:
     garments = _garment_mentions(words, context)
     wordset = set(words)
 
+    words_of = vocab.current()
+
     def genders_of(keys: list[str]) -> set[str]:
-        return {"Men" for g in keys if g in _MENS_GARMENTS} | {"Women" for g in keys if g in _WOMENS_GARMENTS}
+        return {"Men" for g in keys if g in words_of.mens} | {"Women" for g in keys if g in words_of.womens}
 
     garment_gender = genders_of(garments) or genders_of(context)
     person_gender = ({"Men"} if wordset & _MEN else set()) | ({"Women"} if wordset & _WOMEN else set())
@@ -301,7 +232,7 @@ def parse_query(text: str) -> Filters:
         gender = next(iter(person_gender))
 
     min_price, max_price = _budget(lowered)
-    occasion = next((w for w in words if w in _OCCASIONS), None)
+    occasion = next((w for w in words if w in words_of.occasions), None)
     return Filters(
         gender=gender, both_genders=both,
         categories=_categories_for(garments, gender),
@@ -326,7 +257,7 @@ def normalise_filters(gender: Any = None, categories: Any = None, max_price: Any
     for raw in categories or []:
         name = str(raw).strip().lower()
         mapped = [known[name]] if name in known else (
-            _categories_for([name], gender_value) if name in _GARMENTS else [])
+            _categories_for([name], gender_value) if name in vocab.current().garments else [])
         for category in mapped:
             if category not in wanted:
                 wanted.append(category)
@@ -341,28 +272,6 @@ def normalise_filters(gender: Any = None, categories: Any = None, max_price: Any
     return Filters(gender=gender_value, both_genders=both, categories=wanted,
                    max_price=price(max_price), min_price=price(min_price),
                    occasion=str(occasion).strip().lower() if occasion else None)
-
-
-_mapping_checked: set[int] = set()
-
-
-def _check_mapping() -> None:
-    """Warn once if a garment word maps onto a category the demo store does not sell.
-
-    The vocabulary above was written for the demo's ethnic wear; another
-    store's categories are its own (P2 makes this vocabulary per catalogue).
-    """
-    if tenancy.store_id() != tenancy.DEMO_STORE_ID or tenancy.DEMO_STORE_ID in _mapping_checked:
-        return
-    _mapping_checked.add(tenancy.DEMO_STORE_ID)
-    real = set(catalog.categories())
-    for key in _GARMENTS:
-        value = _resolve(key)
-        options = value if isinstance(value, tuple) else (value,)
-        for group in options:
-            missing = set(group) - real
-            if missing:
-                print(f"[retrieval] WARNING: '{key}' maps to unknown categories {sorted(missing)}")
 
 
 # --- ranking ----------------------------------------------------------------------
@@ -410,7 +319,7 @@ def _passes(p: dict[str, Any], f: Filters) -> bool:
         return False
     if f.categories and p["category"] not in f.categories:
         return False
-    if not f.categories and p["category"] in _ACCESSORIES:
+    if not f.categories and p["category"] in vocab.current().accessories:
         return False
     if f.max_price and p["price"] > f.max_price:
         return False
@@ -454,12 +363,11 @@ def search(query: str, filters: Optional[Filters] = None, k: int = 3,
 
 def _search(query: str, filters: Optional[Filters], k: int, user_id: Optional[int],
             learn: bool) -> SearchResult:
-    _check_mapping()
     query = (query or "").strip()
     f = filters if filters is not None else parse_query(query)
     meaning = f"{query} {f.occasion}" if f.occasion and f.occasion not in query.lower() else query
     if not meaning:
-        meaning = " ".join(f.categories) or "ethnic wear"
+        meaning = " ".join(f.categories) or vocab.current().meaning
 
     ranked, _ = rank(meaning)
     ranked = [(p, d) for p, d in ranked if _in_stock(p)]
@@ -484,8 +392,9 @@ def _search(query: str, filters: Optional[Filters], k: int, user_id: Optional[in
         if f.occasion:
             # Pieces made for the function first ("garba outfit" -> chaniya cholis),
             # the rest after, each group keeping its meaning-based order
-            tags = _OCCASION_TAGS.get(f.occasion, {f.occasion})
-            products.sort(key=lambda p: not tags & {o.lower() for o in p["occasion"]})
+            tags = vocab.current().occasion_tags.get(f.occasion, {f.occasion})
+            # Occasion tags (the demo) or Shopify tags ("gym", "yoga")
+            products.sort(key=lambda p: not tags & {o.lower() for o in [*p["occasion"], *(p.get("tags") or [])]})
         if "budget" in relaxed and "category" not in relaxed:
             # Nearest to what they wanted to spend, not the most similar at any price
             target = f.max_price or f.min_price or 0

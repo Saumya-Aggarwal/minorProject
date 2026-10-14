@@ -16,6 +16,7 @@ import asyncio
 import os
 from typing import Any, Optional
 
+import brand
 import payments
 import repository as repo
 import tenancy
@@ -24,9 +25,10 @@ from whatsapp import send_whatsapp_message
 
 def _describe(order: dict[str, Any]) -> str:
     items = order["items"]
+    shop = brand.current().name
     if len(items) == 1:
-        return f"Kurta & Co. order #{order['order_id']}: {items[0]['product_name']}"
-    return f"Kurta & Co. order #{order['order_id']}: {len(items)} items"
+        return f"{shop} order #{order['order_id']}: {items[0]['product_name']}"
+    return f"{shop} order #{order['order_id']}: {len(items)} items"
 
 
 def whatsapp_chat_url() -> Optional[str]:

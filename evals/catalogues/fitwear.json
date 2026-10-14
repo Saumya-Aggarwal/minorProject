@@ -1,0 +1,2513 @@
+{
+ "products": [
+  {
+   "id": 8001,
+   "title": "Oversized Graphic Tee",
+   "handle": "oversized-graphic-tee",
+   "body_html": "<p>Heavyweight 240 GSM cotton tee with a dropped shoulder and a small chest print.</p>",
+   "vendor": "Stride Lab",
+   "product_type": "T-Shirts",
+   "tags": "oversized, cotton, streetwear, Unisex",
+   "options": [
+    {
+     "name": "Color",
+     "position": 1,
+     "values": [
+      "Black",
+      "White",
+      "Sage"
+     ]
+    },
+    {
+     "name": "Size",
+     "position": 2,
+     "values": [
+      "S",
+      "M",
+      "L",
+      "XL",
+      "XXL"
+     ]
+    }
+   ],
+   "variants": [
+    {
+     "id": 800100,
+     "title": "Black / S",
+     "option1": "Black",
+     "option2": "S",
+     "option3": null,
+     "price": "799.00",
+     "compare_at_price": "999.00",
+     "available": true,
+     "sku": "SL-8001-BLA-S"
+    },
+    {
+     "id": 800101,
+     "title": "Black / M",
+     "option1": "Black",
+     "option2": "M",
+     "option3": null,
+     "price": "799.00",
+     "compare_at_price": "999.00",
+     "available": true,
+     "sku": "SL-8001-BLA-M"
+    },
+    {
+     "id": 800102,
+     "title": "Black / L",
+     "option1": "Black",
+     "option2": "L",
+     "option3": null,
+     "price": "799.00",
+     "compare_at_price": "999.00",
+     "available": true,
+     "sku": "SL-8001-BLA-L"
+    },
+    {
+     "id": 800103,
+     "title": "Black / XL",
+     "option1": "Black",
+     "option2": "XL",
+     "option3": null,
+     "price": "799.00",
+     "compare_at_price": "999.00",
+     "available": true,
+     "sku": "SL-8001-BLA-XL"
+    },
+    {
+     "id": 800104,
+     "title": "Black / XXL",
+     "option1": "Black",
+     "option2": "XXL",
+     "option3": null,
+     "price": "799.00",
+     "compare_at_price": "999.00",
+     "available": true,
+     "sku": "SL-8001-BLA-XXL"
+    },
+    {
+     "id": 800110,
+     "title": "White / S",
+     "option1": "White",
+     "option2": "S",
+     "option3": null,
+     "price": "799.00",
+     "compare_at_price": "999.00",
+     "available": true,
+     "sku": "SL-8001-WHI-S"
+    },
+    {
+     "id": 800111,
+     "title": "White / M",
+     "option1": "White",
+     "option2": "M",
+     "option3": null,
+     "price": "799.00",
+     "compare_at_price": "999.00",
+     "available": true,
+     "sku": "SL-8001-WHI-M"
+    },
+    {
+     "id": 800112,
+     "title": "White / L",
+     "option1": "White",
+     "option2": "L",
+     "option3": null,
+     "price": "799.00",
+     "compare_at_price": "999.00",
+     "available": true,
+     "sku": "SL-8001-WHI-L"
+    },
+    {
+     "id": 800113,
+     "title": "White / XL",
+     "option1": "White",
+     "option2": "XL",
+     "option3": null,
+     "price": "799.00",
+     "compare_at_price": "999.00",
+     "available": true,
+     "sku": "SL-8001-WHI-XL"
+    },
+    {
+     "id": 800114,
+     "title": "White / XXL",
+     "option1": "White",
+     "option2": "XXL",
+     "option3": null,
+     "price": "799.00",
+     "compare_at_price": "999.00",
+     "available": true,
+     "sku": "SL-8001-WHI-XXL"
+    },
+    {
+     "id": 800120,
+     "title": "Sage / S",
+     "option1": "Sage",
+     "option2": "S",
+     "option3": null,
+     "price": "799.00",
+     "compare_at_price": "999.00",
+     "available": true,
+     "sku": "SL-8001-SAG-S"
+    },
+    {
+     "id": 800121,
+     "title": "Sage / M",
+     "option1": "Sage",
+     "option2": "M",
+     "option3": null,
+     "price": "799.00",
+     "compare_at_price": "999.00",
+     "available": true,
+     "sku": "SL-8001-SAG-M"
+    },
+    {
+     "id": 800122,
+     "title": "Sage / L",
+     "option1": "Sage",
+     "option2": "L",
+     "option3": null,
+     "price": "799.00",
+     "compare_at_price": "999.00",
+     "available": true,
+     "sku": "SL-8001-SAG-L"
+    },
+    {
+     "id": 800123,
+     "title": "Sage / XL",
+     "option1": "Sage",
+     "option2": "XL",
+     "option3": null,
+     "price": "799.00",
+     "compare_at_price": "999.00",
+     "available": true,
+     "sku": "SL-8001-SAG-XL"
+    },
+    {
+     "id": 800124,
+     "title": "Sage / XXL",
+     "option1": "Sage",
+     "option2": "XXL",
+     "option3": null,
+     "price": "799.00",
+     "compare_at_price": "999.00",
+     "available": true,
+     "sku": "SL-8001-SAG-XXL"
+    }
+   ],
+   "images": [
+    {
+     "src": "https://cdn.example.com/stride/oversized-graphic-tee.jpg",
+     "variant_ids": []
+    }
+   ]
+  },
+  {
+   "id": 8002,
+   "title": "Dri-Fit Training Tee",
+   "handle": "dri-fit-training-tee",
+   "body_html": "<p>Quick-dry polyester mesh for the gym and running. Flatlock seams, no chafing.</p>",
+   "vendor": "Stride Lab",
+   "product_type": "T-Shirts",
+   "tags": "gym, quick-dry, Men",
+   "options": [
+    {
+     "name": "Color",
+     "position": 1,
+     "values": [
+      "Navy",
+      "Grey",
+      "Black"
+     ]
+    },
+    {
+     "name": "Size",
+     "position": 2,
+     "values": [
+      "S",
+      "M",
+      "L",
+      "XL",
+      "XXL"
+     ]
+    }
+   ],
+   "variants": [
+    {
+     "id": 800200,
+     "title": "Navy / S",
+     "option1": "Navy",
+     "option2": "S",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8002-NAV-S"
+    },
+    {
+     "id": 800201,
+     "title": "Navy / M",
+     "option1": "Navy",
+     "option2": "M",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8002-NAV-M"
+    },
+    {
+     "id": 800202,
+     "title": "Navy / L",
+     "option1": "Navy",
+     "option2": "L",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8002-NAV-L"
+    },
+    {
+     "id": 800203,
+     "title": "Navy / XL",
+     "option1": "Navy",
+     "option2": "XL",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8002-NAV-XL"
+    },
+    {
+     "id": 800204,
+     "title": "Navy / XXL",
+     "option1": "Navy",
+     "option2": "XXL",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8002-NAV-XXL"
+    },
+    {
+     "id": 800210,
+     "title": "Grey / S",
+     "option1": "Grey",
+     "option2": "S",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8002-GRE-S"
+    },
+    {
+     "id": 800211,
+     "title": "Grey / M",
+     "option1": "Grey",
+     "option2": "M",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8002-GRE-M"
+    },
+    {
+     "id": 800212,
+     "title": "Grey / L",
+     "option1": "Grey",
+     "option2": "L",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8002-GRE-L"
+    },
+    {
+     "id": 800213,
+     "title": "Grey / XL",
+     "option1": "Grey",
+     "option2": "XL",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8002-GRE-XL"
+    },
+    {
+     "id": 800214,
+     "title": "Grey / XXL",
+     "option1": "Grey",
+     "option2": "XXL",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8002-GRE-XXL"
+    },
+    {
+     "id": 800220,
+     "title": "Black / S",
+     "option1": "Black",
+     "option2": "S",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8002-BLA-S"
+    },
+    {
+     "id": 800221,
+     "title": "Black / M",
+     "option1": "Black",
+     "option2": "M",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8002-BLA-M"
+    },
+    {
+     "id": 800222,
+     "title": "Black / L",
+     "option1": "Black",
+     "option2": "L",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8002-BLA-L"
+    },
+    {
+     "id": 800223,
+     "title": "Black / XL",
+     "option1": "Black",
+     "option2": "XL",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8002-BLA-XL"
+    },
+    {
+     "id": 800224,
+     "title": "Black / XXL",
+     "option1": "Black",
+     "option2": "XXL",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8002-BLA-XXL"
+    }
+   ],
+   "images": [
+    {
+     "src": "https://cdn.example.com/stride/dri-fit-training-tee.jpg",
+     "variant_ids": []
+    }
+   ]
+  },
+  {
+   "id": 8003,
+   "title": "Essential Crew Tee",
+   "handle": "essential-crew-tee",
+   "body_html": "<p>A plain regular-fit crew neck in soft combed cotton for every day.</p>",
+   "vendor": "Stride Lab",
+   "product_type": "T-Shirts",
+   "tags": "cotton, everyday, Men",
+   "options": [
+    {
+     "name": "Color",
+     "position": 1,
+     "values": [
+      "White",
+      "Black",
+      "Olive"
+     ]
+    },
+    {
+     "name": "Size",
+     "position": 2,
+     "values": [
+      "S",
+      "M",
+      "L",
+      "XL",
+      "XXL"
+     ]
+    }
+   ],
+   "variants": [
+    {
+     "id": 800300,
+     "title": "White / S",
+     "option1": "White",
+     "option2": "S",
+     "option3": null,
+     "price": "599.00",
+     "compare_at_price": "699.00",
+     "available": true,
+     "sku": "SL-8003-WHI-S"
+    },
+    {
+     "id": 800301,
+     "title": "White / M",
+     "option1": "White",
+     "option2": "M",
+     "option3": null,
+     "price": "599.00",
+     "compare_at_price": "699.00",
+     "available": true,
+     "sku": "SL-8003-WHI-M"
+    },
+    {
+     "id": 800302,
+     "title": "White / L",
+     "option1": "White",
+     "option2": "L",
+     "option3": null,
+     "price": "599.00",
+     "compare_at_price": "699.00",
+     "available": true,
+     "sku": "SL-8003-WHI-L"
+    },
+    {
+     "id": 800303,
+     "title": "White / XL",
+     "option1": "White",
+     "option2": "XL",
+     "option3": null,
+     "price": "599.00",
+     "compare_at_price": "699.00",
+     "available": true,
+     "sku": "SL-8003-WHI-XL"
+    },
+    {
+     "id": 800304,
+     "title": "White / XXL",
+     "option1": "White",
+     "option2": "XXL",
+     "option3": null,
+     "price": "599.00",
+     "compare_at_price": "699.00",
+     "available": false,
+     "sku": "SL-8003-WHI-XXL"
+    },
+    {
+     "id": 800310,
+     "title": "Black / S",
+     "option1": "Black",
+     "option2": "S",
+     "option3": null,
+     "price": "599.00",
+     "compare_at_price": "699.00",
+     "available": true,
+     "sku": "SL-8003-BLA-S"
+    },
+    {
+     "id": 800311,
+     "title": "Black / M",
+     "option1": "Black",
+     "option2": "M",
+     "option3": null,
+     "price": "599.00",
+     "compare_at_price": "699.00",
+     "available": true,
+     "sku": "SL-8003-BLA-M"
+    },
+    {
+     "id": 800312,
+     "title": "Black / L",
+     "option1": "Black",
+     "option2": "L",
+     "option3": null,
+     "price": "599.00",
+     "compare_at_price": "699.00",
+     "available": true,
+     "sku": "SL-8003-BLA-L"
+    },
+    {
+     "id": 800313,
+     "title": "Black / XL",
+     "option1": "Black",
+     "option2": "XL",
+     "option3": null,
+     "price": "599.00",
+     "compare_at_price": "699.00",
+     "available": true,
+     "sku": "SL-8003-BLA-XL"
+    },
+    {
+     "id": 800314,
+     "title": "Black / XXL",
+     "option1": "Black",
+     "option2": "XXL",
+     "option3": null,
+     "price": "599.00",
+     "compare_at_price": "699.00",
+     "available": true,
+     "sku": "SL-8003-BLA-XXL"
+    },
+    {
+     "id": 800320,
+     "title": "Olive / S",
+     "option1": "Olive",
+     "option2": "S",
+     "option3": null,
+     "price": "599.00",
+     "compare_at_price": "699.00",
+     "available": true,
+     "sku": "SL-8003-OLI-S"
+    },
+    {
+     "id": 800321,
+     "title": "Olive / M",
+     "option1": "Olive",
+     "option2": "M",
+     "option3": null,
+     "price": "599.00",
+     "compare_at_price": "699.00",
+     "available": true,
+     "sku": "SL-8003-OLI-M"
+    },
+    {
+     "id": 800322,
+     "title": "Olive / L",
+     "option1": "Olive",
+     "option2": "L",
+     "option3": null,
+     "price": "599.00",
+     "compare_at_price": "699.00",
+     "available": true,
+     "sku": "SL-8003-OLI-L"
+    },
+    {
+     "id": 800323,
+     "title": "Olive / XL",
+     "option1": "Olive",
+     "option2": "XL",
+     "option3": null,
+     "price": "599.00",
+     "compare_at_price": "699.00",
+     "available": true,
+     "sku": "SL-8003-OLI-XL"
+    },
+    {
+     "id": 800324,
+     "title": "Olive / XXL",
+     "option1": "Olive",
+     "option2": "XXL",
+     "option3": null,
+     "price": "599.00",
+     "compare_at_price": "699.00",
+     "available": true,
+     "sku": "SL-8003-OLI-XXL"
+    }
+   ],
+   "images": [
+    {
+     "src": "https://cdn.example.com/stride/essential-crew-tee.jpg",
+     "variant_ids": []
+    }
+   ]
+  },
+  {
+   "id": 8004,
+   "title": "Cropped Workout Tee",
+   "handle": "cropped-workout-tee",
+   "body_html": "<p>A cropped, relaxed tee in a breathable modal blend for training and yoga.</p>",
+   "vendor": "Stride Lab",
+   "product_type": "T-Shirts",
+   "tags": "gym, yoga, Women",
+   "options": [
+    {
+     "name": "Color",
+     "position": 1,
+     "values": [
+      "Lilac",
+      "Black"
+     ]
+    },
+    {
+     "name": "Size",
+     "position": 2,
+     "values": [
+      "XS",
+      "S",
+      "M",
+      "L",
+      "XL"
+     ]
+    }
+   ],
+   "variants": [
+    {
+     "id": 800400,
+     "title": "Lilac / XS",
+     "option1": "Lilac",
+     "option2": "XS",
+     "option3": null,
+     "price": "749.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8004-LIL-XS"
+    },
+    {
+     "id": 800401,
+     "title": "Lilac / S",
+     "option1": "Lilac",
+     "option2": "S",
+     "option3": null,
+     "price": "749.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8004-LIL-S"
+    },
+    {
+     "id": 800402,
+     "title": "Lilac / M",
+     "option1": "Lilac",
+     "option2": "M",
+     "option3": null,
+     "price": "749.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8004-LIL-M"
+    },
+    {
+     "id": 800403,
+     "title": "Lilac / L",
+     "option1": "Lilac",
+     "option2": "L",
+     "option3": null,
+     "price": "749.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8004-LIL-L"
+    },
+    {
+     "id": 800404,
+     "title": "Lilac / XL",
+     "option1": "Lilac",
+     "option2": "XL",
+     "option3": null,
+     "price": "749.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8004-LIL-XL"
+    },
+    {
+     "id": 800410,
+     "title": "Black / XS",
+     "option1": "Black",
+     "option2": "XS",
+     "option3": null,
+     "price": "749.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8004-BLA-XS"
+    },
+    {
+     "id": 800411,
+     "title": "Black / S",
+     "option1": "Black",
+     "option2": "S",
+     "option3": null,
+     "price": "749.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8004-BLA-S"
+    },
+    {
+     "id": 800412,
+     "title": "Black / M",
+     "option1": "Black",
+     "option2": "M",
+     "option3": null,
+     "price": "749.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8004-BLA-M"
+    },
+    {
+     "id": 800413,
+     "title": "Black / L",
+     "option1": "Black",
+     "option2": "L",
+     "option3": null,
+     "price": "749.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8004-BLA-L"
+    },
+    {
+     "id": 800414,
+     "title": "Black / XL",
+     "option1": "Black",
+     "option2": "XL",
+     "option3": null,
+     "price": "749.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8004-BLA-XL"
+    }
+   ],
+   "images": [
+    {
+     "src": "https://cdn.example.com/stride/cropped-workout-tee.jpg",
+     "variant_ids": []
+    }
+   ]
+  },
+  {
+   "id": 8005,
+   "title": "Seamless Sports Bra",
+   "handle": "seamless-sports-bra",
+   "body_html": "<p>Medium support seamless bra with removable pads, for yoga and gym days.</p>",
+   "vendor": "Stride Lab",
+   "product_type": "Sports Bras",
+   "tags": "yoga, gym, Women",
+   "options": [
+    {
+     "name": "Color",
+     "position": 1,
+     "values": [
+      "Black",
+      "Dusty Pink"
+     ]
+    },
+    {
+     "name": "Size",
+     "position": 2,
+     "values": [
+      "XS",
+      "S",
+      "M",
+      "L"
+     ]
+    }
+   ],
+   "variants": [
+    {
+     "id": 800500,
+     "title": "Black / XS",
+     "option1": "Black",
+     "option2": "XS",
+     "option3": null,
+     "price": "999.00",
+     "compare_at_price": "1299.00",
+     "available": true,
+     "sku": "SL-8005-BLA-XS"
+    },
+    {
+     "id": 800501,
+     "title": "Black / S",
+     "option1": "Black",
+     "option2": "S",
+     "option3": null,
+     "price": "999.00",
+     "compare_at_price": "1299.00",
+     "available": true,
+     "sku": "SL-8005-BLA-S"
+    },
+    {
+     "id": 800502,
+     "title": "Black / M",
+     "option1": "Black",
+     "option2": "M",
+     "option3": null,
+     "price": "999.00",
+     "compare_at_price": "1299.00",
+     "available": true,
+     "sku": "SL-8005-BLA-M"
+    },
+    {
+     "id": 800503,
+     "title": "Black / L",
+     "option1": "Black",
+     "option2": "L",
+     "option3": null,
+     "price": "999.00",
+     "compare_at_price": "1299.00",
+     "available": true,
+     "sku": "SL-8005-BLA-L"
+    },
+    {
+     "id": 800510,
+     "title": "Dusty Pink / XS",
+     "option1": "Dusty Pink",
+     "option2": "XS",
+     "option3": null,
+     "price": "999.00",
+     "compare_at_price": "1299.00",
+     "available": true,
+     "sku": "SL-8005-DUS-XS"
+    },
+    {
+     "id": 800511,
+     "title": "Dusty Pink / S",
+     "option1": "Dusty Pink",
+     "option2": "S",
+     "option3": null,
+     "price": "999.00",
+     "compare_at_price": "1299.00",
+     "available": true,
+     "sku": "SL-8005-DUS-S"
+    },
+    {
+     "id": 800512,
+     "title": "Dusty Pink / M",
+     "option1": "Dusty Pink",
+     "option2": "M",
+     "option3": null,
+     "price": "999.00",
+     "compare_at_price": "1299.00",
+     "available": true,
+     "sku": "SL-8005-DUS-M"
+    },
+    {
+     "id": 800513,
+     "title": "Dusty Pink / L",
+     "option1": "Dusty Pink",
+     "option2": "L",
+     "option3": null,
+     "price": "999.00",
+     "compare_at_price": "1299.00",
+     "available": true,
+     "sku": "SL-8005-DUS-L"
+    }
+   ],
+   "images": [
+    {
+     "src": "https://cdn.example.com/stride/seamless-sports-bra.jpg",
+     "variant_ids": []
+    }
+   ]
+  },
+  {
+   "id": 8006,
+   "title": "High-Impact Sports Bra",
+   "handle": "high-impact-sports-bra",
+   "body_html": "<p>High support for running and HIIT, with adjustable straps and a hook back.</p>",
+   "vendor": "Stride Lab",
+   "product_type": "Sports Bras",
+   "tags": "running, Women",
+   "options": [
+    {
+     "name": "Color",
+     "position": 1,
+     "values": [
+      "Black",
+      "Navy"
+     ]
+    },
+    {
+     "name": "Size",
+     "position": 2,
+     "values": [
+      "XS",
+      "S",
+      "M",
+      "L"
+     ]
+    }
+   ],
+   "variants": [
+    {
+     "id": 800600,
+     "title": "Black / XS",
+     "option1": "Black",
+     "option2": "XS",
+     "option3": null,
+     "price": "1299.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8006-BLA-XS"
+    },
+    {
+     "id": 800601,
+     "title": "Black / S",
+     "option1": "Black",
+     "option2": "S",
+     "option3": null,
+     "price": "1299.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8006-BLA-S"
+    },
+    {
+     "id": 800602,
+     "title": "Black / M",
+     "option1": "Black",
+     "option2": "M",
+     "option3": null,
+     "price": "1299.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8006-BLA-M"
+    },
+    {
+     "id": 800603,
+     "title": "Black / L",
+     "option1": "Black",
+     "option2": "L",
+     "option3": null,
+     "price": "1299.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8006-BLA-L"
+    },
+    {
+     "id": 800610,
+     "title": "Navy / XS",
+     "option1": "Navy",
+     "option2": "XS",
+     "option3": null,
+     "price": "1299.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8006-NAV-XS"
+    },
+    {
+     "id": 800611,
+     "title": "Navy / S",
+     "option1": "Navy",
+     "option2": "S",
+     "option3": null,
+     "price": "1299.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8006-NAV-S"
+    },
+    {
+     "id": 800612,
+     "title": "Navy / M",
+     "option1": "Navy",
+     "option2": "M",
+     "option3": null,
+     "price": "1299.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8006-NAV-M"
+    },
+    {
+     "id": 800613,
+     "title": "Navy / L",
+     "option1": "Navy",
+     "option2": "L",
+     "option3": null,
+     "price": "1299.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8006-NAV-L"
+    }
+   ],
+   "images": [
+    {
+     "src": "https://cdn.example.com/stride/high-impact-sports-bra.jpg",
+     "variant_ids": []
+    }
+   ]
+  },
+  {
+   "id": 8007,
+   "title": "Tapered Joggers",
+   "handle": "tapered-joggers",
+   "body_html": "<p>Brushed fleece joggers with a tapered leg, zip pockets and ribbed cuffs.</p>",
+   "vendor": "Stride Lab",
+   "product_type": "Joggers",
+   "tags": "running, winter, Men",
+   "options": [
+    {
+     "name": "Color",
+     "position": 1,
+     "values": [
+      "Charcoal",
+      "Black"
+     ]
+    },
+    {
+     "name": "Size",
+     "position": 2,
+     "values": [
+      "S",
+      "M",
+      "L",
+      "XL",
+      "XXL"
+     ]
+    }
+   ],
+   "variants": [
+    {
+     "id": 800700,
+     "title": "Charcoal / S",
+     "option1": "Charcoal",
+     "option2": "S",
+     "option3": null,
+     "price": "1499.00",
+     "compare_at_price": "1799.00",
+     "available": true,
+     "sku": "SL-8007-CHA-S"
+    },
+    {
+     "id": 800701,
+     "title": "Charcoal / M",
+     "option1": "Charcoal",
+     "option2": "M",
+     "option3": null,
+     "price": "1499.00",
+     "compare_at_price": "1799.00",
+     "available": true,
+     "sku": "SL-8007-CHA-M"
+    },
+    {
+     "id": 800702,
+     "title": "Charcoal / L",
+     "option1": "Charcoal",
+     "option2": "L",
+     "option3": null,
+     "price": "1499.00",
+     "compare_at_price": "1799.00",
+     "available": true,
+     "sku": "SL-8007-CHA-L"
+    },
+    {
+     "id": 800703,
+     "title": "Charcoal / XL",
+     "option1": "Charcoal",
+     "option2": "XL",
+     "option3": null,
+     "price": "1499.00",
+     "compare_at_price": "1799.00",
+     "available": true,
+     "sku": "SL-8007-CHA-XL"
+    },
+    {
+     "id": 800704,
+     "title": "Charcoal / XXL",
+     "option1": "Charcoal",
+     "option2": "XXL",
+     "option3": null,
+     "price": "1499.00",
+     "compare_at_price": "1799.00",
+     "available": true,
+     "sku": "SL-8007-CHA-XXL"
+    },
+    {
+     "id": 800710,
+     "title": "Black / S",
+     "option1": "Black",
+     "option2": "S",
+     "option3": null,
+     "price": "1499.00",
+     "compare_at_price": "1799.00",
+     "available": true,
+     "sku": "SL-8007-BLA-S"
+    },
+    {
+     "id": 800711,
+     "title": "Black / M",
+     "option1": "Black",
+     "option2": "M",
+     "option3": null,
+     "price": "1499.00",
+     "compare_at_price": "1799.00",
+     "available": true,
+     "sku": "SL-8007-BLA-M"
+    },
+    {
+     "id": 800712,
+     "title": "Black / L",
+     "option1": "Black",
+     "option2": "L",
+     "option3": null,
+     "price": "1499.00",
+     "compare_at_price": "1799.00",
+     "available": true,
+     "sku": "SL-8007-BLA-L"
+    },
+    {
+     "id": 800713,
+     "title": "Black / XL",
+     "option1": "Black",
+     "option2": "XL",
+     "option3": null,
+     "price": "1499.00",
+     "compare_at_price": "1799.00",
+     "available": true,
+     "sku": "SL-8007-BLA-XL"
+    },
+    {
+     "id": 800714,
+     "title": "Black / XXL",
+     "option1": "Black",
+     "option2": "XXL",
+     "option3": null,
+     "price": "1499.00",
+     "compare_at_price": "1799.00",
+     "available": true,
+     "sku": "SL-8007-BLA-XXL"
+    }
+   ],
+   "images": [
+    {
+     "src": "https://cdn.example.com/stride/tapered-joggers.jpg",
+     "variant_ids": []
+    }
+   ]
+  },
+  {
+   "id": 8008,
+   "title": "Relaxed Joggers",
+   "handle": "relaxed-joggers",
+   "body_html": "<p>Soft French terry joggers with a wide waistband for yoga, travel and lounging.</p>",
+   "vendor": "Stride Lab",
+   "product_type": "Joggers",
+   "tags": "yoga, lounge, Women",
+   "options": [
+    {
+     "name": "Color",
+     "position": 1,
+     "values": [
+      "Grey Melange",
+      "Black"
+     ]
+    },
+    {
+     "name": "Size",
+     "position": 2,
+     "values": [
+      "XS",
+      "S",
+      "M",
+      "L",
+      "XL"
+     ]
+    }
+   ],
+   "variants": [
+    {
+     "id": 800800,
+     "title": "Grey Melange / XS",
+     "option1": "Grey Melange",
+     "option2": "XS",
+     "option3": null,
+     "price": "1399.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8008-GRE-XS"
+    },
+    {
+     "id": 800801,
+     "title": "Grey Melange / S",
+     "option1": "Grey Melange",
+     "option2": "S",
+     "option3": null,
+     "price": "1399.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8008-GRE-S"
+    },
+    {
+     "id": 800802,
+     "title": "Grey Melange / M",
+     "option1": "Grey Melange",
+     "option2": "M",
+     "option3": null,
+     "price": "1399.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8008-GRE-M"
+    },
+    {
+     "id": 800803,
+     "title": "Grey Melange / L",
+     "option1": "Grey Melange",
+     "option2": "L",
+     "option3": null,
+     "price": "1399.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8008-GRE-L"
+    },
+    {
+     "id": 800804,
+     "title": "Grey Melange / XL",
+     "option1": "Grey Melange",
+     "option2": "XL",
+     "option3": null,
+     "price": "1399.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8008-GRE-XL"
+    },
+    {
+     "id": 800810,
+     "title": "Black / XS",
+     "option1": "Black",
+     "option2": "XS",
+     "option3": null,
+     "price": "1399.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8008-BLA-XS"
+    },
+    {
+     "id": 800811,
+     "title": "Black / S",
+     "option1": "Black",
+     "option2": "S",
+     "option3": null,
+     "price": "1399.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8008-BLA-S"
+    },
+    {
+     "id": 800812,
+     "title": "Black / M",
+     "option1": "Black",
+     "option2": "M",
+     "option3": null,
+     "price": "1399.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8008-BLA-M"
+    },
+    {
+     "id": 800813,
+     "title": "Black / L",
+     "option1": "Black",
+     "option2": "L",
+     "option3": null,
+     "price": "1399.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8008-BLA-L"
+    },
+    {
+     "id": 800814,
+     "title": "Black / XL",
+     "option1": "Black",
+     "option2": "XL",
+     "option3": null,
+     "price": "1399.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8008-BLA-XL"
+    }
+   ],
+   "images": [
+    {
+     "src": "https://cdn.example.com/stride/relaxed-joggers.jpg",
+     "variant_ids": []
+    }
+   ]
+  },
+  {
+   "id": 8009,
+   "title": "2-in-1 Running Shorts",
+   "handle": "2-in-1-running-shorts",
+   "body_html": "<p>Lightweight running shorts with a built-in liner and a phone pocket.</p>",
+   "vendor": "Stride Lab",
+   "product_type": "Shorts",
+   "tags": "running, quick-dry, Men",
+   "options": [
+    {
+     "name": "Color",
+     "position": 1,
+     "values": [
+      "Black",
+      "Navy"
+     ]
+    },
+    {
+     "name": "Size",
+     "position": 2,
+     "values": [
+      "S",
+      "M",
+      "L",
+      "XL",
+      "XXL"
+     ]
+    }
+   ],
+   "variants": [
+    {
+     "id": 800900,
+     "title": "Black / S",
+     "option1": "Black",
+     "option2": "S",
+     "option3": null,
+     "price": "999.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8009-BLA-S"
+    },
+    {
+     "id": 800901,
+     "title": "Black / M",
+     "option1": "Black",
+     "option2": "M",
+     "option3": null,
+     "price": "999.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8009-BLA-M"
+    },
+    {
+     "id": 800902,
+     "title": "Black / L",
+     "option1": "Black",
+     "option2": "L",
+     "option3": null,
+     "price": "999.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8009-BLA-L"
+    },
+    {
+     "id": 800903,
+     "title": "Black / XL",
+     "option1": "Black",
+     "option2": "XL",
+     "option3": null,
+     "price": "999.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8009-BLA-XL"
+    },
+    {
+     "id": 800904,
+     "title": "Black / XXL",
+     "option1": "Black",
+     "option2": "XXL",
+     "option3": null,
+     "price": "999.00",
+     "compare_at_price": null,
+     "available": false,
+     "sku": "SL-8009-BLA-XXL"
+    },
+    {
+     "id": 800910,
+     "title": "Navy / S",
+     "option1": "Navy",
+     "option2": "S",
+     "option3": null,
+     "price": "999.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8009-NAV-S"
+    },
+    {
+     "id": 800911,
+     "title": "Navy / M",
+     "option1": "Navy",
+     "option2": "M",
+     "option3": null,
+     "price": "999.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8009-NAV-M"
+    },
+    {
+     "id": 800912,
+     "title": "Navy / L",
+     "option1": "Navy",
+     "option2": "L",
+     "option3": null,
+     "price": "999.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8009-NAV-L"
+    },
+    {
+     "id": 800913,
+     "title": "Navy / XL",
+     "option1": "Navy",
+     "option2": "XL",
+     "option3": null,
+     "price": "999.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8009-NAV-XL"
+    },
+    {
+     "id": 800914,
+     "title": "Navy / XXL",
+     "option1": "Navy",
+     "option2": "XXL",
+     "option3": null,
+     "price": "999.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8009-NAV-XXL"
+    }
+   ],
+   "images": [
+    {
+     "src": "https://cdn.example.com/stride/2-in-1-running-shorts.jpg",
+     "variant_ids": []
+    }
+   ]
+  },
+  {
+   "id": 8010,
+   "title": "Biker Shorts",
+   "handle": "biker-shorts",
+   "body_html": "<p>High-waist biker shorts in a squat-proof stretch fabric.</p>",
+   "vendor": "Stride Lab",
+   "product_type": "Shorts",
+   "tags": "gym, cycling, Women",
+   "options": [
+    {
+     "name": "Color",
+     "position": 1,
+     "values": [
+      "Black",
+      "Olive"
+     ]
+    },
+    {
+     "name": "Size",
+     "position": 2,
+     "values": [
+      "XS",
+      "S",
+      "M",
+      "L",
+      "XL"
+     ]
+    }
+   ],
+   "variants": [
+    {
+     "id": 801000,
+     "title": "Black / XS",
+     "option1": "Black",
+     "option2": "XS",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": "1099.00",
+     "available": true,
+     "sku": "SL-8010-BLA-XS"
+    },
+    {
+     "id": 801001,
+     "title": "Black / S",
+     "option1": "Black",
+     "option2": "S",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": "1099.00",
+     "available": true,
+     "sku": "SL-8010-BLA-S"
+    },
+    {
+     "id": 801002,
+     "title": "Black / M",
+     "option1": "Black",
+     "option2": "M",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": "1099.00",
+     "available": true,
+     "sku": "SL-8010-BLA-M"
+    },
+    {
+     "id": 801003,
+     "title": "Black / L",
+     "option1": "Black",
+     "option2": "L",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": "1099.00",
+     "available": true,
+     "sku": "SL-8010-BLA-L"
+    },
+    {
+     "id": 801004,
+     "title": "Black / XL",
+     "option1": "Black",
+     "option2": "XL",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": "1099.00",
+     "available": true,
+     "sku": "SL-8010-BLA-XL"
+    },
+    {
+     "id": 801010,
+     "title": "Olive / XS",
+     "option1": "Olive",
+     "option2": "XS",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": "1099.00",
+     "available": true,
+     "sku": "SL-8010-OLI-XS"
+    },
+    {
+     "id": 801011,
+     "title": "Olive / S",
+     "option1": "Olive",
+     "option2": "S",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": "1099.00",
+     "available": true,
+     "sku": "SL-8010-OLI-S"
+    },
+    {
+     "id": 801012,
+     "title": "Olive / M",
+     "option1": "Olive",
+     "option2": "M",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": "1099.00",
+     "available": true,
+     "sku": "SL-8010-OLI-M"
+    },
+    {
+     "id": 801013,
+     "title": "Olive / L",
+     "option1": "Olive",
+     "option2": "L",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": "1099.00",
+     "available": true,
+     "sku": "SL-8010-OLI-L"
+    },
+    {
+     "id": 801014,
+     "title": "Olive / XL",
+     "option1": "Olive",
+     "option2": "XL",
+     "option3": null,
+     "price": "899.00",
+     "compare_at_price": "1099.00",
+     "available": true,
+     "sku": "SL-8010-OLI-XL"
+    }
+   ],
+   "images": [
+    {
+     "src": "https://cdn.example.com/stride/biker-shorts.jpg",
+     "variant_ids": []
+    }
+   ]
+  },
+  {
+   "id": 8011,
+   "title": "High-Waist Leggings",
+   "handle": "high-waist-leggings",
+   "body_html": "<p>Full-length leggings with a high waistband and a hidden pocket, squat-proof.</p>",
+   "vendor": "Stride Lab",
+   "product_type": "Leggings",
+   "tags": "yoga, gym, squat-proof, Women",
+   "options": [
+    {
+     "name": "Color",
+     "position": 1,
+     "values": [
+      "Black",
+      "Wine"
+     ]
+    },
+    {
+     "name": "Size",
+     "position": 2,
+     "values": [
+      "XS",
+      "S",
+      "M",
+      "L",
+      "XL"
+     ]
+    }
+   ],
+   "variants": [
+    {
+     "id": 801100,
+     "title": "Black / XS",
+     "option1": "Black",
+     "option2": "XS",
+     "option3": null,
+     "price": "1599.00",
+     "compare_at_price": "1999.00",
+     "available": true,
+     "sku": "SL-8011-BLA-XS"
+    },
+    {
+     "id": 801101,
+     "title": "Black / S",
+     "option1": "Black",
+     "option2": "S",
+     "option3": null,
+     "price": "1599.00",
+     "compare_at_price": "1999.00",
+     "available": true,
+     "sku": "SL-8011-BLA-S"
+    },
+    {
+     "id": 801102,
+     "title": "Black / M",
+     "option1": "Black",
+     "option2": "M",
+     "option3": null,
+     "price": "1599.00",
+     "compare_at_price": "1999.00",
+     "available": true,
+     "sku": "SL-8011-BLA-M"
+    },
+    {
+     "id": 801103,
+     "title": "Black / L",
+     "option1": "Black",
+     "option2": "L",
+     "option3": null,
+     "price": "1599.00",
+     "compare_at_price": "1999.00",
+     "available": true,
+     "sku": "SL-8011-BLA-L"
+    },
+    {
+     "id": 801104,
+     "title": "Black / XL",
+     "option1": "Black",
+     "option2": "XL",
+     "option3": null,
+     "price": "1599.00",
+     "compare_at_price": "1999.00",
+     "available": true,
+     "sku": "SL-8011-BLA-XL"
+    },
+    {
+     "id": 801110,
+     "title": "Wine / XS",
+     "option1": "Wine",
+     "option2": "XS",
+     "option3": null,
+     "price": "1599.00",
+     "compare_at_price": "1999.00",
+     "available": true,
+     "sku": "SL-8011-WIN-XS"
+    },
+    {
+     "id": 801111,
+     "title": "Wine / S",
+     "option1": "Wine",
+     "option2": "S",
+     "option3": null,
+     "price": "1599.00",
+     "compare_at_price": "1999.00",
+     "available": true,
+     "sku": "SL-8011-WIN-S"
+    },
+    {
+     "id": 801112,
+     "title": "Wine / M",
+     "option1": "Wine",
+     "option2": "M",
+     "option3": null,
+     "price": "1599.00",
+     "compare_at_price": "1999.00",
+     "available": true,
+     "sku": "SL-8011-WIN-M"
+    },
+    {
+     "id": 801113,
+     "title": "Wine / L",
+     "option1": "Wine",
+     "option2": "L",
+     "option3": null,
+     "price": "1599.00",
+     "compare_at_price": "1999.00",
+     "available": true,
+     "sku": "SL-8011-WIN-L"
+    },
+    {
+     "id": 801114,
+     "title": "Wine / XL",
+     "option1": "Wine",
+     "option2": "XL",
+     "option3": null,
+     "price": "1599.00",
+     "compare_at_price": "1999.00",
+     "available": true,
+     "sku": "SL-8011-WIN-XL"
+    }
+   ],
+   "images": [
+    {
+     "src": "https://cdn.example.com/stride/high-waist-leggings.jpg",
+     "variant_ids": []
+    }
+   ]
+  },
+  {
+   "id": 8012,
+   "title": "Muscle Tank",
+   "handle": "muscle-tank",
+   "body_html": "<p>A deep-cut muscle tank in breathable cotton for heavy lifting days.</p>",
+   "vendor": "Stride Lab",
+   "product_type": "Tank Tops",
+   "tags": "gym, bodybuilding, Men",
+   "options": [
+    {
+     "name": "Color",
+     "position": 1,
+     "values": [
+      "Black",
+      "White",
+      "Red"
+     ]
+    },
+    {
+     "name": "Size",
+     "position": 2,
+     "values": [
+      "S",
+      "M",
+      "L",
+      "XL",
+      "XXL"
+     ]
+    }
+   ],
+   "variants": [
+    {
+     "id": 801200,
+     "title": "Black / S",
+     "option1": "Black",
+     "option2": "S",
+     "option3": null,
+     "price": "649.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8012-BLA-S"
+    },
+    {
+     "id": 801201,
+     "title": "Black / M",
+     "option1": "Black",
+     "option2": "M",
+     "option3": null,
+     "price": "649.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8012-BLA-M"
+    },
+    {
+     "id": 801202,
+     "title": "Black / L",
+     "option1": "Black",
+     "option2": "L",
+     "option3": null,
+     "price": "649.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8012-BLA-L"
+    },
+    {
+     "id": 801203,
+     "title": "Black / XL",
+     "option1": "Black",
+     "option2": "XL",
+     "option3": null,
+     "price": "649.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8012-BLA-XL"
+    },
+    {
+     "id": 801204,
+     "title": "Black / XXL",
+     "option1": "Black",
+     "option2": "XXL",
+     "option3": null,
+     "price": "649.00",
+     "compare_at_price": null,
+     "available": false,
+     "sku": "SL-8012-BLA-XXL"
+    },
+    {
+     "id": 801210,
+     "title": "White / S",
+     "option1": "White",
+     "option2": "S",
+     "option3": null,
+     "price": "649.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8012-WHI-S"
+    },
+    {
+     "id": 801211,
+     "title": "White / M",
+     "option1": "White",
+     "option2": "M",
+     "option3": null,
+     "price": "649.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8012-WHI-M"
+    },
+    {
+     "id": 801212,
+     "title": "White / L",
+     "option1": "White",
+     "option2": "L",
+     "option3": null,
+     "price": "649.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8012-WHI-L"
+    },
+    {
+     "id": 801213,
+     "title": "White / XL",
+     "option1": "White",
+     "option2": "XL",
+     "option3": null,
+     "price": "649.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8012-WHI-XL"
+    },
+    {
+     "id": 801214,
+     "title": "White / XXL",
+     "option1": "White",
+     "option2": "XXL",
+     "option3": null,
+     "price": "649.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8012-WHI-XXL"
+    },
+    {
+     "id": 801220,
+     "title": "Red / S",
+     "option1": "Red",
+     "option2": "S",
+     "option3": null,
+     "price": "649.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8012-RED-S"
+    },
+    {
+     "id": 801221,
+     "title": "Red / M",
+     "option1": "Red",
+     "option2": "M",
+     "option3": null,
+     "price": "649.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8012-RED-M"
+    },
+    {
+     "id": 801222,
+     "title": "Red / L",
+     "option1": "Red",
+     "option2": "L",
+     "option3": null,
+     "price": "649.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8012-RED-L"
+    },
+    {
+     "id": 801223,
+     "title": "Red / XL",
+     "option1": "Red",
+     "option2": "XL",
+     "option3": null,
+     "price": "649.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8012-RED-XL"
+    },
+    {
+     "id": 801224,
+     "title": "Red / XXL",
+     "option1": "Red",
+     "option2": "XXL",
+     "option3": null,
+     "price": "649.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8012-RED-XXL"
+    }
+   ],
+   "images": [
+    {
+     "src": "https://cdn.example.com/stride/muscle-tank.jpg",
+     "variant_ids": []
+    }
+   ]
+  },
+  {
+   "id": 8013,
+   "title": "Racerback Tank",
+   "handle": "racerback-tank",
+   "body_html": "<p>A light racerback tank that stays out of the way in yoga and pilates.</p>",
+   "vendor": "Stride Lab",
+   "product_type": "Tank Tops",
+   "tags": "yoga, Women",
+   "options": [
+    {
+     "name": "Color",
+     "position": 1,
+     "values": [
+      "White",
+      "Teal"
+     ]
+    },
+    {
+     "name": "Size",
+     "position": 2,
+     "values": [
+      "XS",
+      "S",
+      "M",
+      "L",
+      "XL"
+     ]
+    }
+   ],
+   "variants": [
+    {
+     "id": 801300,
+     "title": "White / XS",
+     "option1": "White",
+     "option2": "XS",
+     "option3": null,
+     "price": "699.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8013-WHI-XS"
+    },
+    {
+     "id": 801301,
+     "title": "White / S",
+     "option1": "White",
+     "option2": "S",
+     "option3": null,
+     "price": "699.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8013-WHI-S"
+    },
+    {
+     "id": 801302,
+     "title": "White / M",
+     "option1": "White",
+     "option2": "M",
+     "option3": null,
+     "price": "699.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8013-WHI-M"
+    },
+    {
+     "id": 801303,
+     "title": "White / L",
+     "option1": "White",
+     "option2": "L",
+     "option3": null,
+     "price": "699.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8013-WHI-L"
+    },
+    {
+     "id": 801304,
+     "title": "White / XL",
+     "option1": "White",
+     "option2": "XL",
+     "option3": null,
+     "price": "699.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8013-WHI-XL"
+    },
+    {
+     "id": 801310,
+     "title": "Teal / XS",
+     "option1": "Teal",
+     "option2": "XS",
+     "option3": null,
+     "price": "699.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8013-TEA-XS"
+    },
+    {
+     "id": 801311,
+     "title": "Teal / S",
+     "option1": "Teal",
+     "option2": "S",
+     "option3": null,
+     "price": "699.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8013-TEA-S"
+    },
+    {
+     "id": 801312,
+     "title": "Teal / M",
+     "option1": "Teal",
+     "option2": "M",
+     "option3": null,
+     "price": "699.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8013-TEA-M"
+    },
+    {
+     "id": 801313,
+     "title": "Teal / L",
+     "option1": "Teal",
+     "option2": "L",
+     "option3": null,
+     "price": "699.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8013-TEA-L"
+    },
+    {
+     "id": 801314,
+     "title": "Teal / XL",
+     "option1": "Teal",
+     "option2": "XL",
+     "option3": null,
+     "price": "699.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8013-TEA-XL"
+    }
+   ],
+   "images": [
+    {
+     "src": "https://cdn.example.com/stride/racerback-tank.jpg",
+     "variant_ids": []
+    }
+   ]
+  },
+  {
+   "id": 8014,
+   "title": "Zip Hoodie",
+   "handle": "zip-hoodie",
+   "body_html": "<p>A mid-weight cotton zip hoodie for warm-ups and cold mornings.</p>",
+   "vendor": "Stride Lab",
+   "product_type": "Hoodies",
+   "tags": "winter, cotton, Unisex",
+   "options": [
+    {
+     "name": "Color",
+     "position": 1,
+     "values": [
+      "Black",
+      "Grey"
+     ]
+    },
+    {
+     "name": "Size",
+     "position": 2,
+     "values": [
+      "S",
+      "M",
+      "L",
+      "XL",
+      "XXL"
+     ]
+    }
+   ],
+   "variants": [
+    {
+     "id": 801400,
+     "title": "Black / S",
+     "option1": "Black",
+     "option2": "S",
+     "option3": null,
+     "price": "1999.00",
+     "compare_at_price": "2499.00",
+     "available": true,
+     "sku": "SL-8014-BLA-S"
+    },
+    {
+     "id": 801401,
+     "title": "Black / M",
+     "option1": "Black",
+     "option2": "M",
+     "option3": null,
+     "price": "1999.00",
+     "compare_at_price": "2499.00",
+     "available": true,
+     "sku": "SL-8014-BLA-M"
+    },
+    {
+     "id": 801402,
+     "title": "Black / L",
+     "option1": "Black",
+     "option2": "L",
+     "option3": null,
+     "price": "1999.00",
+     "compare_at_price": "2499.00",
+     "available": true,
+     "sku": "SL-8014-BLA-L"
+    },
+    {
+     "id": 801403,
+     "title": "Black / XL",
+     "option1": "Black",
+     "option2": "XL",
+     "option3": null,
+     "price": "1999.00",
+     "compare_at_price": "2499.00",
+     "available": true,
+     "sku": "SL-8014-BLA-XL"
+    },
+    {
+     "id": 801404,
+     "title": "Black / XXL",
+     "option1": "Black",
+     "option2": "XXL",
+     "option3": null,
+     "price": "1999.00",
+     "compare_at_price": "2499.00",
+     "available": true,
+     "sku": "SL-8014-BLA-XXL"
+    },
+    {
+     "id": 801410,
+     "title": "Grey / S",
+     "option1": "Grey",
+     "option2": "S",
+     "option3": null,
+     "price": "1999.00",
+     "compare_at_price": "2499.00",
+     "available": true,
+     "sku": "SL-8014-GRE-S"
+    },
+    {
+     "id": 801411,
+     "title": "Grey / M",
+     "option1": "Grey",
+     "option2": "M",
+     "option3": null,
+     "price": "1999.00",
+     "compare_at_price": "2499.00",
+     "available": true,
+     "sku": "SL-8014-GRE-M"
+    },
+    {
+     "id": 801412,
+     "title": "Grey / L",
+     "option1": "Grey",
+     "option2": "L",
+     "option3": null,
+     "price": "1999.00",
+     "compare_at_price": "2499.00",
+     "available": true,
+     "sku": "SL-8014-GRE-L"
+    },
+    {
+     "id": 801413,
+     "title": "Grey / XL",
+     "option1": "Grey",
+     "option2": "XL",
+     "option3": null,
+     "price": "1999.00",
+     "compare_at_price": "2499.00",
+     "available": true,
+     "sku": "SL-8014-GRE-XL"
+    },
+    {
+     "id": 801414,
+     "title": "Grey / XXL",
+     "option1": "Grey",
+     "option2": "XXL",
+     "option3": null,
+     "price": "1999.00",
+     "compare_at_price": "2499.00",
+     "available": true,
+     "sku": "SL-8014-GRE-XXL"
+    }
+   ],
+   "images": [
+    {
+     "src": "https://cdn.example.com/stride/zip-hoodie.jpg",
+     "variant_ids": []
+    }
+   ]
+  },
+  {
+   "id": 8015,
+   "title": "Windbreaker Jacket",
+   "handle": "windbreaker-jacket",
+   "body_html": "<p>A packable, water-resistant windbreaker with reflective trims for evening runs.</p>",
+   "vendor": "Stride Lab",
+   "product_type": "Jackets",
+   "tags": "running, rain, Unisex",
+   "options": [
+    {
+     "name": "Color",
+     "position": 1,
+     "values": [
+      "Neon Yellow",
+      "Black"
+     ]
+    },
+    {
+     "name": "Size",
+     "position": 2,
+     "values": [
+      "S",
+      "M",
+      "L",
+      "XL",
+      "XXL"
+     ]
+    }
+   ],
+   "variants": [
+    {
+     "id": 801500,
+     "title": "Neon Yellow / S",
+     "option1": "Neon Yellow",
+     "option2": "S",
+     "option3": null,
+     "price": "2499.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8015-NEO-S"
+    },
+    {
+     "id": 801501,
+     "title": "Neon Yellow / M",
+     "option1": "Neon Yellow",
+     "option2": "M",
+     "option3": null,
+     "price": "2499.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8015-NEO-M"
+    },
+    {
+     "id": 801502,
+     "title": "Neon Yellow / L",
+     "option1": "Neon Yellow",
+     "option2": "L",
+     "option3": null,
+     "price": "2499.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8015-NEO-L"
+    },
+    {
+     "id": 801503,
+     "title": "Neon Yellow / XL",
+     "option1": "Neon Yellow",
+     "option2": "XL",
+     "option3": null,
+     "price": "2499.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8015-NEO-XL"
+    },
+    {
+     "id": 801504,
+     "title": "Neon Yellow / XXL",
+     "option1": "Neon Yellow",
+     "option2": "XXL",
+     "option3": null,
+     "price": "2499.00",
+     "compare_at_price": null,
+     "available": false,
+     "sku": "SL-8015-NEO-XXL"
+    },
+    {
+     "id": 801510,
+     "title": "Black / S",
+     "option1": "Black",
+     "option2": "S",
+     "option3": null,
+     "price": "2499.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8015-BLA-S"
+    },
+    {
+     "id": 801511,
+     "title": "Black / M",
+     "option1": "Black",
+     "option2": "M",
+     "option3": null,
+     "price": "2499.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8015-BLA-M"
+    },
+    {
+     "id": 801512,
+     "title": "Black / L",
+     "option1": "Black",
+     "option2": "L",
+     "option3": null,
+     "price": "2499.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8015-BLA-L"
+    },
+    {
+     "id": 801513,
+     "title": "Black / XL",
+     "option1": "Black",
+     "option2": "XL",
+     "option3": null,
+     "price": "2499.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8015-BLA-XL"
+    },
+    {
+     "id": 801514,
+     "title": "Black / XXL",
+     "option1": "Black",
+     "option2": "XXL",
+     "option3": null,
+     "price": "2499.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8015-BLA-XXL"
+    }
+   ],
+   "images": [
+    {
+     "src": "https://cdn.example.com/stride/windbreaker-jacket.jpg",
+     "variant_ids": []
+    }
+   ]
+  },
+  {
+   "id": 8016,
+   "title": "Gym Duffel Bag",
+   "handle": "gym-duffel-bag",
+   "body_html": "<p>A 35-litre duffel with a shoe compartment and a wet pocket.</p>",
+   "vendor": "Stride Lab",
+   "product_type": "Accessories",
+   "tags": "gym",
+   "options": [
+    {
+     "name": "Title",
+     "position": 1,
+     "values": [
+      "Default Title"
+     ]
+    }
+   ],
+   "variants": [
+    {
+     "id": 801601,
+     "title": "Default Title",
+     "option1": "Default Title",
+     "option2": null,
+     "option3": null,
+     "price": "1799.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8016"
+    }
+   ],
+   "images": [
+    {
+     "src": "https://cdn.example.com/stride/gym-duffel-bag.jpg",
+     "variant_ids": []
+    }
+   ]
+  },
+  {
+   "id": 8017,
+   "title": "Ankle Socks (3 Pack)",
+   "handle": "ankle-socks-3-pack",
+   "body_html": "<p>Cushioned cotton ankle socks, three pairs.</p>",
+   "vendor": "Stride Lab",
+   "product_type": "Accessories",
+   "tags": "running, Unisex",
+   "options": [
+    {
+     "name": "Title",
+     "position": 1,
+     "values": [
+      "Default Title"
+     ]
+    }
+   ],
+   "variants": [
+    {
+     "id": 801701,
+     "title": "Default Title",
+     "option1": "Default Title",
+     "option2": null,
+     "option3": null,
+     "price": "349.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8017"
+    }
+   ],
+   "images": [
+    {
+     "src": "https://cdn.example.com/stride/ankle-socks-3-pack.jpg",
+     "variant_ids": []
+    }
+   ]
+  },
+  {
+   "id": 8018,
+   "title": "Training Cap",
+   "handle": "training-cap",
+   "body_html": "<p>A light, quick-dry cap with an adjustable back.</p>",
+   "vendor": "Stride Lab",
+   "product_type": "Accessories",
+   "tags": "running, Unisex",
+   "options": [
+    {
+     "name": "Title",
+     "position": 1,
+     "values": [
+      "Default Title"
+     ]
+    }
+   ],
+   "variants": [
+    {
+     "id": 801801,
+     "title": "Default Title",
+     "option1": "Default Title",
+     "option2": null,
+     "option3": null,
+     "price": "499.00",
+     "compare_at_price": null,
+     "available": true,
+     "sku": "SL-8018"
+    }
+   ],
+   "images": [
+    {
+     "src": "https://cdn.example.com/stride/training-cap.jpg",
+     "variant_ids": []
+    }
+   ]
+  }
+ ]
+}

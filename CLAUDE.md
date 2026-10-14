@@ -124,6 +124,32 @@ is a to-do, and the baseline records it.
 Verify: scripts/test_eval_harness.py (44 checks, no quota). Baseline (after P2 step 2), gpt-oss-20b:
 60/63 cases, 913/917 checks (was 47/63 before step 2; plan.md P2 has the history).
 
+## Brands and vocabulary (P2 step 3, 14 Oct)
+Nothing the bot says about the shop is written for one brand any more.
+- brand.py: per-store texts from stores.brand (JSONB): name, role,
+  description, what_we_sell, scope, example requests, one-size items,
+  policies, off_topic, help_examples, vertical_pack. brand.system_prompt()
+  renders the assistant's prompt; the greeting, HELP (webhook.help_text()),
+  off-topic line, list intro (chat.py) and Razorpay description use it too.
+  Unset keys are generated from the catalogue ("Men: t-shirts, joggers ...")
+  or neutral. The demo's settings (migration 0006) are the old texts word for
+  word: its prompt equals scripts/fixtures/demo_system_prompt.txt.
+  Set them with: scripts/stores.py brand <slug> [--set key=value] [--file x.json]
+- vocab.py: the words parse_query understands, per store, rebuilt when the
+  catalogue reloads. From the catalogue: category names in their spellings
+  (T-Shirts -> tee, tshirt, t shirt...), the noun a title ends with ("Gym
+  Duffel Bag" -> bag), a gender when a category is all one gender, occasions
+  from occasion and Shopify tags, add-on categories (accessories, bags, caps)
+  shown only when asked for. A store whose brand names a vertical pack uses
+  the pack instead (vocab.INDIAN_ETHNIC is the demo's, the word lists that
+  used to be in retrieval.py), keeping only categories the store sells.
+- Product codes are any store's PREFIX+digits, recognised only when the
+  current store sells them (assistant._strip_codes, selection.find_product_code).
+Verify: scripts/test_brands.py (38 checks: a second store built from
+evals/catalogues/fitwear.json, an invented activewear brand, through the
+Shopify importer; and the demo unchanged). evals/catalogues/fitwear.json is
+made by scripts/fixtures/make_fitwear_catalogue.py.
+
 ## Shared contract (do not change without syncing both devs)
 get_product_recommendations(query: str, top_k: int = 3) -> tuple[str, List[ProductMatch]]
 
@@ -316,7 +342,7 @@ Price and stock are deliberately NOT embedded: they are filters, not meaning.
 Retrieval is bot/retrieval.py, one engine for the bot, the assistant's tools and
 the website search. One SQL query ranks the store's whole catalogue by cosine
 distance (pgvector, exact scan, no index); gender, category, budget and stock
-are then applied in Python from the catalogue. Garment words map onto categories that exist (checked at import:
+are then applied in Python from the catalogue. Garment words (vocab.py, per store) map onto categories that exist:
 "jacket" -> Nehru Jacket/Waistcoat, "kurta" for a woman -> Kurti/Salwar Suit).
 A garment after "my" is context, not the request ("jacket over my kurta").
 So is one after "match"/"with" ("bag to match a lehenga"); it still sets the
@@ -386,7 +412,8 @@ Products it names in its own words get the real list/photo attached.
 It is a shop assistant, not a chatbot: asked "can u write a python code
 for 2+2" it answered with a working snippet, so a reply that looks like
 code (fences, print(, def, top-of-line import, SQL, HTML) is replaced with
-assistant.OFF_TOPIC. Ordinary off-topic questions still get a kind line.
+the store's off-topic line (brand.Brand.off_topic). Ordinary off-topic
+questions still get a kind line.
 Profile (users.profile JSONB, idempotent ALTER): gender the customer stated
 about THEMSELVES (rejected when another person is in the conversation: "only
 male options" for a brother is the brother's) plus short notes, via
@@ -504,8 +531,8 @@ After editing the catalog, run scripts/sync_catalog.py (the demo store; a slug f
 - /buy is a placeholder that writes an order row directly. Razorpay replaces it.
 - bot/chat.py still uses the catalogue key style directly; adopting
   ProductMatch there would remove the last of the drift.
-- The retrieval vocabulary (garment words, occasions) and prompts are written
-  for the demo's ethnic wear; P2 makes them work for any catalogue.
+- Some conversation rules in bot/assistant.py are still worded for Indian
+  weddings (_FUNCTIONS: "a wedding of my friend"); harmless elsewhere.
 - Razorpay keys, PUBLIC_BASE_URL and the website are the demo store's only.
 - The demo store accepts unsigned webhook POSTs until WHATSAPP_APP_SECRET is
   set in backend/.env; set it before the URL is public.

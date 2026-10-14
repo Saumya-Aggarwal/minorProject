@@ -12,6 +12,7 @@ import os
 import time
 from typing import Any
 
+import brand
 import llm
 from bot import retrieval
 
@@ -72,7 +73,7 @@ def _intro(query: str, products: list[dict[str, Any]], user_context: str | None)
         "messages": [
             {"role": "system", "content": (
                 "You write the single opening line above a product list in a WhatsApp chat "
-                "for an Indian ethnic wear boutique. One sentence, at most 22 words. No greeting, "
+                f"for {brand.current().description}. One sentence, at most 22 words. No greeting, "
                 "no question, no prices, no product names, no emojis. Describe what is being "
                 "shown and why it fits the request. Never imply there are more items than listed."
             )},

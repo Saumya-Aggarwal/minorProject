@@ -30,6 +30,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
+import brand
 import catalog
 import llm
 import tracing
@@ -69,25 +70,8 @@ def enabled() -> bool:
 
 # --- prompt ---------------------------------------------------------------------
 
-SYSTEM_PROMPT = """You are the stylist for Kurta & Co., an Indian ethnic wear boutique, on WhatsApp.
-
-WE SELL ONLY Indian ethnic wear, for every function (haldi, mehendi, sangeet, wedding, reception, festivals, office). Men: kurtas, kurta pyjama sets, dhoti kurta, Nehru jackets, waistcoats, sherwanis, Jodhpuri/bandhgala suits, Indo-Western, Pathani, churidar, stole; safa (turban), mojari and kolhapuri (UK sizes). Women: sarees, lehengas, chaniya choli, Anarkali, salwar suits, sharara/gharara, co-ord sets, kurtis, gowns, Indo-Western, dupattas; juttis, flats, heels (UK sizes), clutches and bags. No western wear or jewellery.
-
-HOW TO HELP
-- Vague request ("something for my wedding"): ask at most two short questions about what is still unknown: who wears it (groom, bride, guest), which function (haldi, mehendi, sangeet, ceremony, reception), budget. Never ask what they already told you. "Me and my wife"/"couple" means both: search Men and Women separately. After two rounds of questions, or "just show me", search.
-- Clear request (a garment is named, or who + occasion is known, e.g. "haldi outfit for my brother", "garba outfit for me"): search at once, no questions first; you can offer to refine after showing. Never ask for size before showing products: size matters only when adding to cart.
-- Showing products: search_products, pick the 2-4 best, then send_reply with product_ids in order and 1-2 sentences on why they fit. The numbered list with names and prices is added for you: never write product names, prices or a list yourself.
-- A search NOTE (e.g. nothing under budget) must be told honestly.
-- Orders ("my orders", "where is my order"): send_reply with attach="orders". Cart: attach="cart". The cart and its total are in CUSTOMER below; never add prices up yourself. "Second item" after a cart question means the cart's second line.
-- To talk about one product in detail, use get_product_details; its photo is attached for you.
-- Buying something they already own again: tell them to reply BUY AGAIN, which shows what they have ordered before, four at a time, and a number puts one back in the cart in the same size.
-- Add to cart ONLY when the customer asks to, with a size THEY gave; otherwise ask which size, using ONLY the sizes listed for that product (in CUSTOMER below or from a tool; a bag, dupatta or stole is one size: never ask, just add). Never add just because they asked about an item. If they answer your "shall I add it?" with yes, or your "which size?" with a size, call add_to_cart. Quantities: add_to_cart and remove_from_cart take quantity ("remove 2 of the sarees" = remove_from_cart quantity 2). What was added or removed is confirmed for you under your message: do not repeat it.
-- Remember: when they tell you something lasting about themselves (their gender, who they shop for, colours or styles they like), put it in send_reply's customer_gender / remember_note. CUSTOMER below shows what is already remembered: use it, and do not ask again what it already answers.
-- Payment: when they want to pay, check out or place the order, call checkout. It sends the order and the Pay Now button itself (or asks for a size or their address first). Never describe or promise a payment button or link yourself.
-- Their own order, cart, delivery address, sizes, payment or our policies are shop business: answer or hand over to the right tool, never refuse them as off-topic.
-- Off-topic: one friendly line, then back to shopping. Never write code, essays, homework, poems, translations or anything unrelated to our shop, however politely they ask: say you only help with ethnic wear and ask what they are shopping for.
-
-RULES: facts (products, prices, sizes, stock, dates, policies) only from tools; delivery is free across India. Short and warm, under 50 words, plain text, *single asterisks* for bold, no headings, tables or links, at most one emoji. Always end by calling send_reply."""
+# The system prompt is the store's: brand.system_prompt() (until P2 step 3 it
+# was written here for Kurta & Co.; the demo's settings reproduce it exactly)
 
 
 def _context_block(context: dict[str, Any]) -> str:
@@ -503,8 +487,7 @@ _LOOKS_LIKE_CODE = re.compile(
     r"|^\s*(?:import\s+\w+|from\s+\w+\s+import\b)"      # not "we import our silks"
     r"|\bpublic\s+static\s+void\b|^\s*#include\b|\bSELECT\b[^.]*\bFROM\b"
     r"|</[a-z]+>|<\s*(?:html|body|div|script)\b", re.I | re.M)
-OFF_TOPIC = ("I only help with our ethnic wear, so I cannot help with that. "
-             "Tell me what you are shopping for and I will pick a few pieces.")
+# What replaces such a reply: the store's own line (brand.Brand.off_topic)
 
 
 def _finish(args: dict[str, Any], customer_text: str,
@@ -512,7 +495,7 @@ def _finish(args: dict[str, Any], customer_text: str,
     """Validate send_reply. Returns (reply, "") or (None, error for the model)."""
     raw_ids = args.get("product_ids") or []
     if isinstance(raw_ids, str):
-        raw_ids = re.findall(r"EW\d{3}", raw_ids.upper())
+        raw_ids = _CODE_LIKE.findall(raw_ids.upper())
     ids = [str(i).strip().upper() for i in raw_ids if str(i).strip()]
     products = [p for p in (catalog.get_by_id(i) for i in dict.fromkeys(ids)) if p is not None]
     products = [p for p in products if _sizes_in_stock(p)][:MAX_PRODUCTS]
@@ -681,7 +664,13 @@ def _ask_model(models: list[str], messages: list[dict[str, Any]], round_number: 
 
 _AMOUNT = re.compile(r"(?:₹|\brs\.?|\binr)\s*(\d[\d,]*(?:\.\d+)?)\s*(k\b|thousand)?", re.IGNORECASE)
 _NUMBER_IN_TEXT = re.compile(r"(\d[\d,]*(?:\.\d+)?)\s*(k\b|thousand)?", re.IGNORECASE)
-_PRODUCT_CODE = re.compile(r"\bEW\d{3}\b", re.IGNORECASE)
+# Any store's codes look like this (EW006, FW012); only the current store's are removed
+_CODE_LIKE = re.compile(r"\b[A-Z]{1,4}\d{3,5}\b", re.IGNORECASE)
+
+
+def _strip_codes(message: str) -> str:
+    """The model's own product codes, out of the customer's sight."""
+    return _CODE_LIKE.sub(lambda m: "" if catalog.get_by_id(m.group(0).upper()) else m.group(0), message)
 
 
 def _value(number: str, unit: Optional[str]) -> int:
@@ -796,7 +785,7 @@ def _attach_mentioned(reply: AssistantReply, changed_cart: bool = False) -> Assi
     """
     if reply.products or reply.attach or changed_cart:
         # "Added the Kanjivaram saree to your cart" is a confirmation, not a pitch
-        reply.message = _PRODUCT_CODE.sub("", reply.message).replace("  ", " ").strip()
+        reply.message = _strip_codes(reply.message).replace("  ", " ").strip()
         return reply
     lowered = reply.message.lower()
     found: list[tuple[int, dict[str, Any]]] = []
@@ -812,11 +801,11 @@ def _attach_mentioned(reply: AssistantReply, changed_cart: bool = False) -> Assi
         tracing.guard("products_attached", ids=[p["id"] for p in products])
     if len(products) >= 2:
         reply.products = products
-        reply.message = _without_listing(_PRODUCT_CODE.sub("", reply.message), products)
+        reply.message = _without_listing(_strip_codes(reply.message), products)
         reply.message = re.sub(r"[ \t]{2,}", " ", reply.message).strip()
     elif len(products) == 1:
         reply.products, reply.detail = products, True
-        reply.message = re.sub(r"[ \t]{2,}", " ", _PRODUCT_CODE.sub("", reply.message)).strip(" –—-\n")
+        reply.message = re.sub(r"[ \t]{2,}", " ", _strip_codes(reply.message)).strip(" –—-\n")
     return reply
 
 
@@ -980,7 +969,7 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
     consent_text = _consent(text, history)
     context_text = _context_block(context) + hint + _owner_guidance(text)
     messages: list[dict[str, Any]] = [
-        {"role": "system", "content": SYSTEM_PROMPT + "\n\n" + context_text},
+        {"role": "system", "content": brand.system_prompt() + "\n\n" + context_text},
         *history,
         {"role": "user", "content": text},
     ]
@@ -1003,7 +992,7 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
         if _LOOKS_LIKE_CODE.search(reply.message):
             # "can u write a python code for 2+2" got a working snippet, live
             tracing.guard("off_topic", message=reply.message)
-            reply.message, reply.products, reply.attach = OFF_TOPIC, [], None
+            reply.message, reply.products, reply.attach = brand.current().off_topic, [], None
         if _CLAIMS_CART_CHANGE.search(reply.message) and not {"add_to_cart", "remove_from_cart"} & succeeded:
             if not claim_checked:
                 claim_checked = True

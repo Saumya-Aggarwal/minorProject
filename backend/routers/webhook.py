@@ -10,6 +10,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, Response
 
+import brand
 import catalog
 import checkout
 import payments
@@ -428,32 +429,35 @@ async def _bare_size(user_id: int, text: str, previous: dict) -> str | None:
     return None
 
 
-HELP_TEXT = "\n".join(
-    [
-        "Here is how I can help:",
-        "• Describe what you want — \"sherwani for my wedding\", \"saree for office\"",
-        "• Reply with a number to pick an item from my list",
-        "• ADD M — add it to your cart in size M (or just ADD)",
-        "• BUY M — order only that item",
-        "• CART — see your cart · REMOVE 2 · SIZE 1 L",
-        "• CHECKOUT — pay for everything in your cart",
-        "• ORDERS — track your orders",
-        "• BUY AGAIN — shop what you have ordered before",
-        "• MY ADDRESS — see or change where we deliver",
-    ]
-)
+def help_text() -> str:
+    """HELP, with example requests from the store's own brand settings."""
+    return "\n".join(
+        [
+            "Here is how I can help:",
+            "• Describe what you want — " + ", ".join(brand.current().help_examples),
+            "• Reply with a number to pick an item from my list",
+            "• ADD M — add it to your cart in size M (or just ADD)",
+            "• BUY M — order only that item",
+            "• CART — see your cart · REMOVE 2 · SIZE 1 L",
+            "• CHECKOUT — pay for everything in your cart",
+            "• ORDERS — track your orders",
+            "• BUY AGAIN — shop what you have ordered before",
+            "• MY ADDRESS — see or change where we deliver",
+        ]
+    )
 
 
 def _greeting(user: dict | None, history: list[dict]) -> str:
     """Welcome message; linked customers are recognised by name and history."""
+    shop = brand.current()
     name = (user or {}).get("display_name")
     opening = f"Hi {name}!" if name else "Hi!"
-    lines = [f"{opening} I am the Kurta & Co. shopping assistant."]
+    lines = [f"{opening} I am the {shop.name} shopping assistant."]
     if history:
         lines.append(f"Last time you picked up the {history[0]['product_name']}.")
     lines.append(
-        "Tell me what you are shopping for — for example \"sherwani for my wedding\" "
-        "or \"saree for office\" — and I will suggest pieces from our collection."
+        f"Tell me what you are shopping for — for example {' or '.join(shop.help_examples[:2])} "
+        "— and I will suggest pieces from our collection."
     )
     lines.append("Reply HELP any time to see everything I can do.")
     return "\n".join(lines)
@@ -687,7 +691,7 @@ async def _handle_cart_command(
     user_id: int, name: str, args: dict, previous: dict | None
 ) -> str:
     if name == "help":
-        return HELP_TEXT
+        return help_text()
 
     if name == "orders":
         return await _format_orders(user_id)

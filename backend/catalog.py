@@ -71,6 +71,12 @@ def _load(store_id: Optional[int] = None) -> tuple[list[dict[str, Any]], dict[st
     return records, by_code
 
 
+def loaded_at() -> float:
+    """When the current store's cached catalogue was loaded (changes on reload or sync)."""
+    _load()
+    return _cache[tenancy.store_id()][0]
+
+
 def get_all() -> list[dict[str, Any]]:
     return list(_load()[0])
 

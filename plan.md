@@ -33,7 +33,7 @@ workout clothes.
 |---|---|---|---|---|
 | P0 | Cleanup and safety net | 0.5 | — | done 28 Sep |
 | P1 | Multi-store foundation (tenancy, products in Postgres, pgvector) | 7 | P0 | built 2 Oct; friend's catalogue import waits for his shop domain |
-| P2 | Bot quality, part 1 (eval harness, fixes, works for any catalogue, model choice) | 12 | P1 | started 3 Oct: tracing + harness + baseline (47/63) done 14 Oct; fixes next |
+| P2 | Bot quality, part 1 (eval harness, fixes, works for any catalogue, model choice) | 12 | P1 | started 3 Oct; 14 Oct: tracing, harness, step 2 (60/63), step 3 done; step 4 next |
 | P3 | Shopify connector, deployment, pilot go-live | 8.5 | P1, P2 | not started |
 | P4 | Brand dashboard and minimal human hand-off | 5 | P3 | not started |
 | P5 | Order status, exchanges, abandoned-checkout recovery | 6 | P3 (P4 helps) | not started |
@@ -549,7 +549,19 @@ and 20–40 real customer questions from his DMs, with names removed (30 minutes
   (the catalogue vocabulary belongs to step 3).
   Still failing: "only male options" asks who again; accessories within a budget show
   sarees; colour is not a filter (black suit, yellow kurta) → steps 3-4 and P7.
-- **Next:** step 3 (work for any catalogue).
+- **14 Oct, step 3 (any catalogue):** brand settings per store (`brand.py`, `stores.py
+  brand`), the prompt, greeting, HELP, off-topic line, list intro and payment
+  description all from them; a per-store vocabulary (`vocab.py`) from the catalogue's
+  categories, title nouns, genders and tags, with the ethnic words as the demo's
+  `indian_ethnic` pack; product codes of any prefix. Proven on an invented activewear
+  catalogue (`evals/catalogues/fitwear.json`, `test_brands.py`, 38 checks); the demo
+  is unchanged (same prompt byte for byte, retrieval eval 46/46, owner ratings 10/10).
+  Not done: a per-store SKU or Shopify-handle lookup (codes cover what customers type
+  today; a handle in a pasted product link could be added with P3's links).
+  The conversation eval was not re-run: the demo's prompt, vocabulary and routing are
+  unchanged, and the day's Groq quota was spent.
+- **Next:** step 4 (enforced attribute filters: colour first; it is 2 of the 3 cases
+  still failing), then step 5 (model A/B).
 
 **Starter prompt:** *"Read plan.md. Plan P2 (Bot quality part 1) in detail, starting with
 the eval harness design and the case format. Build the harness first and record a

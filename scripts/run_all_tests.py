@@ -40,6 +40,7 @@ SUITES = [
     ("tenancy", [PY, "scripts/test_tenancy.py"]),
     ("tracing", [PY, "scripts/test_trace_neutrality.py"]),
     ("eval-harness", [PY, "scripts/test_eval_harness.py"]),
+    ("brands", [PY, "scripts/test_brands.py"]),
     ("live.js", ["node", "scripts/test_live_js.mjs"]),
     ("retrieval", [PY, "scripts/eval_retrieval.py"]),
 ]

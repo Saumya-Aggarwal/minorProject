@@ -7,7 +7,14 @@ Run from the repo root, e.g.:
     backend/.venv/Scripts/python scripts/stores.py set-whatsapp fitwear --phone-number-id 1234 \
         --display-number 919800000000 --waba-id 5678 --app-id 9012
     backend/.venv/Scripts/python scripts/stores.py status fitwear live
+    backend/.venv/Scripts/python scripts/stores.py brand fitwear                      # show
+    backend/.venv/Scripts/python scripts/stores.py brand fitwear --set name="FitWear" \
+        --set scope=activewear --set help_examples='["black oversized tee", "gym shorts"]'
+    backend/.venv/Scripts/python scripts/stores.py brand fitwear --file brand.json
     backend/.venv/Scripts/python scripts/stores.py rotate-keys
+
+brand settings are the texts the assistant uses for the store (backend/brand.py
+lists every key); anything not set is generated from its catalogue.
 
 set-whatsapp asks for the access token, app secret and verify token at a
 hidden prompt, so they never land in shell history; they are stored encrypted
@@ -16,6 +23,7 @@ hidden prompt, so they never land in shell history; they are stored encrypted
 
 import argparse
 import getpass
+import json
 import sys
 from pathlib import Path
 
@@ -95,6 +103,36 @@ def cmd_status(args) -> None:
     print(f"{args.slug} is now {args.status}")
 
 
+def cmd_brand(args) -> None:
+    import brand
+    allowed = set(brand.Brand.__dataclass_fields__)
+    with session_scope() as db:
+        store = _store(db, args.slug)
+        settings = dict(store.brand or {})
+        changes = json.loads(Path(args.file).read_text(encoding="utf-8")) if args.file else {}
+        for pair in args.set or []:
+            key, _, value = pair.partition("=")
+            try:
+                changes[key.strip()] = json.loads(value)       # lists and numbers as JSON
+            except ValueError:
+                changes[key.strip()] = value                   # plain text as it is
+        unknown = set(changes) - allowed
+        if unknown:
+            sys.exit(f"Unknown brand setting(s) {sorted(unknown)}; allowed: {sorted(allowed)}")
+        if changes:
+            settings.update({k: v for k, v in changes.items() if v not in ("", None)})
+            for key in [k for k, v in changes.items() if v in ("", None)]:
+                settings.pop(key, None)                        # --set key= removes a setting
+            store.brand = settings
+            store.updated_at = utcnow()
+        store_id = store.store_id
+    tenancy.forget()
+    print(json.dumps(settings, indent=1, ensure_ascii=False) if settings else "(no brand settings: all generated)")
+    with tenancy.use_store(store_id):
+        opening = brand.system_prompt().split("\n\nHOW TO HELP")[0]
+        print("\nThe system prompt now begins:\n  " + opening.replace("\n", "\n  "))
+
+
 def cmd_rotate_keys(_args) -> None:
     """Re-encrypt every stored secret with the first key in MUNIM_SECRET_KEYS."""
     rotated = 0
@@ -133,6 +171,12 @@ def main() -> int:
     status.add_argument("slug")
     status.add_argument("status", choices=["draft", "live", "paused"])
     status.set_defaults(run=cmd_status)
+
+    settings = sub.add_parser("brand", help="show or change the texts the assistant uses for a store")
+    settings.add_argument("slug")
+    settings.add_argument("--set", action="append", metavar="KEY=VALUE", help="repeatable; KEY= removes it")
+    settings.add_argument("--file", help="a JSON object of settings")
+    settings.set_defaults(run=cmd_brand)
 
     sub.add_parser("rotate-keys").set_defaults(run=cmd_rotate_keys)
 
