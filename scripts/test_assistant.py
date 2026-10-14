@@ -215,7 +215,7 @@ def main() -> int:
         send("please add the royal blue one in 42")
         results = [m["content"] for m in script.seen[2] if m["role"] == "tool"]
         check("no size: the model is told to ask", "ask the customer for a size" in results[0], results[0])
-        check("with their size: added for real", results[1].startswith("Added Royal Blue Wedding Sherwani (size 42)"), results[1])
+        check("with their size: added for real", results[1].startswith("Added 1 x Royal Blue Wedding Sherwani (size 42)"), results[1])
         cart = repo.get_cart(repo.get_or_create_user(PHONE, None))
         check("the cart really has it", any(i["product_id"] == "EW006" and i["size"] == "42" for i in cart["items"]))
 
@@ -307,7 +307,9 @@ def main() -> int:
             {"product_id": "EW007", "name": "Champagne Gold Sherwani", "price_inr": 11499, "rich_description": ""}])
         reply = send("add the blue one in 44")
         check("ADD with nothing picked goes to the assistant, which resolves 'the blue one'",
-              script.models and "Added in 44" in reply, reply)
+              script.models and "Added Royal Blue Wedding Sherwani (44) to your cart." in reply, reply)
+        check("the confirmation is code's, from the ledger; the model's own claim is not repeated",
+              "Added in 44" not in reply, reply)
 
         def send_full(body: str) -> dict:
             payload = {"object": "whatsapp_business_account", "entry": [{"id": "1", "changes": [{
@@ -536,7 +538,8 @@ def main() -> int:
                        "message": "Added the Crimson Anarkali Suit to your cart. Total is Rs 8,999."}))))
         confirmed = send("yes")
         check("a confirmation naming the item is not cut down to a stub",
-              "Added the Crimson Anarkali Suit" in confirmed, confirmed[:80])
+              "Added Crimson Anarkali Suit (M) to your cart." in confirmed and "Added the." not in confirmed,
+              confirmed[:120])
 
         print("\n18. It is a shop assistant, not a chatbot")
         run(Script(calls(("send_reply", {
@@ -617,6 +620,124 @@ def main() -> int:
             check("a token Meta refuses is not retried three times", refused and len(tries) == 1, tries)
         finally:
             httpx.AsyncClient, asyncio.sleep = real_client, real_sleep
+
+        print("\n21. P2 step 2: what the 14 Oct eval found")
+        import payments
+
+        async def fake_order(order_id, amount_inr, description, notes=None):
+            return {"id": f"order_test_{order_id}"}
+
+        real_create = payments.create_checkout_order
+        payments.create_checkout_order = fake_order
+        try:
+            user = repo.get_or_create_user(PHONE, None)
+            repo.clear_cart(user)
+            repo.add_to_cart(user, "EW006", "42")
+            repo.save_address(user, {"name": "Asha Verma", "phone": "9876501234", "line1": "12 MG Road",
+                                     "line2": "", "city": "Bengaluru", "state": "Karnataka", "pincode": "560038"})
+            for said in ("i wanna pay", "chedckout", "ok lets proceed to payment"):
+                run(Script())
+                body = send_full(said)
+                check(f"{said!r} is CHECKOUT, answered by code with a Pay Now button",
+                      bool(body.get("cta_url")) and "Order #" in body["body"], body)
+
+            script = Script(calls(("checkout", {})))
+            run(script)
+            body = send_full("great, how do I pay for all this?")
+            check("the assistant's checkout tool runs the real CHECKOUT (order + Pay Now)",
+                  bool(body.get("cta_url")) and "Order #" in body["body"] and script.models, body)
+
+            script = Script(calls(("checkout", {})), calls(("send_reply", {"message": "Delivery is free."})))
+            run(script)
+            orders_before = len(repo.get_order_history(user, 50))
+            body = send_full("is delivery free?")
+            check("checkout is refused when they did not ask to pay",
+                  not body.get("cta_url") and len(repo.get_order_history(user, 50)) == orders_before, body)
+
+            run(Script(calls(("send_reply", {"message": "Here's your secure Pay Now button. Just tap it!"})),
+                       calls(("send_reply", {"message": "Happy to help with anything else."}))))
+            body = send_full("thanks a lot")
+            check("a Pay Now button the model only describes is sent back, never shown",
+                  "Pay Now button" not in body["body"] and not body.get("cta_url"), body)
+
+            repo.clear_cart(user)
+            repo.add_to_cart(user, "EW071", "Free Size", 3)
+            repo.add_to_cart(user, "EW045", "XXL")
+            run(Script(calls(("remove_from_cart", {"product_id": "EW071", "quantity": 2})),
+                       calls(("send_reply", {"message": "Removed 2 Aqua Chanderi Saree from your cart."}))))
+            reply = send("ohk can u remove 2 aqua chanderi saree")
+            lines = {i["product_id"]: i["quantity"] for i in repo.get_cart(user)["items"]}
+            check("'remove 2' of a line of 3 leaves 1", lines == {"EW071": 1, "EW045": 1}, lines)
+            check("the confirmation is code's, from what changed",
+                  "Removed 2 × Aqua Chanderi Saree (Free Size), 1 left." in reply and "Cart: 2 items" in reply, reply)
+
+            run(Script(calls(("add_to_cart", {"product_id": "EW045", "size": "XXL", "quantity": 3})),
+                       calls(("send_reply", {"message": "Which quantity?"}))))
+            send("add the tangerine kurta in xxl")
+            lines = {i["product_id"]: i["quantity"] for i in repo.get_cart(user)["items"]}
+            check("a quantity the customer never said is refused", lines.get("EW045") == 1, lines)
+
+            repo.clear_cart(user)
+            repo.record_selection(user, {"product_id": "EW080", "name": "Mint Embellished Box Clutch",
+                                         "price_inr": 1299, "rich_description": ""})
+            script = Script(calls(("send_reply", {"message": "Lovely gift! Which size? Sizes: S, M, L, XL."})),
+                            calls(("send_reply", {"message": "Lovely gift! It is one size, so nothing to pick."})))
+            run(script)
+            reply = send("would it be a good gift for my wife?")
+            check("sizes a product does not come in are sent back to the model",
+                  "S, M, L" not in reply and "one size" in reply and len(script.models) == 2, reply)
+
+            rejected = Exception("Error code: 400 - tool_use_failed")
+            rejected.body = {"error": {"code": "tool_use_failed", "failed_generation":
+                             '{"name": "send_reply<|channel|>final", "arguments": Happy to help! '
+                             'Who is the outfit for?\\nAnd your budget?"}'}}
+            run(Script(rejected))
+            reply = send("something for a function")
+            check("a send_reply whose arguments are bare words is repaired, not a fallback",
+                  reply.startswith("Happy to help! Who is the outfit for?"), reply)
+
+            typed = Exception("Error code: 400 - tool_use_failed")
+            typed.body = {"error": {"code": "tool_use_failed", "failed_generation":
+                          '{"name": "send_reply", "arguments": Here are options for her haldi.\\n'
+                          '1. Marigold Lehenga – Rs 4499, bright.\\n2. Pink Chaniya Choli – Rs 3299."}'}}
+            script = Script(calls(("search_products", {"query": "haldi outfit", "gender": "Women", "max_price": 5000})),
+                            typed,
+                            calls(("send_reply", {"message": "Bright picks for her haldi.", "product_ids": ["EW056"]})))
+            run(script)
+            reply = send("haldi outfit for my sister around 5k")
+            check("a repaired reply that types out its products is asked again for product ids",
+                  "Marigold Lehenga with Orange Dupatta" in reply and len(script.models) == 3, reply[:160])
+
+            repo.clear_cart(user)
+            repo.record_selection(user, {"product_id": "EW006", "name": "Royal Blue Wedding Sherwani",
+                                         "price_inr": 8999, "rich_description": ""})
+            repo.remember_messages(user, [
+                {"role": "user", "content": "I like it in 42"},
+                {"role": "assistant", "content": "Shall I add the Royal Blue Wedding Sherwani in 42 to your cart?"}])
+            run(Script())
+            send("yes pls add")
+            lines = [(i["product_id"], i["size"]) for i in repo.get_cart(user)["items"]]
+            check("'yes pls add' after our offer in 42 adds it in 42", lines == [("EW006", "42")], lines)
+
+            repo.add_to_cart(user, "EW071", "Free Size", 3)
+            run(Script())
+            reply = send("what 4 items do i have")
+            check("'what 4 items do i have' shows the cart, by code",
+                  "Aqua Chanderi Saree" in reply and "Total: Rs." in reply, reply)
+
+            payload = [{"object": "whatsapp_business_account", "entry": [{"id": "1", "changes": [{
+                "field": "messages", "value": {"messaging_product": "whatsapp",
+                                               "contacts": [{"wa_id": PHONE, "profile": {"name": "Asha"}}],
+                                               "messages": [{"from": PHONE, "id": "wamid.t", "timestamp": "1",
+                                                             "type": kind, kind: {"id": "m1"}}]}}]}]}
+                for kind in ("image", "audio", "reaction")]
+            answers = [web.post("/webhook", json=p, headers={"X-Local-Test": "true"}).json()["responses"]
+                       for p in payload]
+            check("a photo and a voice note get one honest line; a reaction gets nothing",
+                  "photos" in answers[0][0]["body"] and "voice notes" in answers[1][0]["body"] and answers[2] == [],
+                  answers)
+        finally:
+            payments.create_checkout_order = real_create
 
     cleanup()
     print(f"\n{passed} passed, {failed} failed")

@@ -142,7 +142,10 @@ class Pacer:
                 except Exception as exc:
                     kind = classify(exc)
                     if kind == "daily":
-                        raise QuotaExhausted(f"{chosen}: {str(exc)[:300]}") from exc
+                        # The part that says which limit: Groq puts the org id first
+                        reason = re.sub(r"\s*in organization `[^`]*`", "", str(exc))
+                        reason = re.sub(r"^Error code: 429 - \{'error': \{'message': '", "", reason)
+                        raise QuotaExhausted(f"{chosen}: {reason[:300]}") from exc
                     if kind != "minute":
                         raise
                     with self._lock:

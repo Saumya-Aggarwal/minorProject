@@ -144,7 +144,7 @@ def main() -> int:
                     result = runner.run(case, repeat)
                 except QuotaExhausted as exc:
                     stopped = str(exc)
-                    print(f"  ⏸ quota exhausted at {rid}: {stopped[:160]}")
+                    print(f"  ⏸ quota exhausted at {rid}: {stopped[:300]}")
                     results.append({"id": rid, "case": case.id, "file": case.file, "tags": case.tags,
                                     "source": case.source, "status": "quota", "error": stopped, "turns": []})
                     continue

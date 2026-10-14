@@ -11,8 +11,11 @@ What the model is NOT trusted with:
     written into the reply by code (send_reply attaches them), never by the model
   * other customers: every tool is bound to the sender's user_id on the server;
     no tool takes a user id, so no message can reach someone else's data
-  * money: it can add to the cart, but paying is always the explicit CHECKOUT
-    command, which answers with Razorpay's Pay Now button
+  * money: it can add to the cart, and call `checkout` when the customer asks
+    to pay, but the order, its total and the Pay Now button are the CHECKOUT
+    command's, run by the webhook; the model never writes a payment reply
+  * what it changed: confirmations ("Added 1 x ... (XL)") are written by code
+    from what the cart tools really did (the ledger), not by the model
 
 Any failure — no key, timeout, rate limit, a malformed tool call — raises
 AssistantUnavailable, and the webhook answers with the plain retrieval path
@@ -54,6 +57,10 @@ class AssistantReply:
     detail: bool = False                           # one product described: photo + the model's words
     # Lasting facts to store on the customer's profile: {"gender": ..., "note": ...}
     remember: dict[str, str] = field(default_factory=dict)
+    # They asked to pay: the webhook runs CHECKOUT and that is the whole reply
+    checkout: bool = False
+    # What the cart tools really changed this turn: {op, product, name, size, qty_before, qty_after}
+    ledger: list[dict[str, Any]] = field(default_factory=list)
 
 
 def enabled() -> bool:
@@ -74,9 +81,9 @@ HOW TO HELP
 - Orders ("my orders", "where is my order"): send_reply with attach="orders". Cart: attach="cart". The cart and its total are in CUSTOMER below; never add prices up yourself. "Second item" after a cart question means the cart's second line.
 - To talk about one product in detail, use get_product_details; its photo is attached for you.
 - Buying something they already own again: tell them to reply BUY AGAIN, which shows what they have ordered before, four at a time, and a number puts one back in the cart in the same size.
-- Add to cart ONLY when the customer asks to, with a size THEY gave; otherwise ask which size, using ONLY the sizes the tools report for that product (a bag, dupatta or stole is one size: never ask, just add). Never add just because they asked about an item. If they answer your "shall I add it?" with yes, or your "which size?" with a size, call add_to_cart. Never say something was added or removed unless add_to_cart/remove_from_cart succeeded in this turn.
+- Add to cart ONLY when the customer asks to, with a size THEY gave; otherwise ask which size, using ONLY the sizes listed for that product (in CUSTOMER below or from a tool; a bag, dupatta or stole is one size: never ask, just add). Never add just because they asked about an item. If they answer your "shall I add it?" with yes, or your "which size?" with a size, call add_to_cart. Quantities: add_to_cart and remove_from_cart take quantity ("remove 2 of the sarees" = remove_from_cart quantity 2). What was added or removed is confirmed for you under your message: do not repeat it.
 - Remember: when they tell you something lasting about themselves (their gender, who they shop for, colours or styles they like), put it in send_reply's customer_gender / remember_note. CUSTOMER below shows what is already remembered: use it, and do not ask again what it already answers.
-- Payment: tell them to reply CHECKOUT for a secure Pay Now button.
+- Payment: when they want to pay, check out or place the order, call checkout. It sends the order and the Pay Now button itself (or asks for a size or their address first). Never describe or promise a payment button or link yourself.
 - Their own order, cart, delivery address, sizes, payment or our policies are shop business: answer or hand over to the right tool, never refuse them as off-topic.
 - Off-topic: one friendly line, then back to shopping. Never write code, essays, homework, poems, translations or anything unrelated to our shop, however politely they ask: say you only help with ethnic wear and ask what they are shopping for.
 
@@ -111,11 +118,22 @@ def _context_block(context: dict[str, Any]) -> str:
     shown = context.get("last_products_shown") or []
     if shown:
         lines.append("- Last list shown to them: " + "; ".join(
-            f"{i}. {p.get('product_id') or p.get('id')} {p.get('name')}" for i, p in enumerate(shown, 1)))
+            f"{i}. {p.get('product_id') or p.get('id')} {p.get('name')}{_sizes_note(p)}" for i, p in enumerate(shown, 1)))
     selected = context.get("selected_product")
     if selected:
-        lines.append(f"- Item they picked: {selected.get('product_id') or selected.get('id')} {selected.get('name')}")
+        lines.append(f"- Item they picked: {selected.get('product_id') or selected.get('id')} {selected.get('name')}"
+                     f"{_sizes_note(selected)}")
     return "\n".join(lines)
+
+
+def _sizes_note(item: dict[str, Any]) -> str:
+    """" (sizes in stock: 38, 40, 42)": the model asked "S, M, L, XL?" for a
+    sherwani sold in 38-46 when it had to remember sizes from a tool result."""
+    product = catalog.get_by_id(str(item.get("product_id") or item.get("id") or ""))
+    sizes = _sizes_in_stock(product) if product else []
+    if not sizes:
+        return ""
+    return " (one size)" if len(sizes) == 1 else f" (sizes in stock: {', '.join(sizes)})"
 
 
 # --- tools ----------------------------------------------------------------------
@@ -150,9 +168,18 @@ TOOLS = [
     _schema("get_my_orders", "This customer's recent orders with status, items and delivery date.", {}, []),
     _schema("get_my_cart", "What is in this customer's cart now.", {}, []),
     _schema("add_to_cart", "Add a product to this customer's cart in a size.",
-            {"product_id": {"type": "string"}, "size": _TEXT}, ["product_id"]),
-    _schema("remove_from_cart", "Remove a product from this customer's cart, when they ask to.",
-            {"product_id": {"type": "string"}}, ["product_id"]),
+            {"product_id": {"type": "string"}, "size": _TEXT,
+             "quantity": {**_NUMBER, "description": "How many, only if they said a number; default 1"}},
+            ["product_id"]),
+    _schema("remove_from_cart", "Remove a product from this customer's cart, when they ask to: all of it, "
+            "or `quantity` of it.",
+            {"product_id": {"type": "string"},
+             "size": {**_TEXT, "description": "Which size's line, when the product is in the cart in several"},
+             "quantity": {**_NUMBER, "description": "How many to remove; leave out to remove it all"}},
+            ["product_id"]),
+    _schema("checkout", "The customer wants to pay for their cart (pay, check out, place the order). Code "
+            "creates the order and sends the Pay Now button, or asks for a missing size or address. "
+            "Ends the turn: do not call send_reply after it.", {}, []),
     _schema("hide_product", "The customer does not like a product shown to them ('not the second one', "
             "'too flashy'): never show it to them again. Then offer alternatives.",
             {"product_id": {"type": "string"}, "reason": _TEXT}, ["product_id"]),
@@ -258,11 +285,38 @@ def _size_was_said(size: str, customer_recent: str) -> bool:
                for spelling in aliases(size.strip()))
 
 
-def tool_add_to_cart(user_id: int, product_id: str = "", size: str = "", *,
-                     customer_text: str = "", customer_recent: str = "", **_: Any) -> str:
-    """customer_text / customer_recent are supplied by respond(), never the model:
-    the current message must ask for it, and the size must be one they typed
-    (now or in their last few messages), not one the model picked."""
+_NUMBER_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "a pair": 2, "both": 2,
+                 "do": 2, "teen": 3, "char": 4, "paanch": 5, "ek": 1}
+
+
+def _quantity(value: Any, customer_recent: str) -> tuple[int, str]:
+    """(quantity, error). A quantity above 1 must be a number the customer said."""
+    if value in (None, "", 0, "0"):
+        return 1, ""
+    try:
+        quantity = int(float(str(value).strip()))
+    except ValueError:
+        return 0, f"ERROR: quantity {value!r} is not a number."
+    if not 1 <= quantity <= 10:
+        return 0, "ERROR: quantity must be between 1 and 10."
+    said = {int(n) for n in re.findall(r"(?<![\d,])(\d{1,2})(?![\d,])", customer_recent)}
+    said |= {n for word, n in _NUMBER_WORDS.items() if re.search(rf"\b{word}\b", customer_recent, re.I)}
+    if quantity > 1 and quantity not in said:
+        return 0, f"ERROR: the customer has not asked for {quantity}. Add 1, or ask how many."
+    return quantity, ""
+
+
+def _line(cart: dict[str, Any], product_id: str, size: str) -> Optional[dict[str, Any]]:
+    return next((i for i in cart["items"] if i["product_id"] == product_id and (i["size"] or "") == (size or "")), None)
+
+
+def tool_add_to_cart(user_id: int, product_id: str = "", size: str = "", quantity: Any = None, *,
+                     customer_text: str = "", customer_recent: str = "",
+                     ledger: Optional[list[dict[str, Any]]] = None, **_: Any) -> str:
+    """customer_text / customer_recent / ledger are supplied by respond(), never
+    the model: the current message must ask for it, the size and any quantity
+    must be ones they typed (now or in their last few messages), and what really
+    changed goes on the ledger, from which code writes the confirmation."""
     if not _WANTS_TO_ADD.search(customer_text):
         return "ERROR: the customer has not asked to add anything. Do not add; answer their message."
     product = catalog.get_by_id(str(product_id).strip().upper())
@@ -284,17 +338,28 @@ def tool_add_to_cart(user_id: int, product_id: str = "", size: str = "", *,
         return f"ERROR: ask the customer for a size first. In stock: {', '.join(sizes)}."
     else:
         chosen = sizes[0]
-    cart = repo.add_to_cart(user_id, product["id"], chosen)
-    return (f"Added {product['name']} (size {chosen}). Cart now has {cart['count']} item(s), "
-            f"total Rs {cart['total_inr']:.0f}. They can reply CHECKOUT to pay.")
+    count, error = _quantity(quantity, customer_recent)
+    if error:
+        return error
+    before = _line(repo.get_cart(user_id), product["id"], chosen)
+    cart = repo.add_to_cart(user_id, product["id"], chosen, count)
+    after = _line(cart, product["id"], chosen)
+    if ledger is not None:
+        ledger.append({"op": "add", "product": product["id"], "name": product["name"], "size": chosen,
+                       "qty_before": (before or {}).get("quantity", 0), "qty_after": (after or {}).get("quantity", 0)})
+    return (f"Added {count} x {product['name']} (size {chosen}). Cart now has {cart['count']} item(s), "
+            f"total Rs {cart['total_inr']:.0f}. The confirmation is shown to them for you.")
 
 
 _WANTS_TO_REMOVE = re.compile(
     r"\b(remove|delete|drop|take\s+(it|this|that)?\s*out|don'?t\s+want|do\s+not\s+want|cancel)\b", re.I)
 
 
-def tool_remove_from_cart(user_id: int, product_id: str = "", *, customer_text: str = "",
-                          customer_recent: str = "", **_: Any) -> str:
+def tool_remove_from_cart(user_id: int, product_id: str = "", size: str = "", quantity: Any = None, *,
+                          customer_text: str = "", customer_recent: str = "",
+                          ledger: Optional[list[dict[str, Any]]] = None, **_: Any) -> str:
+    """All of a product, or `quantity` of one line. Live, "remove 2 aqua chanderi
+    saree" from a line of 3 was answered "Removed 2" and emptied the line."""
     if not _WANTS_TO_REMOVE.search(customer_text):
         return "ERROR: the customer has not asked to remove anything."
     wanted = str(product_id).strip().upper()
@@ -303,11 +368,28 @@ def tool_remove_from_cart(user_id: int, product_id: str = "", *, customer_text: 
     if not lines:
         return f"ERROR: {product_id!r} is not in the cart. Cart: " + (
             ", ".join(f"{i['product_id']} {i['name']}" for i in cart["items"]) or "empty")
+    if size:
+        chosen = match_size(str(size), [i["size"] for i in lines if i["size"]]) or ""
+        lines = [i for i in lines if i["size"] == chosen]
+        if not lines:
+            return f"ERROR: {wanted} is not in the cart in size {size}."
+    count = None
+    if quantity not in (None, "", 0, "0"):
+        count, error = _quantity(quantity, customer_recent)
+        if error:
+            return error
+        if len(lines) > 1:
+            return ("ERROR: it is in the cart in more than one size: "
+                    + ", ".join(f"{i['size'] or 'no size'} x{i['quantity']}" for i in lines) + ". Ask which.")
     for line in lines:
-        repo.remove_from_cart(user_id, line["cart_item_id"])
+        left = max(line["quantity"] - count, 0) if count else 0
+        repo.update_cart_item(user_id, line["cart_item_id"], left)
+        if ledger is not None:
+            ledger.append({"op": "remove", "product": wanted, "name": line["name"], "size": line["size"],
+                           "qty_before": line["quantity"], "qty_after": left})
     after = repo.get_cart(user_id)
-    return (f"Removed {lines[0]['name']}. Cart now has {after['count']} item(s), "
-            f"total Rs {after['total_inr']:.0f}.")
+    return (f"Removed. Cart now has {after['count']} item(s), total Rs {after['total_inr']:.0f}. "
+            "The confirmation is shown to them for you.")
 
 
 _DISLIKES = re.compile(
@@ -376,7 +458,7 @@ def _clean(text: str) -> str:
 # "Who is the outfit for?" reads like a glitch.
 _ASKS_FOR = {
     "orders": re.compile(r"\b(orders?|bought|purchas\w*|deliver\w*|track\w*|ship\w*|paid|payment)\b", re.I),
-    "cart": re.compile(r"\b(cart|bag|basket|added)\b", re.I),
+    "cart": re.compile(r"\b(cart|bag|basket|added|items?\s+(?:do\s+)?i\s+have|how\s+many\s+items)\b", re.I),
 }
 # A numbered line in the model's own words duplicates the list code attaches
 _LIST_LINE = re.compile(r"^\s*(?:\d+[.)]|[-•*])\s+.*$", re.MULTILINE)
@@ -485,7 +567,9 @@ def _salvage(exc: Exception) -> Any:
     try:
         attempt = json.loads(generation)
     except (TypeError, ValueError):
-        return None
+        attempt = _plain_text_reply(generation)
+        if attempt is None:
+            return None
     attempts = attempt if isinstance(attempt, list) else [attempt]
     tool_calls = []
     for n, item in enumerate(attempts):
@@ -500,6 +584,27 @@ def _salvage(exc: Exception) -> Any:
         return None
     print(f"[assistant] repaired a rejected tool call: {[c.function.name for c in tool_calls]}")
     return _Message(content="", tool_calls=tool_calls)
+
+
+# Seen in the 14 Oct eval (twice in 63 cases): send_reply whose "arguments" is
+# the message itself as bare text, not a JSON object:
+#   {"name": "send_reply<|channel|>final", "arguments": Your cart now has 1 item ... ADD another item."}
+_BARE_ARGUMENTS = re.compile(r'^\s*\{\s*"name"\s*:\s*"(?P<name>[^"]+)"\s*,\s*"arguments"\s*:\s*(?P<text>.*?)"?\s*\}\s*$',
+                             re.DOTALL)
+
+
+def _plain_text_reply(generation: str) -> Optional[dict[str, Any]]:
+    """A send_reply whose arguments are plain words: the words are the message."""
+    match = _BARE_ARGUMENTS.match(generation or "")
+    if not match or match.group("name").split("<|")[0].strip() != "send_reply":
+        return None
+    text = match.group("text").strip().strip('"')
+    try:
+        # The model's own escapes (\n,  ) are JSON string escapes
+        text = json.loads('"' + text.replace('\\"', '"').replace('"', '\\"') + '"')
+    except ValueError:
+        text = text.replace("\\n", "\n")
+    return {"name": "send_reply", "arguments": {"message": text}} if text.strip() else None
 
 
 @dataclass
@@ -608,6 +713,76 @@ def _drop_sentences_with(message: str, amounts: list[str]) -> str:
     sentences = re.split(r"(?<=[.!?])\s+", message)
     kept = [s for s in sentences if not any(n in s for n in numbers)]
     return " ".join(kept).strip() or "Reply CART to see your cart and its total."
+
+
+def _drop_sentences(message: str, bad: Callable[[str], bool]) -> str:
+    sentences = re.split(r"(?<=[.!?])\s+|\n+", message)
+    return " ".join(s for s in sentences if s.strip() and not bad(s)).strip()
+
+
+_PAY_BUTTON_CLAIM = re.compile(
+    r"pay\s*now\s+(?:button|link)|payment\s+(?:button|link)|tap\s+(?:the\s+|on\s+)?pay\s*now"
+    r"|here'?s\s+(?:your|the)\s+(?:secure\s+)?(?:pay|payment|checkout)\b", re.I)
+_SAYS_REPLY_CHECKOUT = re.compile(r"\b(?:reply|type|send|say)\s+\*?checkout\b", re.I)
+_PAY_WORDS = re.compile(r"\b(?:pay|payment|check\s*out|checkout|place\s+(?:my\s+|the\s+)?order)\b", re.I)
+
+
+def _wants_to_pay(text: str) -> bool:
+    """Their words ask to pay ("chedckout" too). Gates the checkout tool."""
+    from selection import _fix_command_typos
+    return bool(_PAY_WORDS.search(_fix_command_typos(text.lower())))
+
+
+# Sizes as checked facts, like rupee amounts. Live: "Which size? (Sizes: S, M, L,
+# XL)" for a one-size clutch, "S, M, L, XL, XXL" for a sherwani sold in 38-46
+_SIZE_SENTENCE = re.compile(r"\bsizes?\b|\bin\s+(?:a\s+)?(?:small|medium|large)\b", re.I)
+_LETTER_SIZES = re.compile(r"\b(?:XXXL|XXL|XL|XS|S|M|L)\b")            # capitals only: not the s of "it's"
+_OTHER_SIZES = re.compile(r"\b(?:UK\s?\d{1,2}|\d{2}|small|medium|large)\b", re.I)
+_SIZE_WORD_KEYS = {"small": "S", "medium": "M", "large": "L"}
+
+
+def _size_key(token: str) -> str:
+    token = re.sub(r"\s+", " ", token.strip()).upper()
+    return _SIZE_WORD_KEYS.get(token.lower(), "UK " + token[2:].strip() if token.startswith("UK") else token)
+
+
+def _sizes_named(sentence: str) -> set[str]:
+    """Sizes a sentence states, if it is a sentence about size."""
+    if not _SIZE_SENTENCE.search(sentence):
+        return set()
+    tokens = _LETTER_SIZES.findall(sentence) + _OTHER_SIZES.findall(sentence)
+    return {_size_key(t) for t in tokens if not (t.isdigit() and not 26 <= int(t) <= 50)}
+
+
+def _invented_sizes(reply: AssistantReply, context: dict[str, Any], customer_recent: str) -> Optional[dict[str, Any]]:
+    """Sizes the reply offers that none of the products it can be about come in."""
+    named = set().union(*[_sizes_named(s) for s in re.split(r"(?<=[.!?])\s+|\n+", reply.message)])
+    if not named:
+        return None
+    # The most specific thing the reply can be about: a product it names, else the
+    # ones it attaches, else the item picked, else the list on screen. (A union of
+    # all of them let "Sizes: S, M, L, XL" for the picked clutch pass, because an
+    # older list on screen had kurtas in those sizes.)
+    lowered = reply.message.lower()
+    selected = context.get("selected_product") or {}
+    tiers = [
+        [p for p in catalog.get_all() if p["name"].lower() in lowered],
+        list(reply.products),
+        [catalog.get_by_id(str(selected.get("product_id") or selected.get("id") or ""))],
+        [catalog.get_by_id(str(p.get("product_id") or p.get("id") or ""))
+         for p in context.get("last_products_shown") or []],
+    ]
+    focus = next(([p for p in tier if p] for tier in tiers if any(tier)), [])
+    if not focus:
+        return None
+    real = {_size_key(s) for p in focus for s in _sizes_in_stock(p)} | {"FREE SIZE"}
+    said = {_size_key(t) for t in re.findall(r"\b(?:xxxl|xxl|xl|xs|s|m|l|uk\s?\d{1,2}|\d{2}|small|medium|large)\b",
+                                             customer_recent, re.I)}
+    invented = sorted(named - real - said)
+    if not invented:
+        return None
+    return {"sizes": invented, "names": " / ".join(p["name"] for p in focus[:3]),
+            "real": "; ".join(f"{p['name']}: {', '.join(_sizes_in_stock(p))}" for p in focus[:3])}
 
 
 def _attach_mentioned(reply: AssistantReply, changed_cart: bool = False) -> AssistantReply:
@@ -815,13 +990,16 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
     nudged = False
     fact_checked = False
     claim_checked = False
+    pay_checked = False
+    size_checked = False
     succeeded: set[str] = set()         # tools that really did something this turn
+    ledger: list[dict[str, Any]] = []   # what add_to_cart / remove_from_cart really changed
     # Every rupee amount the model may state must come from somewhere real
     evidence = [context_text, customer_recent]
 
     def checked(reply: AssistantReply) -> tuple[Optional[AssistantReply], str]:
         """Final gate on what the model wrote: amounts verified, products attached."""
-        nonlocal fact_checked, claim_checked
+        nonlocal fact_checked, claim_checked, pay_checked, size_checked
         if _LOOKS_LIKE_CODE.search(reply.message):
             # "can u write a python code for 2+2" got a working snippet, live
             tracing.guard("off_topic", message=reply.message)
@@ -846,6 +1024,36 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
         if unverified:
             tracing.guard("amount_cut", amounts=unverified)
             reply.message = _drop_sentences_with(reply.message, unverified)
+
+        # Only checkout sends a payment button. The 14 Oct eval: "i wanna pay" got
+        # "Here's your secure Pay Now button" (none sent), or "reply CHECKOUT"
+        pay_talk = _PAY_BUTTON_CLAIM.search(reply.message) or (
+            _wants_to_pay(text) and _SAYS_REPLY_CHECKOUT.search(reply.message))
+        if pay_talk and not pay_checked:
+            pay_checked = True
+            tracing.guard("pay_retry", message=reply.message)
+            return None, ("ERROR: you cannot send a payment button or link, and they should not have to type "
+                          "CHECKOUT. If they want to pay, call checkout now; otherwise do not mention payment.")
+        if pay_talk:
+            tracing.guard("pay_cut", message=reply.message)
+            reply.message = _drop_sentences(reply.message, lambda s: bool(
+                _PAY_BUTTON_CLAIM.search(s) or _SAYS_REPLY_CHECKOUT.search(s))) or "Reply CHECKOUT to pay."
+
+        invented = _invented_sizes(reply, context, customer_recent)
+        if invented and not size_checked:
+            size_checked = True
+            tracing.guard("size_retry", sizes=invented["sizes"])
+            return None, (f"ERROR: {', '.join(invented['sizes'])} {'is' if len(invented['sizes']) == 1 else 'are'} "
+                          f"not a size of {invented['names']}. In stock: {invented['real']}. Use only those.")
+        if invented:
+            tracing.guard("size_cut", sizes=invented["sizes"])
+            reply.message = _drop_sentences(reply.message, lambda s: bool(_sizes_named(s) & set(invented["sizes"])))
+
+        if ledger:
+            # The confirmation is written by code from the ledger (webhook); the
+            # model's own "Added the ..." would say it twice, or cut, "Added the."
+            reply.ledger = ledger
+            reply.message = _drop_sentences(reply.message, lambda s: bool(_CLAIMS_CART_CHANGE.search(s)))
         reply.tools_used = used
         reply.remember = _facts_to_keep(reply, text, customer_recent)
         return _attach_mentioned(reply, changed_cart=bool({"add_to_cart", "remove_from_cart"} & set(used))), ""
@@ -891,7 +1099,16 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
             name, args = call.function.name.split("<|")[0].strip(), _arguments(call.function.arguments)
             used.append(name)
             tool_started = time.perf_counter()
-            if name == "send_reply":
+            if name == "send_reply" and str(call.id).startswith("salvaged_") and not args.get("product_ids") \
+                    and "search_products" in used and _LIST_LINE.search(str(args.get("message") or "")) \
+                    and not nudged:
+                # A repaired reply that types out the products it found: no photos,
+                # and "1" next would select nothing (14 Oct eval). Ask for the ids.
+                nudged = True
+                tracing.guard("nudge_send_reply", repaired=True)
+                result = ("ERROR: do not write the products out. Call send_reply with product_ids = the ids "
+                          "you want to show, in order, and a 1-2 sentence message.")
+            elif name == "send_reply":
                 reply, error = _finish(args, text, bool({"add_to_cart", "remove_from_cart"} & succeeded))
                 if reply is not None:
                     reply, error = checked(reply)
@@ -899,14 +1116,22 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
                         tracing.tool(name, args, "sent", (time.perf_counter() - tool_started) * 1000)
                         return reply
                 result = error
+            elif name == "checkout":
+                if _wants_to_pay(consent_text):
+                    tracing.tool(name, {}, "started", (time.perf_counter() - tool_started) * 1000)
+                    return AssistantReply(message="", checkout=True, tools_used=used, ledger=ledger)
+                result = "ERROR: the customer has not asked to pay. Answer their message instead."
             elif name in TOOL_FUNCTIONS:
                 try:
-                    # user_id and the customer's words are ours, never the model's
-                    for key in ("user_id", "customer_text", "customer_recent"):
+                    # user_id, the customer's words and the ledger are ours, never the model's
+                    for key in ("user_id", "customer_text", "customer_recent", "ledger"):
                         args.pop(key, None)
                     if name in ("add_to_cart", "remove_from_cart", "hide_product"):
                         args.update(customer_text=consent_text, customer_recent=customer_recent)
+                    if name in ("add_to_cart", "remove_from_cart"):
+                        args["ledger"] = ledger
                     result = TOOL_FUNCTIONS[name](user_id, **args)
+                    args.pop("ledger", None)
                 except Exception as exc:
                     print(f"[assistant] tool {name} failed: {exc!r}")
                     result = "ERROR: that lookup failed. Apologise briefly and suggest trying again."

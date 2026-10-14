@@ -233,7 +233,7 @@ def tool(name: str, args: dict[str, Any], result: str, ms: float) -> None:
             "name": name,
             # Not the customer's words the assistant adds to cart tools: the trace has the question
             "args": {k: _short(v, _ARG_CHARS) for k, v in (args or {}).items()
-                     if k not in ("customer_text", "customer_recent")},
+                     if k not in ("customer_text", "customer_recent", "ledger")},
             "ok": not str(result).startswith("ERROR"),
             "result": _short(result, _RESULT_CHARS),
             "ms": round(ms),

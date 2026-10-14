@@ -531,8 +531,24 @@ and 20–40 real customer questions from his DMs, with names removed (30 minutes
     "accessories ... around 10k" showed sarees and men's wear;
   - "what 4 items do i have": the cart is not attached (no "cart" word);
   - photos and voice notes get no reply (2) → step 2.
-- **Next:** step 2, the quick fixes, each checked against this baseline
-  (`eval_conversations.py` exits 1 on a regression).
+- **14 Oct, step 2 (quick fixes): 56/59 graded cases pass (from 47/63), checks 99.5%,
+  0 regressions, 12 baseline failures fixed.** 4 cases still to re-run once Groq's
+  free daily quota (200k tokens/model) refills:
+  `eval_conversations.py --resume evals/runs/20261014-1954-kurta-gpt-oss-20b`.
+  Done: checkout matcher ("i wanna pay", "chedckout", "proceed to payment"); a
+  `checkout` tool that runs the real CHECKOUT; payment-button claims sent back then
+  cut; cart tools take quantity (and size for remove) and fill a ledger from which
+  code writes the confirmation; sizes checked like rupee amounts, in-stock sizes in
+  the context; bare ADD takes the size just settled; "what 4 items do i have" is a
+  cart lookup; malformed send_reply with bare-text arguments repaired; photos and
+  voice notes get one line.
+  Not done from the plan's step 2: `get_size_guide` (needs a brand size chart, which
+  the demo has none of: with P3's Shopify data); typo tolerance beyond command words
+  (the catalogue vocabulary belongs to step 3).
+  Still failing: "only male options" asks who again; accessories within a budget show
+  sarees; colour is not a filter (black suit, yellow kurta) → steps 3-4 and P7.
+- **Next:** finish the 4 re-runs and save the new baseline (`--save-baseline`), then
+  step 3 (work for any catalogue).
 
 **Starter prompt:** *"Read plan.md. Plan P2 (Bot quality part 1) in detail, starting with
 the eval harness design and the case format. Build the harness first and record a

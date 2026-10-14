@@ -158,6 +158,11 @@ def unit_checks() -> None:
           "no_fragments" in failed_names(turn("Here are some options for your sister's haldi. The.")))
     check("an ordinary sentence passes no_fragments",
           "no_fragments" not in failed_names(turn("These suit a haldi in the morning. Want more?")))
+    check("a sentence ending on a preposition is not a fragment",
+          "no_fragments" not in failed_names(turn("We only sell ethnic wear. Tell me what you're looking for!")))
+    check("one sentence about the cart above the cart block is not the cart twice",
+          "cart_shown_once" not in failed_names(turn("Your cart has 4 items: 3 sarees and 1 kurta.\n\n"
+                                                     "Your cart:\n1. Saree x3\nTotal: Rs. 8,796")))
     check("a code snippet fails no_code", "no_code" in failed_names(turn("Sure!\n```python\nprint(2+2)\n```")))
     check("the cart shown twice fails cart_shown_once",
           "cart_shown_once" in failed_names(turn("Your cart:\n1. Suit\n\nYour cart:\n1. Suit")))
@@ -245,8 +250,9 @@ def whole_cases(runner: Runner) -> None:
 
     photo = runner.run(make_case({"id": "photo", "turns": [{"media": "image"}]}))
     names = {c["name"]: c["ok"] for tt in photo["turns"] for c in tt["checks"]}
-    check("a photo is traced as unsupported and fails 'replied' (P2 quick fix)",
-          names.get("replied") is False and photo["turns"][0]["trace"]["path"] == "unsupported", names)
+    check("a photo is traced as unsupported and answered with one line",
+          names.get("replied") is True and photo["turns"][0]["trace"]["path"] == "unsupported"
+          and "photo" in photo["turns"][0]["reply"], (names, photo["turns"][0]["reply"]))
 
     broken = {"id": "broken", "prelude": [{"say": "EW045", "model": [{"send_reply": {"message": "unused"}}]}],
               "turns": [{"say": "hi"}]}

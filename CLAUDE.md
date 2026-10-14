@@ -121,7 +121,7 @@ fallbacks (evals/configs.yaml). Baselines in evals/baselines/; runs (model
 outputs) in evals/runs/ are private. --dry plays everything with a canned
 model, for free. Write expectations for the behaviour we want: a failing case
 is a to-do, and the baseline records it.
-Verify: scripts/test_eval_harness.py (42 checks, no quota). Baseline 14 Oct, gpt-oss-20b:
+Verify: scripts/test_eval_harness.py (44 checks, no quota). Baseline 14 Oct, gpt-oss-20b:
 47/63 cases, 889/918 checks (plan.md P2 has the fix list it produced).
 
 ## Shared contract (do not change without syncing both devs)
@@ -334,7 +334,8 @@ every owner ✓/✕ rating; the first RAG version scored 8/10 on an easier 10-ca
 
 ## Assistant (bot/assistant.py)
 Free text goes to an LLM with tools (Groq, OpenAI-compatible): search_products,
-get_product_details, get_my_orders, get_my_cart, add_to_cart, send_reply. It asks
+get_product_details, get_my_orders, get_my_cart, add_to_cart, remove_from_cart,
+hide_product, checkout, send_reply. It asks
 one or two questions when a request is vague and searches when it is not.
 Exact commands ("2", ADD 42, CART, CHECKOUT, BUY, product codes) never reach it.
 Trust boundaries, all enforced in code:
@@ -342,7 +343,18 @@ Trust boundaries, all enforced in code:
   send_reply only names product ids, which must exist
 - tools are bound to the sender's user_id; the model cannot pass one
 - add_to_cart needs the customer's current message to ask for it and a size
-  they typed; payment is always CHECKOUT -> Pay Now
+  they typed (a quantity above 1 too); remove_from_cart takes size/quantity
+- paying: the `checkout` tool (only when their words ask to pay) ends the turn
+  and the webhook runs the real CHECKOUT command (sizes, address, order, Pay
+  Now). A reply that describes a payment button, or says "reply CHECKOUT" to
+  someone asking to pay, is sent back once, then cut (P2 step 2, 14 Oct)
+- cart changes are confirmed by code from a ledger the cart tools fill
+  ({op, product, size, qty_before, qty_after}); the model's own "Added ..."
+  sentences are dropped (webhook._ledger_lines)
+- sizes are checked like rupee amounts: a size the product in focus does not
+  come in is sent back, then cut; in-stock sizes are in the context block
+- a send_reply Groq rejects because its arguments are bare words is repaired
+  (the words become the message), not a fallback
 Memory: sessions.messages (last 12; 8 sent per call), added by an idempotent
 ALTER in db.init_db. Models: LLM_MODEL then LLM_FALLBACK_MODEL (comma list,
 default gpt-oss-120b, qwen3.8-27b). Groq free tier = 8,000 tokens/min PER
@@ -395,7 +407,7 @@ Seen live 22 Sep and now enforced in code: "yes"/a size answering our own
 "added"/"removed" without a successful cart tool is sent back once, then the
 claim is cut; a product the model focuses on is selected, and "choose blush
 pink one" selects by name (selection.parse_named_selection), so "46" next adds it.
-Verify: scripts/test_assistant.py (74 checks, scripted fake model, no quota).
+Verify: scripts/test_assistant.py (95 checks, scripted fake model, no quota).
 Other suites blank LLM_API_KEY so they stay deterministic.
 
 ## Training (backend/training.py, /admin/training)
@@ -431,7 +443,12 @@ would look good on her" never said "add". A size answering our own "which
 size?" now counts as asking. A short question about a shown item ("would 1 be
 a good gift for my wife?") selects it silently while the assistant answers, so
 the size reply that follows has something to attach to. CHECKOUT matches how
-people ask ("can i checkout pls"); "pay for my sister" stays a search.
+people ask ("can i checkout pls", "i wanna pay", "ok lets proceed to payment",
+and "chedckout": command words within two edits; selection.asks_to_checkout);
+"pay for my sister" stays a search. A bare ADD takes the size from their last
+message ("I like it in 42") or the one size our "shall I add it?" named.
+Photos, videos, voice notes and files get one line saying we cannot read them
+yet (until P6); reactions and stickers get nothing.
 
 sessions.selected_product holds the chosen item so a later BUY knows what it
 means; starting a new search clears it. Razorpay's Pay Now button will read the

@@ -219,11 +219,14 @@ _PAY_CLAIM = re.compile(r"pay\s*now\s+button|tap\s+(?:the\s+)?pay\s*now|here'?s\
                         r"|payment\s+link\s+(?:below|above|here)", re.IGNORECASE)
 _AMOUNT = re.compile(r"(?:₹|\brs\.?|\binr)\s*(\d[\d,]*(?:\.\d+)?)\s*(k\b|thousand)?", re.IGNORECASE)
 _NUMBER = re.compile(r"(\d[\d,]*(?:\.\d+)?)\s*(k\b|thousand)?", re.IGNORECASE)
-# "Added the." / "...for your sister's haldi. The." ("delivering to:" before an address is fine)
-_FRAGMENT = re.compile(r"(?:^|[\s(])(?:the|a|an|and|of|to|for|with|your|our|in)\s*[.!](?=\s|$)", re.IGNORECASE | re.M)
+# "Added the." / "...for your sister's haldi. The." ("delivering to:" before an
+# address is fine, and so is a preposition at the end: "what you're looking for!")
+_FRAGMENT = re.compile(r"(?:^|[\s(])(?:the|a|an|and|of|your|our)\s*[.!](?=\s|$)", re.IGNORECASE | re.M)
 _CODE = re.compile(r"```|\b(?:print|console\.log)\s*\(|\bdef\s+\w+\s*\(|^\s*import\s+\w+", re.IGNORECASE | re.M)
 _MARKDOWN = re.compile(r"\*\*[^*]+\*\*|^\s*#{1,6}\s|\[[^\]]+\]\(https?://", re.M)
-_CART_BLOCK = re.compile(r"your cart(?: has|:)", re.IGNORECASE)
+# The cart block's own header. Live (reply 580) it came twice; "Your cart has 4
+# items: 3 sarees and 1 kurta" above one block is an answer, not a second copy
+_CART_BLOCK = re.compile(r"your cart:", re.IGNORECASE)
 
 _SIZE_WORDS = {"small": "S", "medium": "M", "large": "L", "extra large": "XL", "free size": "FREE SIZE",
                "one size": "FREE SIZE"}

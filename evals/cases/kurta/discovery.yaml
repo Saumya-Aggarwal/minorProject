@@ -146,8 +146,8 @@
         - send_reply: {message: "Happy to help! Menswear or womenswear, and what budget?"}
   turns:
     - say: male
+      note: Asking for the budget they did not give yet is allowed (two rounds of questions)
       expect:
-        shows: true
         shown_fit: {gender: Men}
         profile_gender: Men
 

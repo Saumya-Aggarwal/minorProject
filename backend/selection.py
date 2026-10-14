@@ -250,6 +250,60 @@ _CHECKOUT = re.compile(
     r"^(?:(?:can|could|may)\s+i\s+|i(?:'?d)?\s+(?:want|like|wanna)\s+to\s+|lets\s+|let\s+us\s+|"
     r"please\s+|pls\s+|ready\s+to\s+)?(?:check\s*out|pay(?:\s+now)?|place\s+(?:my\s+)?order|"
     r"complete\s+(?:my\s+)?order)(?:\s+(?:now|please|pls|plz))?$")
+# The 14 Oct eval: "i wanna pay", "i wanna checkout", "chedckout" and "ok lets
+# proceed to payment" all reached the model, which answered "reply CHECKOUT".
+# Words that only lead up to paying, stripped from the front:
+_CHECKOUT_LEAD = {"ok", "okay", "ohk", "okk", "k", "yes", "yeah", "yep", "so", "then", "now", "lets", "let", "us",
+                  "please", "pls", "plz", "i", "id", "ill", "im", "want", "wanna", "would", "like", "to", "can",
+                  "could", "may", "ready", "go", "ahead", "proceed", "just", "am", "do", "the", "a", "and"}
+# ...and what is left must be one of these, whole
+_CHECKOUT_CORE = re.compile(
+    r"^(?:check\s*out|pay(?:\s+now)?|make\s+(?:the\s+)?payment|payment|place\s+(?:my\s+|the\s+)?order"
+    r"|complete\s+(?:my\s+|the\s+)?(?:order|purchase|payment)|buy\s+(?:all|everything)|"
+    r"(?:with|for)\s+(?:the\s+)?(?:checkout|payment))"
+    r"(?:\s+(?:now|please|pls|plz|then|thanks|thank\s+you))*$")
+
+
+def _within_edits(word: str, target: str, limit: int) -> bool:
+    """Optimal string alignment distance <= limit (a swap counts once)."""
+    if abs(len(word) - len(target)) > limit:
+        return False
+    previous2: list[int] = []
+    previous = list(range(len(target) + 1))
+    for i, a in enumerate(word, 1):
+        row = [i] + [0] * len(target)
+        for j, b in enumerate(target, 1):
+            row[j] = min(previous[j] + 1, row[j - 1] + 1, previous[j - 1] + (a != b))
+            if i > 1 and j > 1 and a == target[j - 2] and word[i - 2] == b:
+                row[j] = min(row[j], previous2[j - 2] + 1)
+        previous2, previous = previous, row
+    return previous[-1] <= limit
+
+
+def _fix_command_typos(cleaned: str) -> str:
+    """"chedckout" -> "checkout". Only the command words, never a number or a size."""
+    words = []
+    for word in cleaned.split():
+        if word.isalpha() and len(word) >= 6 and word not in ("checkout",) and _within_edits(word, "checkout", 2):
+            word = "checkout"
+        elif word.isalpha() and len(word) >= 6 and _within_edits(word, "payment", 1):
+            word = "payment"
+        words.append(word)
+    return " ".join(words)
+
+
+def asks_to_checkout(text: str) -> bool:
+    """The whole message asks to pay for the cart, however it is put.
+
+    "pay for my sister" stays a search: what is left after the lead-in words
+    must be only a way of saying "check out".
+    """
+    words = _fix_command_typos(_clean(text)).split()
+    while words and words[0] in _CHECKOUT_LEAD:
+        words.pop(0)
+    return bool(words) and bool(_CHECKOUT_CORE.match(" ".join(words)))
+
+
 _REMOVE = re.compile(r"^(?:remove|delete|drop)(?: item)? (?:no\.? ?|#)?(\d{1,2})$")
 _SIZE = re.compile(r"^(?:size|change size)(?: of)?(?: item)? (\d{1,2}) (?:to )?(.+)$")
 
@@ -271,7 +325,7 @@ def parse_command(text: str) -> Optional[tuple[str, dict[str, Any]]]:
 
     if cleaned in _CART_PHRASES:
         return ("cart", {})
-    if cleaned in _CHECKOUT_PHRASES or _CHECKOUT.match(cleaned):
+    if cleaned in _CHECKOUT_PHRASES or _CHECKOUT.match(cleaned) or asks_to_checkout(cleaned):
         return ("checkout", {})
     if cleaned in _CLEAR_PHRASES:
         return ("clear", {})

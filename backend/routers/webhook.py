@@ -562,6 +562,65 @@ def _added_confirmation(cart: dict, name: str, size: str) -> str:
             f"Cart: {cart['count']} {noun}, Rs. {cart['total_inr']:,.0f}.\n{hint}")
 
 
+def _sizes_written(text: str, sizes: list[str]) -> set[str]:
+    """This product's sizes that a message names. One-letter sizes only in
+    capitals (the m of "I'm" is not size M); others in any case."""
+    found = set()
+    for size in sizes:
+        flags = 0 if len(size) == 1 else re.IGNORECASE
+        if re.search(rf"(?<!\w){re.escape(size)}(?!\w)", text, flags):
+            found.add(size)
+    return found
+
+
+def _size_from_recent(messages: list[dict], sizes: list[str]) -> str:
+    """The size settled just before a bare "add"/"yes add it", or ""."""
+    if len(sizes) < 2:
+        return ""
+    said = [str(m["content"]) for m in messages if m.get("role") == "user"]
+    if said:
+        bare = parse_bare_size(said[-1])
+        if bare and match_size(bare, sizes):
+            return match_size(bare, sizes)
+        named = _sizes_written(said[-1], sizes)
+        if len(named) == 1:
+            return named.pop()
+    ours = next((str(m["content"]) for m in reversed(messages) if m.get("role") == "assistant"), "")
+    if re.search(r"\badd\b", ours, re.IGNORECASE):
+        offered = _sizes_written(ours.split("[Showed")[0], sizes)
+        if len(offered) == 1:
+            return offered.pop()
+    return ""
+
+
+def _ledger_lines(ledger: list[dict], cart: dict, summary: bool = True) -> str:
+    """The assistant's cart changes, confirmed from what really happened.
+
+    Live, the model wrote "Removed 2 Aqua Chanderi Saree" when the tool had
+    emptied the line, and "Added the." when a guard cut its sentence.
+    """
+    lines = []
+    for entry in ledger:
+        size = f" ({entry['size']})" if entry["size"] else ""
+        if entry["op"] == "add":
+            count = entry["qty_after"] - entry["qty_before"]
+            what = f"{count} × {entry['name']}" if count != 1 else entry["name"]
+            lines.append(f"Added {what}{size} to your cart.")
+        else:
+            count = entry["qty_before"] - entry["qty_after"]
+            what = f"{count} × {entry['name']}" if count != 1 or entry["qty_after"] else entry["name"]
+            left = f", {entry['qty_after']} left" if entry["qty_after"] else ""
+            lines.append(f"Removed {what}{size}{left}.")
+    if summary:
+        if not cart["items"]:
+            lines.append("Your cart is empty now.")
+        else:
+            noun = "item" if cart["count"] == 1 else "items"
+            hint = _cart_hints(cart) if _missing_sizes(cart) else "CHECKOUT to pay · CART to review"
+            lines.append(f"Cart: {cart['count']} {noun}, Rs. {cart['total_inr']:,.0f} · {hint}")
+    return "\n".join(lines)
+
+
 async def _add_again(user_id: int, product: dict, size: str) -> "str | Reply":
     """Picking from the buy-it-again list is the whole instruction: add it."""
     product_id = _product_id(product)
@@ -651,10 +710,11 @@ async def _handle_cart_command(
         sizes = _sizes_for(product_id)
         size = ""
         if not args["size"]:
-            # "46" ... "shall I add it?" ... "yes add it": the size is in their last message
-            said = [m["content"] for m in (previous or {}).get("messages") or [] if m.get("role") == "user"]
-            earlier = parse_bare_size(said[-1]) if said else None
-            if earlier and match_size(earlier, sizes):
+            # "46" ... "shall I add it?" ... "yes add it": the size is in their last
+            # message, or in the one size our offer named. The 14 Oct eval: "I like
+            # it in 42" -> "Shall I add it in 42?" -> "yes pls add" added it unsized
+            earlier = _size_from_recent((previous or {}).get("messages") or [], sizes)
+            if earlier:
                 args = {**args, "size": earlier}
         if args["size"]:
             size = match_size(args["size"], sizes) or ""
@@ -850,6 +910,24 @@ async def _assistant_reply(user_id: int, text: str, context: dict) -> "str | Rep
     print(f"[webhook] assistant used {answer.tools_used or 'no tools'}")
     tracing.path("assistant")
     tracing.note(model_message=answer.message, attach=answer.attach)
+    cart_after = await asyncio.to_thread(repo.get_cart, user_id) if answer.ledger else None
+
+    if answer.checkout:
+        # "i wanna pay": exactly what CHECKOUT does (sizes, address, order, Pay Now)
+        tracing.path("assistant:checkout")
+        reply = await _handle_cart_command(user_id, "checkout", {}, None)
+        if answer.ledger:
+            changed = _ledger_lines(answer.ledger, cart_after, summary=False)
+            reply = (Reply(f"{changed}\n\n{reply.text}", cta_url=reply.cta_url, cta_label=reply.cta_label)
+                     if isinstance(reply, Reply) else f"{changed}\n\n{reply}")
+        await _remember(user_id, text, _reply_text(reply))
+        await _log(user_id, text, reply, [], "assistant")
+        return reply
+
+    if answer.ledger:
+        # What the cart tools really did, in code's words, before the model's
+        changed = _ledger_lines(answer.ledger, cart_after, summary=answer.attach != "cart")
+        answer.message = f"{changed}\n\n{answer.message}" if answer.message else changed
     await _remember(user_id, text, assistant.memory_text(answer))
     if answer.remember:
         try:
@@ -1054,7 +1132,9 @@ _ASKS_ORDERS = re.compile(
     re.IGNORECASE,
 )
 _ASKS_CART = re.compile(
-    r"\b(?:my|the)\s+(?:cart|bag|basket)\b|\bwhat'?s\s+in\s+(?:my|the)\b|\bshow\s+(?:me\s+)?(?:my\s+)?cart\b",
+    r"\b(?:my|the)\s+(?:cart|bag|basket)\b|\bwhat'?s\s+in\s+(?:my|the)\b|\bshow\s+(?:me\s+)?(?:my\s+)?cart\b"
+    # "what 4 items do i have" (14 Oct eval: the model said "Your cart has 4 items." and nothing else)
+    r"|\bwhat\s+(?:\d+\s+|all\s+)?(?:items|things)\s+(?:do\s+)?i\s+have\b|\bhow\s+many\s+items\b",
     re.IGNORECASE,
 )
 _ASKS_TOTAL = re.compile(
@@ -1192,8 +1272,20 @@ async def _answer_locally(sender: str, text: str, display_name: str | None, butt
     return reply
 
 
-async def _trace_unanswered(sender: str, msg_type: str, message_id: str, local_test: bool) -> None:
-    """A photo, voice note or other message we cannot read yet: counted, not answered."""
+# Until P6 reads them: one honest line, so a photo or voice note is never met
+# with silence (plan.md P2: "photos and voice notes get no answer at all")
+_CANNOT_READ = {
+    "image": "I can't look at photos yet, sorry. Tell me in words what you're looking for (the garment, "
+             "colour, occasion or budget) and I'll find it.",
+    "video": "I can't watch videos yet, sorry. Tell me in words what you're looking for and I'll find it.",
+    "audio": "I can't listen to voice notes yet, sorry. Please type your message and I'll help right away.",
+    "document": "I can't open files yet, sorry. Please type your message and I'll help right away.",
+}
+
+
+async def _answer_unsupported(sender: str, msg_type: str, message_id: str, local_test: bool) -> str:
+    """A message we cannot read yet: traced, and answered with one line (a
+    reaction or sticker is not a question, so it gets no reply)."""
     trace, token = tracing.begin(tenancy.store_id(), "", msg_type, message_id, via="local" if local_test else None)
     tracing.path("unsupported")
     try:
@@ -1202,8 +1294,15 @@ async def _trace_unanswered(sender: str, msg_type: str, message_id: str, local_t
         tracing.set_user((user or {}).get("user_id"))
     except Exception as exc:
         tracing.swallowed("user", exc)
-    tracing.end(trace, token)
+    answer = _CANNOT_READ.get(msg_type, "")
+    tracing.end(trace, token, answer or None)
     await asyncio.to_thread(tracing.save, trace)
+    return answer
+
+
+async def _send_text(sender: str, text: str, store: int) -> None:
+    with tenancy.use_store(store):
+        await _safe_send(sender, Reply(text))
 
 
 def signature_ok(body: bytes, header: str | None, secret: str) -> bool:
@@ -1317,7 +1416,13 @@ async def _receive_change(value: dict, store: int, local_test: bool, background:
         button = (message.get("interactive") or {}).get("button_reply")             if message["type"] == "interactive" else None
         if message["type"] != "text" and not button:
             print(f"[webhook] unhandled {message['type']!r} message from {sender}")
-            await _trace_unanswered(sender, message["type"], message.get("id", ""), local_test)
+            if not local_test and not await asyncio.to_thread(_first_delivery, message.get("id")):
+                continue
+            answer = await _answer_unsupported(sender, message["type"], message.get("id", ""), local_test)
+            if answer and local_test:
+                responses.append({"to": sender, "body": answer, "cta_url": None, "photos": []})
+            elif answer:
+                background.add_task(_send_text, sender, answer, store)
             continue
         # Local tests reuse one fake id; only Meta's real ids are unique
         if not local_test and not await asyncio.to_thread(_first_delivery, message.get("id")):
