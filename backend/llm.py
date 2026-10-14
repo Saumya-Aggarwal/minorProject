@@ -31,6 +31,7 @@ environment when given None) are never used: client() passes both explicitly.
 from __future__ import annotations
 
 import os
+import time
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
@@ -111,11 +112,64 @@ def client(role: str = "chat", timeout: float = 12.0) -> Any:
     return OpenAI(api_key=settings.api_key, base_url=settings.base_url, timeout=timeout, max_retries=0)
 
 
+# USD per million tokens: (input, cached input, output). Groq's model pages,
+# checked 3 Oct 2026; Groq lists no separate cached price, so cached input is
+# charged as input. A model not listed has no known cost (None in traces):
+# add it here, or in evals/configs.yaml for an eval run.
+PRICES: dict[str, tuple[float, float, float]] = {
+    "openai/gpt-oss-20b": (0.075, 0.075, 0.30),
+    "openai/gpt-oss-120b": (0.15, 0.15, 0.60),
+    "qwen/qwen3.8-27b": (0.80, 0.80, 4.00),
+}
+
+
+def cost_usd(model: str, tokens_in: int, tokens_cached: int, tokens_out: int) -> Optional[float]:
+    """What one call cost, or None for a model without a known price."""
+    price = PRICES.get(model)
+    if price is None:
+        return None
+    fresh = max(tokens_in - tokens_cached, 0)
+    return round((fresh * price[0] + tokens_cached * price[1] + tokens_out * price[2]) / 1_000_000, 8)
+
+
 def complete(role: str, messages: list[dict[str, Any]], model: Optional[str] = None,
              timeout: float = 12.0, **options: Any) -> Any:
-    """One chat completion for a role; the role's reasoning effort is applied."""
+    """One chat completion for a role; the role's reasoning effort is applied.
+
+    Each call, and each failure, is recorded on the current message's trace
+    (tracing.py) with its tokens and milliseconds.
+    """
+    import tracing
+
     settings = config(role)
     if settings.reasoning_effort:
         options.setdefault("reasoning_effort", settings.reasoning_effort)
-    return client(role, timeout).chat.completions.create(
-        model=model or settings.model, messages=messages, **options)
+    chosen = model or settings.model
+    started = time.perf_counter()
+    try:
+        # The raw form only to read the rate-limit headers; parse() is the same
+        # response object a plain create() returns
+        raw = client(role, timeout).chat.completions.with_raw_response.create(
+            model=chosen, messages=messages, **options)
+        response = raw.parse()
+    except Exception as exc:
+        headers = getattr(getattr(exc, "response", None), "headers", None)
+        tracing.llm_call(role, chosen, tracing.elapsed(started) * 1000, error=str(exc), limits=_limits(headers))
+        raise
+    tracing.llm_call(role, chosen, tracing.elapsed(started) * 1000, getattr(response, "usage", None),
+                     limits=_limits(raw.headers))
+    return response
+
+
+def _limits(headers: Any) -> Optional[dict[str, str]]:
+    """The provider's rate-limit headers (Groq: remaining tokens this minute,
+    requests today), so a trace shows how close a call came to a 429."""
+    if not headers:
+        return None
+    try:
+        found = {name: headers.get(name) for name in (
+            "x-ratelimit-remaining-tokens", "x-ratelimit-reset-tokens",
+            "x-ratelimit-remaining-requests", "retry-after")}
+    except Exception:
+        return None
+    return {k: v for k, v in found.items() if v is not None} or None

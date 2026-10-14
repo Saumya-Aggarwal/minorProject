@@ -33,7 +33,7 @@ workout clothes.
 |---|---|---|---|---|
 | P0 | Cleanup and safety net | 0.5 | — | done 28 Sep |
 | P1 | Multi-store foundation (tenancy, products in Postgres, pgvector) | 7 | P0 | built 2 Oct; friend's catalogue import waits for his shop domain |
-| P2 | Bot quality, part 1 (eval harness, fixes, works for any catalogue, model choice) | 12 | P1 | not started |
+| P2 | Bot quality, part 1 (eval harness, fixes, works for any catalogue, model choice) | 12 | P1 | started 3 Oct: tracing done 14 Oct; harness next |
 | P3 | Shopify connector, deployment, pilot go-live | 8.5 | P1, P2 | not started |
 | P4 | Brand dashboard and minimal human hand-off | 5 | P3 | not started |
 | P5 | Order status, exchanges, abandoned-checkout recovery | 6 | P3 (P4 helps) | not started |
@@ -386,8 +386,8 @@ All eight steps, one commit each on `product/p1-multi-store`, every suite green 
   POST is checked against `X-Hub-Signature-256` with the receiving store's app secret,
   and a forged or unsigned request gets 403. The demo store still accepts unsigned
   requests until `WHATSAPP_APP_SECRET` is set in `backend/.env`. Set it before the
-  URL is public. The 9 new tenancy checks have not yet been run against Postgres:
-  Docker was off. The logic passed 12/12 with the database stubbed.
+  URL is public. The 9 new tenancy checks passed against Postgres on 14 Oct
+  (test_tenancy.py 62/62).
 
 **Open questions, answered:**
 - **A `stores` row for every future brand?** Yes, `status=draft` (decision 23).
@@ -499,6 +499,19 @@ and 20–40 real customer questions from his DMs, with names removed (30 minutes
 - The harness produces a report;
 - the chosen model beats today's baseline on the code checks, with no regression;
 - the T-shirt set and the ethnic set both meet their targets.
+
+**Progress:**
+- **3 Oct:** trace design, `tracing.py`, `turn_traces` model, llm.py timing/cost/rate
+  headers, `scripts/eval_harness/pacing.py` (rate-limit pacing) and `state.py`
+  (throwaway customers), and the neutrality test, left uncommitted. The migration
+  file had been lost and nothing called tracing yet.
+- **14 Oct:** migration 0005 recreated and applied; tracing wired into the webhook
+  (every exit names its path, swallowed errors recorded), the assistant (tools,
+  checks, fallbacks) and retrieval (searches). `test_trace_neutrality.py` passes
+  6/6 and its 60 turns are identical to a recording made on the code from before
+  tracing. It is now in `run_all_tests.py`.
+- **Next:** `scripts/eval_harness/runner.py` and `scripts/eval_conversations.py`, about
+  50 cases from `evals/raw`, then a baseline score before any bot change.
 
 **Starter prompt:** *"Read plan.md. Plan P2 (Bot quality part 1) in detail, starting with
 the eval harness design and the case format. Build the harness first and record a

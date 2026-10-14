@@ -26,6 +26,7 @@ from typing import Any, Optional
 
 import catalog
 import tenancy
+import tracing
 from common import embeddings
 
 
@@ -444,7 +445,15 @@ def search(query: str, filters: Optional[Filters] = None, k: int = 3,
     relaxed in this order and the result says so: budget (show the nearest
     prices), category (the garment is not stocked), gender. An open-ended query
     with nothing relevant ("asdfgh") returns no products rather than noise.
+    Inside a customer message, the search is recorded on its trace (tracing.py).
     """
+    result = _search(query, filters, k, user_id, learn)
+    tracing.search(query, result.filters, result.products, result.relaxed)
+    return result
+
+
+def _search(query: str, filters: Optional[Filters], k: int, user_id: Optional[int],
+            learn: bool) -> SearchResult:
     _check_mapping()
     query = (query or "").strip()
     f = filters if filters is not None else parse_query(query)

@@ -11,6 +11,15 @@ backend/.media_cache.json
 # Local database dumps (hold customer phone numbers and addresses)
 backups/
 
-# Logged customer conversations and ratings (scripts/export_training_data.py).
-# Real people's messages once brands are live: never in the public repo.
-evals/raw/
+# Eval data is private unless re-included below (fail closed, so a new folder
+# can never leak by accident). evals/raw holds logged conversations
+# (scripts/export_training_data.py), evals/private real customers' words and
+# media, evals/runs model outputs. Real people's messages once brands are
+# live: never in the public repo. Public: our own cases, catalogues, configs,
+# baselines and the format guide.
+evals/*
+!evals/README.md
+!evals/cases/
+!evals/catalogues/
+!evals/baselines/
+!evals/configs.yaml

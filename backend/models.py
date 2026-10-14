@@ -402,6 +402,66 @@ class Feedback(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utcnow, sa_column=_tstz(nullable=False))
 
 
+class TurnTrace(SQLModel, table=True):
+    """How one inbound message was answered, and what that cost (tracing.py).
+
+    One row per customer message (text or button tap), for every route: a
+    command, a lookup, the assistant, the plain-search fallback. bot_replies
+    stays the owner's training log; this is the operational record the eval
+    harness grades and the brand dashboard (P4) counts.
+    """
+
+    __tablename__ = "turn_traces"
+
+    trace_id: Optional[int] = Field(default=None, primary_key=True)
+    # CASCADE like bot_replies: deleting a store or a customer (tests, a
+    # GDPR-style request) takes their traces too. Linking an account deletes
+    # the bot-made user row, so repository.consume_link_token re-points its
+    # traces first: a customer's earlier chats stay in the brand's numbers.
+    store_id: int = Field(foreign_key="stores.store_id", index=True, ondelete="CASCADE")
+    # None when there is no customer row yet (a LINK- code, database trouble)
+    user_id: Optional[int] = Field(default=None, foreign_key="users.user_id", index=True,
+                                   ondelete="CASCADE")
+    # whatsapp | local (X-Local-Test, the simulator) | eval (the P2 harness)
+    channel: str = Field(default="whatsapp", max_length=10)
+    # text | button | image | audio | ... (Meta's message type; media is not answered yet)
+    msg_type: str = Field(default="text", max_length=20)
+    # Meta's message id (wamid...), to find a conversation in Meta's logs
+    wa_message_id: Optional[str] = Field(default=None, max_length=128)
+    question: str = ""
+    # Which exit answered: command:add, selection, size, lookup, assistant, search,
+    # unsupported (media we cannot read yet) ...
+    path: str = Field(default="", max_length=40)
+    reply_text: str = ""
+    # The owner's training log row for this answer, when there is one
+    reply_id: Optional[int] = Field(default=None, foreign_key="bot_replies.reply_id", ondelete="SET NULL")
+    # Product codes shown, in the order they were numbered
+    product_ids: list[str] = Field(default_factory=list, sa_column=Column(JSONB, nullable=False))
+    # [{query, filters, results, relaxed}] per catalogue search: what was asked
+    # for and whether we had it ("asked for but not sold" on the dashboard)
+    searches: list[dict[str, Any]] = Field(default_factory=list, sa_column=Column(JSONB, nullable=False))
+    # A Pay Now button was sent
+    cta: bool = Field(default=False)
+    # WhatsApp messages the reply took (intro + photos + footer): each is billed
+    wa_messages: int = 0
+    # [{name, args, ok, result, ms}] for each assistant tool call
+    tools: list[dict[str, Any]] = Field(default_factory=list, sa_column=Column(JSONB, nullable=False))
+    # [{role, model, ms, tokens_in, tokens_cached, tokens_out, tokens_reasoning, cost_usd, error?}]
+    llm_calls: list[dict[str, Any]] = Field(default_factory=list, sa_column=Column(JSONB, nullable=False))
+    # [{name, ...}] each time a check stepped in (a claim cut, an amount retried, a fallback)
+    guards: list[dict[str, Any]] = Field(default_factory=list, sa_column=Column(JSONB, nullable=False))
+    # The model whose answer was sent, if any
+    model: Optional[str] = Field(default=None, max_length=80)
+    tokens_in: int = 0
+    tokens_cached: int = 0
+    tokens_out: int = 0
+    # None when a model's price is unknown (llm.PRICES)
+    cost_usd: Optional[Decimal] = Field(default=None, sa_column=Column(Numeric(12, 8)))
+    latency_ms: int = 0
+    error: Optional[str] = None
+    created_at: datetime = Field(default_factory=utcnow, sa_column=_tstz(nullable=False, index=True))
+
+
 class ProcessedMessage(SQLModel, table=True):
     """A WhatsApp message id we have already answered.
 

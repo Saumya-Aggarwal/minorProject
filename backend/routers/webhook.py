@@ -16,6 +16,7 @@ import payments
 import repository as repo
 import shipping
 import tenancy
+import tracing
 from bot import assistant
 from bot.chat import format_product_lines, get_product_recommendations, product_caption
 from common.schemas import ProductMatch
@@ -199,10 +200,12 @@ async def _handle_link_code(sender: str, text: str) -> str:
     proof of who the sender is. After it succeeds, the number itself is enough.
     """
     token = text[len(LINK_PREFIX):].strip()
+    tracing.path("link")
     try:
         user = await asyncio.to_thread(repo.consume_link_token, token, sender)
     except Exception as exc:
         print(f"[webhook] link failed: {exc!r}")
+        tracing.swallowed("link", exc)
         return "Something went wrong linking your account. Please try again from the website."
 
     if user is None:
@@ -211,6 +214,7 @@ async def _handle_link_code(sender: str, text: str) -> str:
             "Open your account page on our website and tap Connect WhatsApp for a fresh one."
         )
 
+    tracing.set_user(user["user_id"])
     name = user.get("display_name") or "there"
     history = await asyncio.to_thread(repo.get_purchased_items, user["user_id"], 3)
 
@@ -246,11 +250,13 @@ async def _handle_follow_up(
     if (previous or {}).get("pending_address") is not None:
         reply = await _collect_address(user_id, text, previous or {})
         if reply is not None:
+            tracing.path("address")
             return reply
 
     # "more" after a buy-it-again page means older purchases, not a new search
     reorder = (previous or {}).get("reorder") or {}
     if reorder and _WANTS_MORE.match(text.strip()):
+        tracing.path("reorder:more")
         return await _reorder_reply(user_id, int(reorder.get("offset") or 0) + REORDER_PAGE)
 
     command = parse_command(text)
@@ -265,10 +271,12 @@ async def _handle_follow_up(
             elif assistant.enabled():
                 # "add the blue one in 42": the assistant can resolve which one
                 return None
+        tracing.path(f"command:{name}")
         try:
             return await _handle_cart_command(user_id, name, args, previous)
         except Exception as exc:
             print(f"[webhook] cart command {name!r} failed: {exc!r}")
+            tracing.swallowed(f"command:{name}", exc)
             return "Sorry, I could not reach your cart just now. Please try again in a moment."
 
     code = find_product_code(text)
@@ -278,6 +286,7 @@ async def _handle_follow_up(
         # "ADD 42" or "BUY 42" works as the very next message
         chosen = ProductMatch.from_raw(product).model_dump()
         print(f"[webhook] product code {code} from the website")
+        tracing.path("code")
         await asyncio.to_thread(repo.record_selection, user_id, chosen)
         return _detail_reply(describe_choice(chosen, 0, product.get("sizes_available") or []), product["id"])
 
@@ -292,10 +301,12 @@ async def _handle_follow_up(
     if index is not None:
         product = shown[index]
         print(f"[webhook] selection: item {index + 1} ({product.get('name')})")
+        tracing.path("selection")
         await asyncio.to_thread(repo.record_selection, user_id, product)
         known_size = (reorder.get("sizes") or {}).get(_product_id(product))
         if known_size is not None:
             # They asked to buy something again and named it: nothing is left to ask
+            tracing.path("reorder:add")
             return await _add_again(user_id, product, known_size)
         return _detail_reply(describe_choice(product, index, _sizes_for(_product_id(product))),
                              _product_id(product))
@@ -303,10 +314,12 @@ async def _handle_follow_up(
     if parse_bare_size(text) or mentions_size(text):
         reply = await _bare_size(user_id, text, previous)
         if reply is not None:
+            tracing.path("size")
             return reply
 
     buy_size = parse_buy(text)
     if buy_size is not None:
+        tracing.path("buy")
         chosen = previous.get("selected_product")
         if not chosen:
             return (
@@ -786,6 +799,7 @@ async def _remember(user_id: int | None, text: str, answer: str) -> None:
         )
     except Exception as exc:
         print(f"[webhook] could not remember the exchange: {exc!r}")
+        tracing.swallowed("remember", exc)
 
 
 async def _log(user_id: int | None, question: str, answer: "str | Reply", product_ids: list[str], path: str) -> None:
@@ -793,9 +807,12 @@ async def _log(user_id: int | None, question: str, answer: "str | Reply", produc
     if user_id is None:
         return
     try:
-        await asyncio.to_thread(training.log_reply, user_id, question, _reply_text(answer), product_ids, path)
+        reply_id = await asyncio.to_thread(training.log_reply, user_id, question, _reply_text(answer),
+                                           product_ids, path)
+        tracing.note(reply_id=reply_id)
     except Exception as exc:
         print(f"[webhook] could not log the reply: {exc!r}")
+        tracing.swallowed("log", exc)
 
 
 async def _record_shown(user_id: int | None, text: str, products: list[dict],
@@ -816,6 +833,7 @@ async def _record_shown(user_id: int | None, text: str, products: list[dict],
             await asyncio.to_thread(repo.set_reorder, user_id, reorder)
         except Exception as exc:
             print(f"[webhook] could not record turn: {exc!r}")
+            tracing.swallowed("record_turn", exc)
     return matches
 
 
@@ -830,6 +848,8 @@ async def _assistant_reply(user_id: int, text: str, context: dict) -> "str | Rep
     """Let the LLM assistant answer; raises AssistantUnavailable to fall back."""
     answer = await asyncio.to_thread(assistant.respond, user_id, text, context)
     print(f"[webhook] assistant used {answer.tools_used or 'no tools'}")
+    tracing.path("assistant")
+    tracing.note(model_message=answer.message, attach=answer.attach)
     await _remember(user_id, text, assistant.memory_text(answer))
     if answer.remember:
         try:
@@ -838,6 +858,7 @@ async def _assistant_reply(user_id: int, text: str, context: dict) -> "str | Rep
             print(f"[webhook] profile now {saved}")
         except Exception as exc:
             print(f"[webhook] could not save profile: {exc!r}")
+            tracing.swallowed("profile", exc)
 
     if answer.products:
         await _record_shown(user_id, text, answer.products)
@@ -867,6 +888,7 @@ async def _assistant_reply(user_id: int, text: str, context: dict) -> "str | Rep
 
 async def _search_reply(user_id: int | None, text: str, user_context: str | None) -> "str | Reply":
     """The plain path: retrieval plus a one-line intro. Always answers."""
+    tracing.path("search")
     # get_product_recommendations is synchronous and does network I/O
     reply, raw_matches = await asyncio.to_thread(_recommend, text, user_context, user_id)
     matches = await _record_shown(user_id, text, raw_matches)
@@ -904,6 +926,7 @@ async def _handle_text(sender: str, text: str, display_name: str | None) -> "str
     history: list[dict] = []
     try:
         user_id = await asyncio.to_thread(repo.get_or_create_user, sender, display_name)
+        tracing.set_user(user_id)
         user = await asyncio.to_thread(repo.get_user_by_whatsapp, sender)
         if user and user.get("is_linked"):
             history = await asyncio.to_thread(repo.get_purchased_items, user_id, 5)
@@ -919,28 +942,33 @@ async def _handle_text(sender: str, text: str, display_name: str | None) -> "str
         # After commands, so "hi" never shadows one; before search, so it never
         # reaches retrieval and comes back as three random products
         if is_greeting(text):
+            tracing.path("greeting")
             greeting = _greeting(user, history)
             await _remember(user_id, text, greeting)
             return greeting
     except Exception as exc:
         print(f"[webhook] user lookup failed, continuing stateless: {exc!r}")
+        tracing.swallowed("user", exc)
 
     # "What's my total?", "show my cart", "my orders": facts, so code answers.
     # The model once replied "Your current total is Rs 17,498" by adding up two
     # prices from memory while the real cart held Rs 10,798.
     if user_id is not None and _asks_about_address(text):
         try:
+            tracing.path("lookup:address")
             answer = await _address_reply(user_id, text)
             await _remember(user_id, text, answer)
             await _log(user_id, text, answer, [], "lookup")
             return answer
         except Exception as exc:
             print(f"[webhook] address lookup failed: {exc!r}")
+            tracing.swallowed("lookup:address", exc)
 
     # "can i buy from my old order again": their own history, shown as a list
     # they can choose from, not a search and not a question for the model
     if user_id is not None and _asks_to_reorder(text):
         try:
+            tracing.path("reorder")
             answer = await _reorder_reply(user_id)
             await _remember(user_id, text, _reply_text(answer))
             shown = [card.product_id for card in getattr(answer, "cards", [])]
@@ -948,9 +976,11 @@ async def _handle_text(sender: str, text: str, display_name: str | None) -> "str
             return answer
         except Exception as exc:
             print(f"[webhook] buy-it-again failed: {exc!r}")
+            tracing.swallowed("reorder", exc)
 
     if user_id is not None and _is_lookup(text):
         try:
+            tracing.path("lookup")
             if _ASKS_CART.search(text) or _ASKS_TOTAL.search(text):
                 answer = _format_cart(await asyncio.to_thread(repo.get_cart, user_id))
             else:
@@ -960,6 +990,7 @@ async def _handle_text(sender: str, text: str, display_name: str | None) -> "str
             return answer
         except Exception as exc:
             print(f"[webhook] orders/cart lookup failed: {exc!r}")
+            tracing.swallowed("lookup", exc)
 
     if user_id is not None and assistant.enabled():
         try:
@@ -988,23 +1019,28 @@ async def _handle_text(sender: str, text: str, display_name: str | None) -> "str
             return await _assistant_reply(user_id, text, context)
         except assistant.AssistantUnavailable as exc:
             print(f"[webhook] assistant unavailable ({exc}); answering with plain search")
+            tracing.guard("fallback", reason=str(exc))
         except Exception as exc:
             print(f"[webhook] assistant failed ({exc!r}); answering with plain search")
+            tracing.swallowed("assistant", exc)
 
     # Without the assistant (no key, rate-limited, down), the common questions
     # that are not searches still get a real answer instead of "no match"
     if user_id is not None:
         try:
             if _ASKS_ORDERS.search(text):
+                tracing.path("lookup:fallback")
                 answer = await _format_orders(user_id)
                 await _remember(user_id, text, answer)
                 return answer
             if _ASKS_CART.search(text):
+                tracing.path("lookup:fallback")
                 answer = _format_cart(await asyncio.to_thread(repo.get_cart, user_id))
                 await _remember(user_id, text, answer)
                 return answer
         except Exception as exc:
             print(f"[webhook] orders/cart lookup failed: {exc!r}")
+            tracing.swallowed("lookup:fallback", exc)
 
     user_context = _build_user_context(user, history)
     if user_context:
@@ -1079,8 +1115,11 @@ async def _handle_button(sender: str, button_id: str, display_name: str | None) 
     action, _, product_id = button_id.partition(":")
     product = catalog.get_by_id(product_id)
     if product is None or action not in ("pick", "hide"):
+        tracing.path("button:unknown")
         return "That item is no longer available. Tell me what you are looking for."
+    tracing.path(f"button:{action}")
     user_id = await asyncio.to_thread(repo.get_or_create_user, sender, display_name)
+    tracing.set_user(user_id)
 
     if action == "pick":
         chosen = ProductMatch.from_raw(product).model_dump()
@@ -1121,12 +1160,50 @@ async def _answer_and_send(sender: str, text: str, display_name: str | None, but
     with tenancy.use_store(tenancy.store_id() if store is None else store):
         if message_id:
             await mark_read_and_typing(message_id)
+        trace, token = tracing.begin(tenancy.store_id(), text, "button" if button_id else "text", message_id)
+        error = ""
         try:
             reply = await _handle_incoming(sender, text, display_name, button_id)
         except Exception as exc:
             print(f"[webhook] could not answer {sender}: {exc!r}")
+            tracing.path("error")
+            error = repr(exc)
             reply = "Sorry, something went wrong on our side. Please send that again."
+        # Latency is measured to here: the reply is built, sending is WhatsApp's time
+        tracing.end(trace, token, reply, error)
         await _safe_send(sender, reply if isinstance(reply, Reply) else Reply(reply))
+        await asyncio.to_thread(tracing.save, trace)
+
+
+async def _answer_locally(sender: str, text: str, display_name: str | None, button_id: str,
+                          message_id: str) -> "str | Reply":
+    """X-Local-Test: answered inline and returned in the response, still traced."""
+    trace, token = tracing.begin(tenancy.store_id(), text, "button" if button_id else "text", message_id,
+                                 via="local")
+    try:
+        reply = await _handle_incoming(sender, text, display_name, button_id)
+    except Exception as exc:
+        tracing.path("error")
+        tracing.end(trace, token, error=repr(exc))
+        await asyncio.to_thread(tracing.save, trace)
+        raise
+    tracing.end(trace, token, reply)
+    await asyncio.to_thread(tracing.save, trace)
+    return reply
+
+
+async def _trace_unanswered(sender: str, msg_type: str, message_id: str, local_test: bool) -> None:
+    """A photo, voice note or other message we cannot read yet: counted, not answered."""
+    trace, token = tracing.begin(tenancy.store_id(), "", msg_type, message_id, via="local" if local_test else None)
+    tracing.path("unsupported")
+    try:
+        # Read only: an unreadable message must not create a customer
+        user = await asyncio.to_thread(repo.get_user_by_whatsapp, sender)
+        tracing.set_user((user or {}).get("user_id"))
+    except Exception as exc:
+        tracing.swallowed("user", exc)
+    tracing.end(trace, token)
+    await asyncio.to_thread(tracing.save, trace)
 
 
 def signature_ok(body: bytes, header: str | None, secret: str) -> bool:
@@ -1240,6 +1317,7 @@ async def _receive_change(value: dict, store: int, local_test: bool, background:
         button = (message.get("interactive") or {}).get("button_reply")             if message["type"] == "interactive" else None
         if message["type"] != "text" and not button:
             print(f"[webhook] unhandled {message['type']!r} message from {sender}")
+            await _trace_unanswered(sender, message["type"], message.get("id", ""), local_test)
             continue
         # Local tests reuse one fake id; only Meta's real ids are unique
         if not local_test and not await asyncio.to_thread(_first_delivery, message.get("id")):
@@ -1252,7 +1330,7 @@ async def _receive_change(value: dict, store: int, local_test: bool, background:
             background.add_task(_answer_and_send, sender, text, names.get(sender),
                                 button_id, message.get("id", ""), store)
             continue
-        reply = await _handle_incoming(sender, text, names.get(sender), button_id)
+        reply = await _answer_locally(sender, text, names.get(sender), button_id, message.get("id", ""))
         if isinstance(reply, str):
             reply = Reply(reply)
         responses.append({"to": sender, "body": reply.text, "cta_url": reply.cta_url,

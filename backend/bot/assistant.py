@@ -29,6 +29,7 @@ from typing import Any, Callable, Optional
 
 import catalog
 import llm
+import tracing
 import repository as repo
 from bot import retrieval
 from selection import aliases, match_size, names_a_size, parse_bare_size
@@ -434,15 +435,20 @@ def _finish(args: dict[str, Any], customer_text: str,
     products = [p for p in (catalog.get_by_id(i) for i in dict.fromkeys(ids)) if p is not None]
     products = [p for p in products if _sizes_in_stock(p)][:MAX_PRODUCTS]
     if ids and not products:
+        tracing.guard("unknown_products", ids=ids)
         return None, (f"ERROR: none of {ids} are products we stock. Only use ids returned by "
                       "search_products, then call send_reply again.")
     message = str(args.get("message") or "")
     if products:
+        written = message
         message = _without_listing(message, products, changed_cart)
+        if message != written:
+            tracing.guard("listing_cut", before=written, after=message)
     message = _clean(message)
     attach = str(args.get("attach") or "").strip().lower()
     attach = attach if attach in _ASKS_FOR and _ASKS_FOR[attach].search(customer_text) else None
     if not message and not products and not attach:
+        tracing.guard("empty_message")
         return None, "ERROR: the message is empty. Call send_reply with a message."
     remember = {key: str(args[field_name]).strip() for key, field_name in
                 (("gender", "customer_gender"), ("note", "remember_note")) if args.get(field_name)}
@@ -539,14 +545,19 @@ def _ask_model(models: list[str], messages: list[dict[str, Any]], round_number: 
                 raise AssistantUnavailable("LLM key rejected") from exc
             repaired = _salvage(exc)
             if repaired is not None:
+                # The customer gets this model's answer although its call "failed"
+                tracing.guard("repaired_tool_call", model=model,
+                              tools=[c.function.name for c in repaired.tool_calls])
                 return repaired
             if "tool_use_failed" in text and not retried:
                 retried = True           # a one-off bad generation: same model, once more
+                tracing.guard("tool_use_retry", model=model)
                 continue
             wait = re.search(r"try again in ([\d.]+)s", text)
             if "429" in text and wait:
                 rate_limited[model] = float(wait.group(1))
             models.pop(0)                # rate limit, outage, or repeated bad output
+            tracing.guard("model_dropped", model=model, error=text[:200])
             retried = False
             if not models and rate_limited and not waited:
                 # Every model is over its per-minute budget. Groq says when the
@@ -554,6 +565,7 @@ def _ask_model(models: list[str], messages: list[dict[str, Any]], round_number: 
                 model, seconds = min(rate_limited.items(), key=lambda kv: kv[1])
                 if seconds <= MAX_RATE_WAIT_S:
                     print(f"[assistant] all models rate-limited; waiting {seconds:.1f}s for {model}")
+                    tracing.guard("rate_wait", model=model, seconds=seconds)
                     time.sleep(seconds + 0.3)
                     models.append(model)
                     waited = True
@@ -621,6 +633,8 @@ def _attach_mentioned(reply: AssistantReply, changed_cart: bool = False) -> Assi
             found.append((min(spots), product))
     found.sort(key=lambda pair: pair[0])
     products = [p for _, p in found if _sizes_in_stock(p)][:MAX_PRODUCTS]
+    if products:
+        tracing.guard("products_attached", ids=[p["id"] for p in products])
     if len(products) >= 2:
         reply.products = products
         reply.message = _without_listing(_PRODUCT_CODE.sub("", reply.message), products)
@@ -810,22 +824,27 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
         nonlocal fact_checked, claim_checked
         if _LOOKS_LIKE_CODE.search(reply.message):
             # "can u write a python code for 2+2" got a working snippet, live
+            tracing.guard("off_topic", message=reply.message)
             reply.message, reply.products, reply.attach = OFF_TOPIC, [], None
         if _CLAIMS_CART_CHANGE.search(reply.message) and not {"add_to_cart", "remove_from_cart"} & succeeded:
             if not claim_checked:
                 claim_checked = True
+                tracing.guard("claim_retry", message=reply.message)
                 return None, ("ERROR: nothing was added to or removed from the cart this turn. If they asked "
                               "and gave a size, call add_to_cart now; otherwise tell them honestly what is "
                               "still needed. Then send_reply again.")
+            tracing.guard("claim_cut", message=reply.message)
             kept = [s for s in re.split(r"(?<=[.!?])\s+", reply.message) if not _CLAIMS_CART_CHANGE.search(s)]
             reply.message = " ".join(kept).strip() or (
                 "I have not added it yet: reply ADD with your size (for example ADD M) and I will.")
         unverified = _unverified_amounts(reply.message, evidence)
         if unverified and not fact_checked:
             fact_checked = True
+            tracing.guard("amount_retry", amounts=unverified)
             return None, (f"ERROR: {', '.join(unverified)} does not match our records. Never add up or "
                           "estimate prices; for cart totals use attach='cart'. Send your reply again.")
         if unverified:
+            tracing.guard("amount_cut", amounts=unverified)
             reply.message = _drop_sentences_with(reply.message, unverified)
         reply.tools_used = used
         reply.remember = _facts_to_keep(reply, text, customer_recent)
@@ -844,6 +863,7 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
                 # It searched, then wrote the products out itself instead of
                 # attaching them: "2" would then select nothing. Ask once more.
                 nudged = True
+                tracing.guard("nudge_send_reply")
                 messages.append({"role": "assistant", "content": content})
                 messages.append({"role": "user", "content": (
                     "(system) Call send_reply now: product_ids = the ids you want to show, in order, and a "
@@ -870,11 +890,13 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
         for call in calls:
             name, args = call.function.name.split("<|")[0].strip(), _arguments(call.function.arguments)
             used.append(name)
+            tool_started = time.perf_counter()
             if name == "send_reply":
                 reply, error = _finish(args, text, bool({"add_to_cart", "remove_from_cart"} & succeeded))
                 if reply is not None:
                     reply, error = checked(reply)
                     if reply is not None:
+                        tracing.tool(name, args, "sent", (time.perf_counter() - tool_started) * 1000)
                         return reply
                 result = error
             elif name in TOOL_FUNCTIONS:
@@ -891,6 +913,7 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
             else:
                 result = f"ERROR: unknown tool {name!r}."
             print(f"[assistant]   {name}({json.dumps(args, ensure_ascii=False)[:120]}) -> {result[:80]!r}")
+            tracing.tool(name, args, result, (time.perf_counter() - tool_started) * 1000)
             if not result.startswith("ERROR"):
                 # Our own "Rs 17,498 does not match" must not make 17,498 look verified
                 evidence.append(result)

@@ -7,7 +7,8 @@ plan.md holds the phases (P0-P7), the decision log and a starter prompt for each
 phase, and each phase is planned in its own chat. The project is now SOLO: the
 Dev A / Dev B ownership rules below and in WORK_SPLIT.md no longer apply. The rest
 of this file describes the code as it stands and stays accurate until a phase
-changes it. P0 and P1 are done (see "Stores and tenancy (P1)" below).
+changes it. P0 and P1 are done (see "Stores and tenancy (P1)" below). P2 has
+started: every message is now traced (see "Traces (P2)"); the eval harness is next.
 
 ## Context (September sprint)
 2-person team, 7-day sprint. Deadline: 23 September 2026.
@@ -81,6 +82,28 @@ everything made before stores existed.
 Verify: scripts/test_tenancy.py (62 checks: importer, and isolation of
 customers, carts, orders, catalogue, vectors, search, codes, training, link
 codes, credentials; webhook routing and signatures; secrets; redelivery).
+
+## Traces (P2, 14 Oct)
+backend/tracing.py records one turn_traces row per inbound message (migration
+0005): the exit that answered it (path: command:add, selection, size, lookup,
+assistant, search, button:pick, unsupported ...), every LLM call (model, ms,
+tokens, cost from llm.PRICES, Groq's rate-limit headers), every assistant tool
+call, each catalogue search (filters, results, what was relaxed), every check
+that stepped in (guards: claim_retry/cut, amount_retry/cut, listing_cut,
+off_topic, model_dropped, rate_wait, fallback, swallowed errors ...), the reply
+as sent and how many WhatsApp messages it took. The P2 eval harness grades from
+these; the P4 dashboard will count them. bot_replies stays the owner's
+training log.
+The trace is a ContextVar (like the store), begun and saved in the webhook
+(_answer_and_send, _answer_locally, _trace_unanswered); code without one (the
+website, scripts) records nothing. Recording must never change a reply: every
+helper swallows its own errors, saving happens after the reply is built.
+Channel: whatsapp, local (X-Local-Test), eval (set by the harness).
+Verify: scripts/test_trace_neutrality.py plays 60 turns through every exit
+with a fake model at llm.client: one saved trace per turn, and identical
+replies, model requests and database state with every tracing internal
+failing (tracing._faults). --record/--compare check against the code from
+before tracing (both runs were identical on 14 Oct).
 
 ## Shared contract (do not change without syncing both devs)
 get_product_recommendations(query: str, top_k: int = 3) -> tuple[str, List[ProductMatch]]
