@@ -13,6 +13,7 @@ import hashlib
 import hmac
 import json
 import os
+import sys
 from pathlib import Path
 
 import httpx
@@ -54,6 +55,8 @@ PAYLOAD = {
 
 
 def main() -> None:
+    # Replies carry ₹ and •, which the Windows console's cp1252 cannot print
+    sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description="Send a local Meta WhatsApp webhook event.")
     parser.add_argument("--url", default="http://localhost:8000/webhook")
     parser.add_argument("--message", default="Show me a silk kurta under 3000")
