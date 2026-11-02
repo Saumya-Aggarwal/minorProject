@@ -77,7 +77,7 @@ def main() -> None:
     secret = os.getenv("WHATSAPP_APP_SECRET")
     if secret:
         headers["X-Hub-Signature-256"] = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
-    response = httpx.post(args.url, content=body, headers=headers, timeout=15)
+    response = httpx.post(args.url, content=body, headers=headers, timeout=60)
     print(f"HTTP {response.status_code}")
     print(response.text)
     response.raise_for_status()

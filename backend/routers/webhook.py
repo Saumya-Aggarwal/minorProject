@@ -16,9 +16,10 @@ import checkout
 import payments
 import repository as repo
 import shipping
+import sizing
 import tenancy
 import tracing
-from bot import assistant
+from bot import assistant, retrieval
 from bot.chat import format_product_lines, get_product_recommendations, product_caption
 from common.schemas import ProductMatch
 from repository import LINK_PREFIX
@@ -312,7 +313,18 @@ async def _handle_follow_up(
         return _detail_reply(describe_choice(product, index, _sizes_for(_product_id(product))),
                              _product_id(product))
 
-    if parse_bare_size(text) or mentions_size(text):
+    if sizing.asks_for_size_help(text):
+        # "my chest is 40, which size?" is a question, not a 40 for the cart
+        chosen = previous.get("selected_product") or (shown[0] if len(shown) == 1 else None)
+        product = catalog.get_by_id(_product_id(chosen)) if chosen else None
+        # "what size am I for a kurta" with a lehenga picked is about kurtas: the assistant's
+        named = retrieval.parse_query(text).categories
+        if product is not None and (not named or product.get("category") in named):
+            tracing.path("size_guide")
+            return sizing.guide(product, text, assistant._sizes_in_stock(product))
+        if assistant.enabled():
+            return None
+    elif parse_bare_size(text) or mentions_size(text):
         reply = await _bare_size(user_id, text, previous)
         if reply is not None:
             tracing.path("size")
@@ -438,6 +450,7 @@ def help_text() -> str:
             "• Reply with a number to pick an item from my list",
             "• ADD M — add it to your cart in size M (or just ADD)",
             "• BUY M — order only that item",
+            "• SIZE GUIDE — which size fits you (send your chest or waist in inches)",
             "• CART — see your cart · REMOVE 2 · SIZE 1 L",
             "• CHECKOUT — pay for everything in your cart",
             "• ORDERS — track your orders",

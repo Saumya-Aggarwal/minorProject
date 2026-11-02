@@ -1,4 +1,5 @@
 """/admin/training: the store owner teaches the bot by rating its replies.
+/admin/insights: what the bot did, counted from its traces (insights.py).
 
 Owned by Dev A. Only signed-in users whose email is in ADMIN_EMAILS
 (backend/.env, comma-separated) may open it. What a rating changes is described
@@ -15,6 +16,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 import catalog
+import insights
 import training
 from auth import current_user
 from templating import templates
@@ -28,11 +30,11 @@ def _admin_emails() -> set[str]:
     return {e.strip().lower() for e in os.getenv("ADMIN_EMAILS", "").split(",") if e.strip()}
 
 
-def _guard(request: Request) -> tuple[Optional[dict[str, Any]], Optional[Any]]:
+def _guard(request: Request, back: str = "/admin/training") -> tuple[Optional[dict[str, Any]], Optional[Any]]:
     """(user, None) for an admin, or (None, the response to send instead)."""
     user = current_user(request)
     if user is None:
-        return None, RedirectResponse(f"/login?{urlencode({'next': '/admin/training'})}", status_code=303)
+        return None, RedirectResponse(f"/login?{urlencode({'next': back})}", status_code=303)
     if (user.get("email") or "").lower() not in _admin_emails():
         page = templates.TemplateResponse(request, "admin_training.html",
                                           {"user": user, "forbidden": True}, status_code=403)
@@ -67,6 +69,16 @@ async def training_page(request: Request, tab: str = "replies"):
         reply["show_earlier"] = bool(reply["earlier"]) and short
     return templates.TemplateResponse(request, "admin_training.html",
                                       {"user": user, "tab": "replies", "replies": replies})
+
+
+@router.get("/admin/insights", response_class=HTMLResponse)
+async def insights_page(request: Request, days: int = 7):
+    user, refusal = _guard(request, "/admin/insights")
+    if refusal is not None:
+        return refusal
+    days = days if days in (1, 7, 30, 365) else 7
+    data = await asyncio.to_thread(insights.summary, days)
+    return templates.TemplateResponse(request, "admin_insights.html", {"user": user, "data": data})
 
 
 @router.post("/admin/training/rate")

@@ -345,7 +345,8 @@ def _in_stock(p: dict[str, Any]) -> bool:
 
 
 def _passes(p: dict[str, Any], f: Filters) -> bool:
-    if f.gender and p["gender"] != f.gender:
+    # A unisex cap or bag suits a man and a woman alike
+    if f.gender and p["gender"] not in (f.gender, "Unisex"):
         return False
     if f.categories and p["category"] not in f.categories:
         return False

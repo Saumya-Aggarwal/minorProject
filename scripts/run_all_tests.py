@@ -41,6 +41,8 @@ SUITES = [
     ("tracing", [PY, "scripts/test_trace_neutrality.py"]),
     ("eval-harness", [PY, "scripts/test_eval_harness.py"]),
     ("brands", [PY, "scripts/test_brands.py"]),
+    ("sizing", [PY, "scripts/test_sizing.py"]),
+    ("insights", [PY, "scripts/test_insights.py"]),
     ("live.js", ["node", "scripts/test_live_js.mjs"]),
     ("retrieval", [PY, "scripts/eval_retrieval.py"]),
 ]

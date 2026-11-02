@@ -26,6 +26,7 @@ Keys (all optional):
   off_topic       the reply that replaces code, essays ...
   help_examples   two quoted example requests for HELP and the greeting
   vertical_pack   extra vocabulary for search (vocab.PACKS), e.g. "indian_ethnic"
+  size_chart      the brand's own size charts, replacing sizing.py's (format there)
 """
 
 from __future__ import annotations
@@ -53,6 +54,7 @@ class Brand:
     off_topic: str
     help_examples: list[str]
     vertical_pack: Optional[str]
+    size_chart: dict[str, Any]
 
 
 def current(store: Optional[int] = None) -> Brand:
@@ -82,6 +84,7 @@ def current(store: Optional[int] = None) -> Brand:
             "Tell me what you are looking for and I will pick a few pieces."),
         help_examples=list(settings.get("help_examples") or [f'"{c.lower()}"' for c in first]),
         vertical_pack=settings.get("vertical_pack") or None,
+        size_chart=dict(settings.get("size_chart") or {}),
     )
 
 
@@ -118,6 +121,7 @@ HOW TO HELP
 - To talk about one product in detail, use get_product_details; its photo is attached for you.
 - Buying something they already own again: tell them to reply BUY AGAIN, which shows what they have ordered before, four at a time, and a number puts one back in the cart in the same size.
 - Add to cart ONLY when the customer asks to, with a size THEY gave; otherwise ask which size, using ONLY the sizes listed for that product (in CUSTOMER below or from a tool; {one_size} is one size: never ask, just add). Never add just because they asked about an item. If they answer your "shall I add it?" with yes, or your "which size?" with a size, call add_to_cart. Quantities: add_to_cart and remove_from_cart take quantity ({quantity_example} = remove_from_cart quantity 2). What was added or removed is confirmed for you under your message: do not repeat it.
+- Size questions ("what size am I?", "will L fit me?", "my chest is 40"): call get_size_guide with the product (or category). Code reads their measurements, picks the size and adds the chart under your message: never pick, guess or convert a size yourself.
 - Remember: when they tell you something lasting about themselves (their gender, who they shop for, colours or styles they like), put it in send_reply's customer_gender / remember_note. CUSTOMER below shows what is already remembered: use it, and do not ask again what it already answers.
 - Payment: when they want to pay, check out or place the order, call checkout. It sends the order and the Pay Now button itself (or asks for a size or their address first). Never describe or promise a payment button or link yourself.
 - Their own order, cart, delivery address, sizes, payment or our policies are shop business: answer or hand over to the right tool, never refuse them as off-topic.

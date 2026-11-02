@@ -15,10 +15,11 @@ load_dotenv(Path(__file__).parent / ".env")
 
 import asyncio  # noqa: E402
 import os  # noqa: E402
+import time  # noqa: E402
 from contextlib import asynccontextmanager  # noqa: E402
 
 import httpx  # noqa: E402
-from fastapi import FastAPI, HTTPException  # noqa: E402
+from fastapi import FastAPI, HTTPException, Request  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 from fastapi.exception_handlers import http_exception_handler  # noqa: E402
@@ -112,3 +113,62 @@ async def send_test(req: SendTestRequest):
         return await send_whatsapp_message(req.to, req.body)
     except httpx.HTTPStatusError as e:
         raise HTTPException(status_code=e.response.status_code, detail=e.response.json())
+
+
+# Dev-only, for static/demo-chat.html: a conversation with ANY live store, not
+# just the demo one /webhook answers unsigned. Answered like the eval harness
+# (webhook._receive_change, inline), so it skips the signature check: this
+# laptop only. ngrok forwards from 127.0.0.1 too, but adds X-Forwarded-For.
+def _local_only(request: Request) -> None:
+    host = request.client.host if request.client else ""
+    if host not in ("127.0.0.1", "::1", "localhost") or request.headers.get("X-Forwarded-For"):
+        raise HTTPException(status_code=404)
+
+
+@app.get("/dev/stores")
+async def dev_stores(request: Request):
+    _local_only(request)
+    from sqlmodel import select
+
+    from db import session_scope
+    from models import Store
+
+    with session_scope() as db:
+        rows = db.exec(select(Store).where(Store.status == "live").order_by(Store.store_id)).all()
+        return [{"slug": s.slug, "name": (s.brand or {}).get("name") or s.name,
+                 "help_examples": (s.brand or {}).get("help_examples") or []} for s in rows]
+
+
+class DevChatRequest(BaseModel):
+    store: str
+    sender: str
+    text: str
+    name: str = "Demo Customer"
+
+
+@app.post("/dev/chat")
+async def dev_chat(req: DevChatRequest, request: Request):
+    _local_only(request)
+    import catalog
+    import tenancy
+    from sqlmodel import select
+
+    from db import session_scope
+    from models import Store
+
+    with session_scope() as db:
+        row = db.exec(select(Store).where(Store.slug == req.store, Store.status == "live")).first()
+        if row is None:
+            raise HTTPException(status_code=404, detail=f"no live store {req.store!r}")
+        store_id = row.store_id
+    value = {"messaging_product": "whatsapp", "contacts": [{"wa_id": req.sender, "profile": {"name": req.name}}],
+             "messages": [{"from": req.sender, "id": f"wamid.DEV.{time.time_ns()}", "type": "text",
+                           "timestamp": str(int(time.time())), "text": {"body": req.text}}]}
+    responses: list = []
+    with tenancy.use_store(store_id):
+        await webhook._receive_change(value, store_id, True, None, responses)
+        # /api/products is the demo store's; the page needs this store's cards
+        for reply in responses:
+            reply["products"] = {pid: {k: p.get(k) for k in ("name", "price", "mrp", "image_url")}
+                                 for pid in reply.get("photos") or [] if (p := catalog.get_by_id(pid))}
+    return {"status": "received", "responses": responses}

@@ -35,6 +35,7 @@ import catalog
 import llm
 import tracing
 import repository as repo
+import sizing
 from bot import retrieval
 from selection import aliases, match_size, names_a_size, parse_bare_size
 
@@ -153,6 +154,12 @@ TOOLS = [
             }, ["query"]),
     _schema("get_product_details", "Full details of one product: sizes in stock, fabric, care, delivery and returns.",
             {"product_id": {"type": "string"}}, ["product_id"]),
+    _schema("get_size_guide", "Size guide for a product: its size chart and, when the customer gave "
+            "measurements (chest, waist, foot length), the size that fits them. Added under your reply "
+            "for you; do not repeat it.",
+            {"product_id": _TEXT, "category": {**_TEXT, "description": "When no product is in question, "
+                                               "e.g. 'Kurta'"},
+             "gender": {**_TEXT, "description": "Men or Women, with category"}}, []),
     _schema("get_my_orders", "This customer's recent orders with status, items and delivery date.", {}, []),
     _schema("get_my_cart", "What is in this customer's cart now.", {}, []),
     _schema("add_to_cart", "Add a product to this customer's cart in a size.",
@@ -241,6 +248,29 @@ def tool_get_product_details(user_id: int, product_id: str = "", **_: Any) -> st
         "Highlights: " + "; ".join(p["highlights"][:3]),
         f"Delivery in {p['delivery_days']} days, free | returns within {p['return_days']} days",
     ])
+
+
+def tool_get_size_guide(user_id: int, product_id: Any = None, category: Any = None, gender: Any = None, *,
+                        customer_recent: str = "", selected: str = "", **_: Any) -> str:
+    """The chart and the size are sizing.py's, from the customer's own numbers
+    (customer_recent, supplied by respond()); the model only names the product."""
+    product = catalog.get_by_id(str(product_id or "").strip().upper()) if product_id else None
+    if product is None and category:
+        # "Mojari" is the store's Footwear: its own words for its categories
+        wanted = {str(category).strip().lower()} | {c.lower() for c in retrieval.parse_query(str(category)).categories}
+        who = _gender(str(gender or "")) or retrieval.parse_query(customer_recent).gender
+        matches = [p for p in catalog.get_all() if str(p.get("category", "")).lower() in wanted
+                   and (not who or p.get("gender") == who)]
+        if not matches:
+            return f"ERROR: we have no {category!r}. Search for it first, then ask with a product_id."
+        # The category's widest size range, so the chart covers every piece
+        product = max(matches, key=lambda p: len(p.get("sizes_available") or []))
+        product = {**product, "name": f"{product['gender']}'s {product['category']}"}
+    if product is None and selected:
+        product = catalog.get_by_id(selected)
+    if product is None:
+        return "ERROR: which product? Use a product id from the conversation, or a category."
+    return sizing.guide(product, customer_recent, _sizes_in_stock(product))
 
 
 def tool_get_my_orders(user_id: int, **_: Any) -> str:
@@ -414,6 +444,7 @@ TOOL_FUNCTIONS: dict[str, Callable[..., str]] = {
     "remove_from_cart": tool_remove_from_cart,
     "search_products": tool_search_products,
     "get_product_details": tool_get_product_details,
+    "get_size_guide": tool_get_size_guide,
     "get_my_orders": tool_get_my_orders,
     "get_my_cart": tool_get_my_cart,
     "add_to_cart": tool_add_to_cart,
@@ -997,6 +1028,7 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
     size_checked = False
     succeeded: set[str] = set()         # tools that really did something this turn
     ledger: list[dict[str, Any]] = []   # what add_to_cart / remove_from_cart really changed
+    size_card = ""                      # get_size_guide's chart, sent under the model's words
     # Every rupee amount the model may state must come from somewhere real
     evidence = [context_text, customer_recent]
 
@@ -1042,6 +1074,11 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
             reply.message = _drop_sentences(reply.message, lambda s: bool(
                 _PAY_BUTTON_CLAIM.search(s) or _SAYS_REPLY_CHECKOUT.search(s))) or "Reply CHECKOUT to pay."
 
+        if size_card:
+            # The chart under the reply names the size; the model's copy of it was
+            # checked against the item picked before (live: "L is your size" for a
+            # kurta, refused because a sherwani was picked)
+            reply.message = _drop_sentences(reply.message, lambda s: bool(_sizes_named(s)))
         invented = _invented_sizes(reply, context, customer_recent)
         if invented and not size_checked:
             size_checked = True
@@ -1057,6 +1094,10 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
             # model's own "Added the ..." would say it twice, or cut, "Added the."
             reply.ledger = ledger
             reply.message = _drop_sentences(reply.message, lambda s: bool(_CLAIMS_CART_CHANGE.search(s)))
+        if size_card:
+            # Written by code after the checks: the model's sentence was checked, the chart is a fact
+            reply.message = f"{reply.message}\n\n{size_card}".strip()
+            reply.products = []
         reply.tools_used = used
         reply.remember = _facts_to_keep(reply, text, customer_recent)
         return _attach_mentioned(reply, changed_cart=bool({"add_to_cart", "remove_from_cart"} & set(used))), ""
@@ -1135,8 +1176,17 @@ def respond(user_id: int, text: str, context: dict[str, Any]) -> AssistantReply:
                         args["ledger"] = ledger
                     if name == "search_products":
                         args["customer_text"] = text
+                    if name == "get_size_guide":
+                        selected = context.get("selected_product") or {}
+                        args.update(customer_recent=customer_recent,
+                                    selected=str(selected.get("product_id") or selected.get("id") or ""))
                     result = TOOL_FUNCTIONS[name](user_id, **args)
                     args.pop("ledger", None)
+                    if name == "get_size_guide":
+                        args.pop("customer_recent", None)
+                        args.pop("selected", None)
+                        if not result.startswith("ERROR"):
+                            size_card = result
                 except Exception as exc:
                     print(f"[assistant] tool {name} failed: {exc!r}")
                     result = "ERROR: that lookup failed. Apologise briefly and suggest trying again."

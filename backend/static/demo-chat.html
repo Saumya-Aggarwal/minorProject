@@ -1,0 +1,297 @@
+<!doctype html>
+<!--
+  Demo chat: the WhatsApp conversation in a browser, for presenting when Meta or
+  the venue's Wi-Fi is not available. It posts the same payload Meta sends to
+  POST /webhook with X-Local-Test, so the real routing, assistant, cart and
+  tracing answer it (like scripts/simulate_webhook.py), and shows the reply with
+  its product photos. The shop menu switches between live stores: from this
+  laptop it posts to /dev/chat (main.py, any store, no signature needed);
+  opened from anywhere else it falls back to /webhook, demo store only, which
+  stops working once WHATSAPP_APP_SECRET is set. Dev-only, like /dev/send-test:
+  remove before deploying.
+      http://localhost:8000/static/demo-chat.html
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Munim Demo Chat</title>
+<style>
+  :root { --bg:#d9dbd5; --chat:#efe7dd; --me:#d9fdd3; --bot:#fff; --head:#075e54; --ink:#111b21; --mute:#667781; --accent:#00a884; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); font:15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color:var(--ink);
+         display:flex; justify-content:center; align-items:center; min-height:100vh; }
+  .phone { width:min(420px, 100vw); height:min(860px, 100vh); background:var(--chat); display:flex; flex-direction:column;
+           box-shadow:0 10px 40px rgba(0,0,0,.25); border-radius:18px; overflow:hidden; }
+  @media (max-width:480px) { .phone { border-radius:0; height:100vh; } }
+  header { background:var(--head); color:#fff; padding:12px 14px; display:flex; gap:10px; align-items:center; }
+  .avatar { width:38px; height:38px; border-radius:50%; background:#fff; color:var(--head); display:grid; place-items:center; font-weight:700; }
+  header .who { flex:1; min-width:0; }
+  header .name { font-weight:600; }
+  header .status { font-size:12px; opacity:.85; }
+  header select { background:rgba(255,255,255,.15); color:#fff; border:0; border-radius:14px; padding:6px 8px; font-size:12px; max-width:120px; }
+  header select option { color:#111b21; }
+  header button { background:rgba(255,255,255,.15); color:#fff; border:0; border-radius:14px; padding:6px 10px; font-size:12px; cursor:pointer; }
+  #log { flex:1; overflow-y:auto; padding:12px 10px; display:flex; flex-direction:column; gap:6px; }
+  .msg { max-width:82%; padding:7px 9px 5px; border-radius:8px; white-space:pre-wrap; word-wrap:break-word; box-shadow:0 1px .5px rgba(0,0,0,.13); }
+  .me { align-self:flex-end; background:var(--me); }
+  .bot { align-self:flex-start; background:var(--bot); }
+  .msg a { color:#027eb5; }
+  .time { font-size:11px; color:var(--mute); text-align:right; margin-top:2px; }
+  .card { padding:4px; width:260px; }
+  .card img { width:100%; aspect-ratio:4/5; object-fit:cover; border-radius:6px; display:block; background:#eee; }
+  .card .cap { padding:6px 4px 2px; white-space:normal; }
+  .card .mrp { color:var(--mute); text-decoration:line-through; font-size:13px; margin-left:4px; }
+  .cta { display:block; text-align:center; margin-top:6px; padding:8px; border-top:1px solid #e9edef; color:#027eb5; font-weight:600; text-decoration:none; }
+  .typing { align-self:flex-start; background:var(--bot); padding:9px 12px; border-radius:8px; color:var(--mute); font-style:italic; }
+  .chips { display:flex; gap:6px; overflow-x:auto; padding:6px 10px; background:var(--chat); }
+  .chips button { flex:none; border:1px solid #c9d3cf; background:#fff; border-radius:16px; padding:6px 10px; font-size:13px; cursor:pointer; color:var(--ink); }
+  form { display:flex; gap:8px; padding:8px 10px; background:#f0f2f5; }
+  input { flex:1; border:0; border-radius:20px; padding:10px 14px; font:inherit; outline:none; background:#fff; color:var(--ink); }
+  form button { width:44px; height:44px; border-radius:50%; border:0; background:var(--accent); color:#fff; font-size:18px; cursor:pointer; }
+  .sys { align-self:center; background:#fff7d6; color:#54656f; font-size:12.5px; padding:5px 10px; border-radius:8px; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <header>
+    <div class="avatar" id="initial">K</div>
+    <div class="who">
+      <div class="name" id="shop">Kurta &amp; Co.</div>
+      <div class="status" id="status">online</div>
+    </div>
+    <select id="brand" aria-label="Shop" hidden></select>
+    <button type="button" id="fresh" title="Start again as a customer the shop has never seen">New customer</button>
+  </header>
+  <div id="log"></div>
+  <div class="chips" id="chips"></div>
+  <form id="form">
+    <input id="text" autocomplete="off" placeholder="Message" aria-label="Message">
+    <button type="submit" aria-label="Send">&#10148;</button>
+  </form>
+</div>
+<script>
+const SUGGESTIONS = {
+ demo: [
+  "hi",
+  "sherwani for my wedding under 10000",
+  "something for my sister's mehendi, nothing too heavy, under 3000",
+  "2",
+  "ADD 42",
+  "black kurta for office",
+  "CART",
+  "i wanna pay",
+  "can u write a python code for 2+2",
+  "HELP",
+ ],
+ vyom: [
+  "hi",
+  "black oversized tee for men under 1500",
+  "sports bra for running",
+  "1",
+  "my chest is 41, which size?",
+  "ADD M",
+  "black leggings for women under 2000",
+  "a cap to go with it",
+  "CART",
+  "i wanna pay",
+  "HELP",
+ ],
+};
+let shop = "demo";
+// /dev/chat answers for any live store, from this laptop only
+let devChat = false;
+
+const log = document.getElementById("log");
+const statusEl = document.getElementById("status");
+let sender = load() || newNumber();
+const products = {};
+
+function load() {
+  try { return localStorage.getItem("demoChatNumber"); } catch { return null; }
+}
+function newNumber() {
+  // 91 + 10 digits starting 98: a made-up Indian mobile, one per demo customer
+  const n = "9198" + String(Math.floor(Math.random() * 1e8)).padStart(8, "0");
+  try { localStorage.setItem("demoChatNumber", n); } catch {}
+  return n;
+}
+function now() {
+  return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+// Replies link to PUBLIC_BASE_URL (the ngrok tunnel), which may be down when
+// this page is in use, so links to our own pages open on this server instead
+function local(url) {
+  return url.replace(/^https:\/\/[^\/\s]+\.ngrok(-free)?\.(app|dev|io)(?=\/)/, location.origin);
+}
+// WhatsApp's own markup: *bold*, _italic_, ~strike~, and bare links
+function format(text) {
+  return escapeHtml(local(text))
+    .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
+    .replace(/(^|[\s(])\*([^*\n]+)\*/g, "$1<b>$2</b>")
+    .replace(/(^|[\s(])_([^_\n]+)_/g, "$1<i>$2</i>")
+    .replace(/(^|[\s(])~([^~\n]+)~/g, "$1<s>$2</s>");
+}
+function bubble(cls, html) {
+  const div = document.createElement("div");
+  div.className = "msg " + cls;
+  div.innerHTML = html + `<div class="time">${now()}</div>`;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+  return div;
+}
+function note(text) {
+  const div = document.createElement("div");
+  div.className = "sys";
+  div.textContent = text;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+function inr(n) {
+  return "Rs. " + Number(n).toLocaleString("en-IN");
+}
+
+async function product(id) {
+  if (!products[id]) {
+    products[id] = fetch("/api/products/" + encodeURIComponent(id)).then(r => r.ok ? r.json() : null).catch(() => null);
+  }
+  return products[id];
+}
+
+async function photoCard(id, known) {
+  const div = bubble("bot card", `<img alt=""><div class="cap">${escapeHtml(id)}</div>`);
+  const p = known || await product(id);
+  if (!p) return;
+  const img = div.querySelector("img");
+  img.src = p.image_url || `/static/products/${id}.jpg`;
+  img.alt = p.name || p.title || id;
+  const mrp = p.mrp && p.mrp > p.price ? `<span class="mrp">${inr(p.mrp)}</span>` : "";
+  div.querySelector(".cap").innerHTML =
+    `<b>${escapeHtml(p.name || p.title || id)}</b><br>${inr(p.price)}${mrp}<br><small>${escapeHtml(id)}</small>`;
+  log.scrollTop = log.scrollHeight;
+}
+
+function payload(text) {
+  // What Meta posts for one text message. No metadata = the demo store.
+  return {
+    object: "whatsapp_business_account",
+    entry: [{ id: "DEMO_WABA", changes: [{ field: "messages", value: {
+      messaging_product: "whatsapp",
+      contacts: [{ profile: { name: "Demo Customer" }, wa_id: sender }],
+      messages: [{ from: sender, id: "wamid.DEMO." + Date.now(), timestamp: String(Math.floor(Date.now() / 1000)),
+                   type: "text", text: { body: text } }],
+    } }] }],
+  };
+}
+
+let busy = false;
+async function send(text) {
+  text = text.trim();
+  if (!text || busy) return;
+  busy = true;
+  bubble("me", format(text));
+  statusEl.textContent = "typing...";
+  const typing = document.createElement("div");
+  typing.className = "typing";
+  typing.textContent = "typing...";
+  log.appendChild(typing);
+  log.scrollTop = log.scrollHeight;
+  const started = performance.now();
+  try {
+    const r = devChat
+      ? await fetch("/dev/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ store: shop, sender, text }),
+        })
+      : await fetch("/webhook", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Local-Test": "true" },
+          body: JSON.stringify(payload(text)),
+        });
+    typing.remove();
+    if (r.status === 403) {
+      note("The server refused an unsigned message: WHATSAPP_APP_SECRET is set in backend/.env.");
+      return;
+    }
+    const data = await r.json();
+    const replies = data.responses || [];
+    if (!replies.length) note("(no reply)");
+    for (const reply of replies) {
+      if (reply.body) {
+        const cta = reply.cta_url ? `<a class="cta" href="${escapeHtml(local(reply.cta_url))}" target="_blank" rel="noopener">Pay Now</a>` : "";
+        bubble("bot", format(reply.body) + cta);
+      }
+      for (const id of reply.photos || []) await photoCard(id, (reply.products || {})[id]);
+    }
+    statusEl.textContent = `online · answered in ${((performance.now() - started) / 1000).toFixed(1)} s`;
+  } catch (err) {
+    typing.remove();
+    note("Could not reach the server: " + err.message);
+    statusEl.textContent = "offline";
+  } finally {
+    busy = false;
+  }
+}
+
+document.getElementById("form").addEventListener("submit", e => {
+  e.preventDefault();
+  const input = document.getElementById("text");
+  send(input.value);
+  input.value = "";
+  input.focus();
+});
+document.getElementById("fresh").addEventListener("click", () => {
+  sender = newNumber();
+  log.innerHTML = "";
+  note("New customer +" + sender);
+});
+const chips = document.getElementById("chips");
+function showChips(list) {
+  chips.innerHTML = "";
+  for (const s of list) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = s;
+    b.addEventListener("click", () => send(s));
+    chips.appendChild(b);
+  }
+}
+const brand = document.getElementById("brand");
+let stores = [];
+function useShop(slug) {
+  const s = stores.find(x => x.slug === slug) || { slug: "demo", name: "Kurta & Co.", help_examples: [] };
+  shop = s.slug;
+  try { localStorage.setItem("demoChatShop", shop); } catch {}
+  document.getElementById("shop").textContent = s.name;
+  document.getElementById("initial").textContent = s.name.charAt(0).toUpperCase();
+  document.title = s.name + " · Demo Chat";
+  showChips(SUGGESTIONS[shop] || ["hi", ...s.help_examples, "CART", "HELP"]);
+}
+brand.addEventListener("change", () => {
+  useShop(brand.value);
+  log.innerHTML = "";
+  note(`Customer +${sender} at ${document.getElementById("shop").textContent}`);
+});
+(async () => {
+  try {
+    const r = await fetch("/dev/stores");
+    if (r.ok) stores = await r.json();
+  } catch {}
+  devChat = stores.length > 0;
+  let saved = null;
+  try { saved = localStorage.getItem("demoChatShop"); } catch {}
+  for (const s of stores) brand.add(new Option(s.name, s.slug));
+  brand.hidden = stores.length < 2;
+  const start = stores.some(s => s.slug === saved) ? saved : "demo";
+  brand.value = start;
+  useShop(start);
+  note("Customer +" + sender);
+})();
+document.getElementById("text").focus();
+</script>
+</body>
+</html>

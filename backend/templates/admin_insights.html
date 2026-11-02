@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}Assistant insights — Kurta &amp; Co.{% endblock %}
+{% block whatsapp_fab %}{% endblock %}
+{% block content %}
+{% set d = data %}
+<div class="container-site pt-10 pb-16">
+  <p class="eyebrow">Store owner</p>
+  <h1 class="display mt-3 text-4xl sm:text-5xl">Assistant insights</h1>
+  <p class="mt-3 max-w-2xl text-sm text-muted">
+    Every WhatsApp message the assistant answers is recorded: which route answered it, how long it took, what the AI
+    cost, and every check that stopped a wrong answer. These numbers are counted from those records.
+  </p>
+
+  <nav class="mt-8 flex flex-wrap items-end justify-between gap-4 border-b border-line text-[12px] font-medium uppercase tracking-label" aria-label="Sections">
+    <div class="flex gap-6">
+      <a href="/admin/insights" class="-mb-px border-b-2 border-maroon pb-3 text-maroon">Insights</a>
+      <a href="/admin/training" class="-mb-px border-b-2 border-transparent pb-3 hover:text-maroon">Train the assistant</a>
+    </div>
+    <div class="flex gap-4 pb-3 normal-case tracking-normal">
+      {% for n, label in [(1, "Today"), (7, "7 days"), (30, "30 days"), (365, "All")] %}
+      <a href="/admin/insights?days={{ n }}" class="{{ 'text-maroon underline' if d.days == n else 'text-muted hover:text-maroon' }}">{{ label }}</a>
+      {% endfor %}
+    </div>
+  </nav>
+
+  {% if not d.messages %}
+  <div class="panel mt-8 px-6 py-12 text-center">
+    <p class="display text-2xl">No messages in this period</p>
+    <p class="mt-2 text-sm text-muted">Message the assistant on WhatsApp; what it does appears here.</p>
+  </div>
+  {% else %}
+
+  {# Headline numbers #}
+  <div class="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <div class="panel p-5">
+      <p class="text-[11px] font-medium uppercase tracking-label text-muted">Messages answered</p>
+      <p class="display mt-2 text-4xl tabular-nums">{{ d.messages }}</p>
+      <p class="mt-1 text-[13px] text-muted">from {{ d.customers }} customer{{ "" if d.customers == 1 else "s" }}</p>
+    </div>
+    <div class="panel p-5">
+      <p class="text-[11px] font-medium uppercase tracking-label text-muted">Answered by code</p>
+      <p class="display mt-2 text-4xl tabular-nums">{{ d.by_kind.code }}%</p>
+      <p class="mt-1 text-[13px] text-muted">AI {{ d.by_kind.ai }}% · fallback {{ d.by_kind.fallback }}%</p>
+    </div>
+    <div class="panel p-5">
+      <p class="text-[11px] font-medium uppercase tracking-label text-muted">AI reply time</p>
+      <p class="display mt-2 text-4xl tabular-nums">{{ d.ai_p50_s if d.ai_p50_s is not none else "—" }}<span class="text-xl"> s</span></p>
+      <p class="mt-1 text-[13px] text-muted">typical · code answers: {{ "instant" if (d.code_p50_s or 0) < 0.5 else d.code_p50_s ~ " s" }} · slowest 5%: {{ d.p95_s }} s</p>
+    </div>
+    <div class="panel p-5">
+      <p class="text-[11px] font-medium uppercase tracking-label text-muted">AI cost</p>
+      <p class="display mt-2 text-4xl tabular-nums">₹{{ "%.2f"|format(d.cost_inr) }}</p>
+      <p class="mt-1 text-[13px] text-muted">≈ ₹{{ "%.2f"|format(d.inr_per_100) }} per 100 conversations</p>
+    </div>
+  </div>
+
+  <div class="mt-6 grid gap-6 lg:grid-cols-2">
+    {# Routes #}
+    <section class="panel p-5 sm:p-6">
+      <h2 class="display text-2xl">How messages were answered</h2>
+      <p class="mt-1 text-[13px] text-muted">Exact commands, numbers, sizes and lookups never reach the AI: code answers them instantly.</p>
+      <ul class="mt-5 space-y-3">
+        {% for label, n in d.routes %}
+        <li>
+          <div class="flex justify-between text-[13px]"><span>{{ label }}</span><span class="tabular-nums text-muted">{{ n }}</span></div>
+          <div class="mt-1 h-2 w-full rounded-full bg-sand">
+            <div class="h-2 rounded-full bg-maroon" style="width: {{ (100 * n / d.routes_max)|round(1) }}%"></div>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    {# Guards #}
+    <section class="panel p-5 sm:p-6">
+      <h2 class="display text-2xl">Wrong answers stopped</h2>
+      <p class="mt-1 text-[13px] text-muted">
+        The AI picks what to do; code checks what it says. {{ d.guards_total }} time{{ "" if d.guards_total == 1 else "s" }}
+        in {{ d.ai_turns }} AI repl{{ "y" if d.ai_turns == 1 else "ies" }}, a check caught something before the customer saw it.
+      </p>
+      {% if d.guards %}
+      <ul class="mt-5 divide-y divide-line text-[13px]">
+        {% for label, n in d.guards %}
+        <li class="flex justify-between gap-4 py-2"><span>{{ label }}</span><span class="tabular-nums font-medium">{{ n }}</span></li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="mt-5 text-[13px] text-muted">Nothing needed correcting in this period.</p>
+      {% endif %}
+      {% if d.reliability %}
+      <p class="mt-6 text-[11px] font-medium uppercase tracking-label text-muted">Reliability: the customer still got an answer</p>
+      <ul class="mt-2 divide-y divide-line text-[13px]">
+        {% for label, n in d.reliability %}
+        <li class="flex justify-between gap-4 py-2"><span>{{ label }}</span><span class="tabular-nums text-muted">{{ n }}</span></li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </section>
+
+    {# Missed demand #}
+    <section class="panel p-5 sm:p-6">
+      <h2 class="display text-2xl">Asked for, but not in stock</h2>
+      <p class="mt-1 text-[13px] text-muted">Searches that found nothing, or had to loosen what the customer asked for. What to stock next.</p>
+      {% if d.missed %}
+      <ul class="mt-5 divide-y divide-line text-[13px]">
+        {% for m in d.missed %}
+        <li class="flex justify-between gap-4 py-2">
+          <span>{{ m.wanted }}<span class="block text-[12px] text-muted">loosened: {{ m.how }}</span></span>
+          <span class="tabular-nums font-medium">{{ m.times }}×</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="mt-5 text-[13px] text-muted">Every search found what was asked for.</p>
+      {% endif %}
+      {% if d.searched %}
+      <p class="mt-6 text-[11px] font-medium uppercase tracking-label text-muted">Most searched</p>
+      <p class="mt-2 text-[13px] leading-relaxed">
+        {% for wanted, n in d.searched %}<span class="mr-2 inline-block">{{ wanted }} <span class="text-muted">({{ n }})</span></span>{% endfor %}
+      </p>
+      {% endif %}
+    </section>
+
+    {# Models #}
+    <section class="panel p-5 sm:p-6">
+      <h2 class="display text-2xl">AI models</h2>
+      <p class="mt-1 text-[13px] text-muted">
+        {{ d.wa_messages }} WhatsApp message{{ "" if d.wa_messages == 1 else "s" }} sent · {{ d.payments_offered }}
+        Pay Now button{{ "" if d.payments_offered == 1 else "s" }}. When a model is rate-limited or fails, the next one answers.
+      </p>
+      {% if d.models %}
+      <table class="mt-5 w-full text-left text-[13px]">
+        <thead class="text-[11px] uppercase tracking-label text-muted">
+          <tr><th class="py-2 font-medium">Model</th><th class="py-2 text-right font-medium">Calls</th><th class="py-2 text-right font-medium">Median</th><th class="py-2 text-right font-medium">Tokens</th></tr>
+        </thead>
+        <tbody class="divide-y divide-line">
+          {% for m in d.models %}
+          <tr>
+            <td class="py-2">{{ m.model }}{% if m.errors %} <span class="text-muted">({{ m.errors }} failed)</span>{% endif %}</td>
+            <td class="py-2 text-right tabular-nums">{{ m.calls }}</td>
+            <td class="py-2 text-right tabular-nums">{{ m.median_s }} s</td>
+            <td class="py-2 text-right tabular-nums">{{ "{:,}".format(m.tokens) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="mt-5 text-[13px] text-muted">No AI calls in this period.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  {# Recent #}
+  <section class="panel mt-6 p-5 sm:p-6">
+    <h2 class="display text-2xl">Recent messages</h2>
+    <div class="mt-5 overflow-x-auto">
+      <table class="w-full min-w-[640px] text-left text-[13px]">
+        <thead class="text-[11px] uppercase tracking-label text-muted">
+          <tr>
+            <th class="py-2 pr-4 font-medium">When</th><th class="py-2 pr-4 font-medium">Customer</th>
+            <th class="py-2 pr-4 font-medium">Message</th><th class="py-2 pr-4 font-medium">Answered by</th>
+            <th class="py-2 pr-4 text-right font-medium">Time</th><th class="py-2 text-right font-medium">Cost</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-line align-top">
+          {% for r in d.recent %}
+          <tr>
+            <td class="whitespace-nowrap py-2 pr-4 text-muted">{{ r.when.strftime("%d %b %H:%M") }}</td>
+            <td class="whitespace-nowrap py-2 pr-4">{{ r.customer }}</td>
+            <td class="py-2 pr-4">{{ r.question|truncate(70) }}
+              {% for g in r.guards %}<span class="mt-1 block text-[12px] text-maroon">✓ {{ g }}</span>{% endfor %}
+            </td>
+            <td class="py-2 pr-4"><span class="{{ 'pill-paid' if r.kind == 'code' else ('pill-waiting' if r.kind == 'ai' else 'pill-cancelled') }}">{{ r.route }}</span></td>
+            <td class="whitespace-nowrap py-2 pr-4 text-right tabular-nums">{{ r.seconds ~ " s" if r.seconds is not none else "—" }}</td>
+            <td class="whitespace-nowrap py-2 text-right tabular-nums">{{ "₹%.3f"|format(r.cost_inr) if r.cost_inr else "—" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,5843 @@
+[
+ {
+  "id": "VA001",
+  "sku": "VYM-T-S-001",
+  "name": "Essential Training Tee",
+  "title": "Vyom Active Men's Off-white Essential Training Tee - Gym, Training",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "T-Shirts",
+  "subcategory": "T-Shirts",
+  "fabric": "Cotton-poly jersey",
+  "color": "Off-white",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Training",
+   "Everyday"
+  ],
+  "fit": "Regular",
+  "sleeve": "Short sleeve",
+  "neck": "Crew neck",
+  "price": 698,
+  "mrp": 1099,
+  "discount_percent": 36,
+  "currency": "INR",
+  "rating": 4.2,
+  "rating_count": 871,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 9,
+   "M": 18,
+   "L": 18,
+   "XL": 3,
+   "XXL": 0
+  },
+  "in_stock": true,
+  "highlights": [
+   "An off-white crew-neck training tee with a clean, close fit through the shoulders",
+   "Sweat-wicking jersey that dries fast between sets",
+   "Flatlock seams that do not rub under a bag strap",
+   "Holds its shape wash after wash"
+  ],
+  "description": "An off-white crew-neck training tee with a clean, close fit through the shoulders.",
+  "care": "Machine wash cold, do not tumble dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA001.jpg",
+  "image_credit": {
+   "photographer": "cottonbro studio",
+   "url": "https://www.pexels.com/photo/man-in-white-crew-neck-t-shirt-4761346/"
+  }
+ },
+ {
+  "id": "VA002",
+  "sku": "VYM-T-S-002",
+  "name": "Muscle Fit Training Tee",
+  "title": "Vyom Active Men's Maroon Muscle Fit Training Tee - Gym, Training",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "T-Shirts",
+  "subcategory": "T-Shirts",
+  "fabric": "Cotton-poly jersey",
+  "color": "Maroon",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Training",
+   "Everyday"
+  ],
+  "fit": "Slim",
+  "sleeve": "Short sleeve",
+  "neck": "Crew neck",
+  "price": 1298,
+  "mrp": 2099,
+  "discount_percent": 38,
+  "currency": "INR",
+  "rating": 4.4,
+  "rating_count": 1852,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 12,
+   "M": 3,
+   "L": 18,
+   "XL": 12,
+   "XXL": 9
+  },
+  "in_stock": true,
+  "highlights": [
+   "A deep maroon muscle-fit tee cut close at the chest and arms",
+   "Sweat-wicking jersey that dries fast between sets",
+   "Flatlock seams that do not rub under a bag strap",
+   "Holds its shape wash after wash"
+  ],
+  "description": "A deep maroon muscle-fit tee cut close at the chest and arms. Made for lifting days.",
+  "care": "Machine wash cold, do not tumble dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA002.jpg",
+  "image_credit": {
+   "photographer": "Sarazh  Izmailov",
+   "url": "https://www.pexels.com/photo/man-in-a-red-shirt-in-a-gym-11219264/"
+  }
+ },
+ {
+  "id": "VA003",
+  "sku": "VYM-T-S-003",
+  "name": "Everyday Gym Tee",
+  "title": "Vyom Active Men's Charcoal Everyday Gym Tee - Gym, Training",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "T-Shirts",
+  "subcategory": "T-Shirts",
+  "fabric": "Cotton-poly jersey",
+  "color": "Charcoal",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Training",
+   "Everyday"
+  ],
+  "fit": "Regular",
+  "sleeve": "Short sleeve",
+  "neck": "Crew neck",
+  "price": 1098,
+  "mrp": 1699,
+  "discount_percent": 35,
+  "currency": "INR",
+  "rating": 4.0,
+  "rating_count": 341,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 12,
+   "M": 18,
+   "L": 12,
+   "XL": 0,
+   "XXL": 18
+  },
+  "in_stock": true,
+  "highlights": [
+   "A charcoal grey crew-neck gym tee with a slightly longer back hem",
+   "Sweat-wicking jersey that dries fast between sets",
+   "Flatlock seams that do not rub under a bag strap",
+   "Holds its shape wash after wash"
+  ],
+  "description": "A charcoal grey crew-neck gym tee with a slightly longer back hem.",
+  "care": "Machine wash cold, do not tumble dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA003.jpg",
+  "image_credit": {
+   "photographer": "Pexels User",
+   "url": "https://www.pexels.com/photo/man-in-locker-room-holding-orange-locker-door-39147541/"
+  }
+ },
+ {
+  "id": "VA004",
+  "sku": "VYM-T-S-004",
+  "name": "Camo Print Training Tee",
+  "title": "Vyom Active Men's Grey camo Camo Print Training Tee - Gym, Training",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "T-Shirts",
+  "subcategory": "T-Shirts",
+  "fabric": "Cotton-poly jersey",
+  "color": "Grey camo",
+  "pattern": "Camouflage print",
+  "occasion": [
+   "Gym",
+   "Training",
+   "Everyday"
+  ],
+  "fit": "Slim",
+  "sleeve": "Short sleeve",
+  "neck": "Crew neck",
+  "price": 598,
+  "mrp": 799,
+  "discount_percent": 25,
+  "currency": "INR",
+  "rating": 4.6,
+  "rating_count": 529,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 6,
+   "M": 12,
+   "L": 12,
+   "XL": 0,
+   "XXL": 9
+  },
+  "in_stock": true,
+  "highlights": [
+   "A grey camouflage-print training tee in a fitted cut",
+   "Sweat-wicking jersey that dries fast between sets",
+   "Flatlock seams that do not rub under a bag strap",
+   "Holds its shape wash after wash"
+  ],
+  "description": "A grey camouflage-print training tee in a fitted cut.",
+  "care": "Machine wash cold, do not tumble dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA004.jpg",
+  "image_credit": {
+   "photographer": "Doğu Tuncer",
+   "url": "https://www.pexels.com/photo/man-exercising-at-the-gym-17210049/"
+  }
+ },
+ {
+  "id": "VA005",
+  "sku": "VYM-T-S-005",
+  "name": "Everyday Cotton Tee",
+  "title": "Vyom Active Men's White Everyday Cotton Tee - Everyday, Gym",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "T-Shirts",
+  "subcategory": "T-Shirts",
+  "fabric": "Combed cotton",
+  "color": "White",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Gym",
+   "Travel"
+  ],
+  "fit": "Regular",
+  "sleeve": "Short sleeve",
+  "neck": "Crew neck",
+  "price": 898,
+  "mrp": 1299,
+  "discount_percent": 31,
+  "currency": "INR",
+  "rating": 4.3,
+  "rating_count": 549,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 12,
+   "M": 0,
+   "L": 6,
+   "XL": 12,
+   "XXL": 12
+  },
+  "in_stock": true,
+  "highlights": [
+   "A bright white cotton crew-neck tee that works at the gym and off it",
+   "Sweat-wicking jersey that dries fast between sets",
+   "Flatlock seams that do not rub under a bag strap",
+   "Holds its shape wash after wash"
+  ],
+  "description": "A bright white cotton crew-neck tee that works at the gym and off it.",
+  "care": "Machine wash cold, do not tumble dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA005.jpg",
+  "image_credit": {
+   "photographer": "Mikhail Nilov",
+   "url": "https://www.pexels.com/photo/man-in-white-shirt-posing-6740139/"
+  }
+ },
+ {
+  "id": "VA006",
+  "sku": "VYM-T-S-006",
+  "name": "Compression Fit Tee",
+  "title": "Vyom Active Men's Black Compression Fit Tee - Gym, Training",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "T-Shirts",
+  "subcategory": "T-Shirts",
+  "fabric": "Stretch polyester-elastane",
+  "color": "Black",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Training",
+   "Everyday"
+  ],
+  "fit": "Slim",
+  "sleeve": "Short sleeve",
+  "neck": "Crew neck",
+  "price": 798,
+  "mrp": 1299,
+  "discount_percent": 39,
+  "currency": "INR",
+  "rating": 4.6,
+  "rating_count": 2055,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 6,
+   "M": 6,
+   "L": 0,
+   "XL": 9,
+   "XXL": 18
+  },
+  "in_stock": true,
+  "highlights": [
+   "A black compression-fit tee that hugs the body and moves with it",
+   "Sweat-wicking jersey that dries fast between sets",
+   "Flatlock seams that do not rub under a bag strap",
+   "Holds its shape wash after wash"
+  ],
+  "description": "A black compression-fit tee that hugs the body and moves with it.",
+  "care": "Machine wash cold, do not tumble dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 2,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA006.jpg",
+  "image_credit": {
+   "photographer": "foad shariyati",
+   "url": "https://www.pexels.com/photo/man-lifting-dumbbells-in-gym-for-strength-training-32085165/"
+  }
+ },
+ {
+  "id": "VA007",
+  "sku": "VYM-T-S-007",
+  "name": "Performance Dri Tee",
+  "title": "Vyom Active Men's Navy Performance Dri Tee - Gym, Training",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "T-Shirts",
+  "subcategory": "T-Shirts",
+  "fabric": "Cotton-poly jersey",
+  "color": "Navy",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Training",
+   "Everyday"
+  ],
+  "fit": "Slim",
+  "sleeve": "Short sleeve",
+  "neck": "Crew neck",
+  "price": 1098,
+  "mrp": 1499,
+  "discount_percent": 27,
+  "currency": "INR",
+  "rating": 4.3,
+  "rating_count": 1157,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 9,
+   "M": 3,
+   "L": 9,
+   "XL": 0,
+   "XXL": 3
+  },
+  "in_stock": true,
+  "highlights": [
+   "A navy performance tee in a quick-dry knit with a fitted cut",
+   "Sweat-wicking jersey that dries fast between sets",
+   "Flatlock seams that do not rub under a bag strap",
+   "Holds its shape wash after wash"
+  ],
+  "description": "A navy performance tee in a quick-dry knit with a fitted cut.",
+  "care": "Machine wash cold, do not tumble dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA007.jpg",
+  "image_credit": {
+   "photographer": "RICARDO MAYORAL",
+   "url": "https://www.pexels.com/photo/young-man-lifting-weight-plate-at-gym-32512791/"
+  }
+ },
+ {
+  "id": "VA008",
+  "sku": "VYM-T-S-008",
+  "name": "Heather Dri Tee",
+  "title": "Vyom Active Men's Heather grey Heather Dri Tee - Gym, Training",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "T-Shirts",
+  "subcategory": "T-Shirts",
+  "fabric": "Cotton-poly jersey",
+  "color": "Heather grey",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Training",
+   "Everyday"
+  ],
+  "fit": "Regular",
+  "sleeve": "Short sleeve",
+  "neck": "Crew neck",
+  "price": 598,
+  "mrp": 799,
+  "discount_percent": 25,
+  "currency": "INR",
+  "rating": 4.5,
+  "rating_count": 1090,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 0,
+   "M": 3,
+   "L": 6,
+   "XL": 18,
+   "XXL": 3
+  },
+  "in_stock": true,
+  "highlights": [
+   "A heather grey quick-dry tee with a soft, marled finish",
+   "Sweat-wicking jersey that dries fast between sets",
+   "Flatlock seams that do not rub under a bag strap",
+   "Holds its shape wash after wash"
+  ],
+  "description": "A heather grey quick-dry tee with a soft, marled finish.",
+  "care": "Machine wash cold, do not tumble dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA008.jpg",
+  "image_credit": {
+   "photographer": "Klaus Nielsen",
+   "url": "https://www.pexels.com/photo/sportive-man-with-water-in-gym-6303491/"
+  }
+ },
+ {
+  "id": "VA009",
+  "sku": "VYM-T-S-009",
+  "name": "Cobalt Running Tee",
+  "title": "Vyom Active Men's Cobalt blue Cobalt Running Tee - Running, Training",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "T-Shirts",
+  "subcategory": "T-Shirts",
+  "fabric": "Cotton-poly jersey",
+  "color": "Cobalt blue",
+  "pattern": "Solid",
+  "occasion": [
+   "Running",
+   "Training",
+   "Gym"
+  ],
+  "fit": "Regular",
+  "sleeve": "Short sleeve",
+  "neck": "Crew neck",
+  "price": 1298,
+  "mrp": 1899,
+  "discount_percent": 32,
+  "currency": "INR",
+  "rating": 4.0,
+  "rating_count": 956,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 9,
+   "M": 0,
+   "L": 0,
+   "XL": 0,
+   "XXL": 12
+  },
+  "in_stock": true,
+  "highlights": [
+   "A cobalt blue running tee in a light, breathable knit",
+   "Sweat-wicking jersey that dries fast between sets",
+   "Flatlock seams that do not rub under a bag strap",
+   "Holds its shape wash after wash"
+  ],
+  "description": "A cobalt blue running tee in a light, breathable knit.",
+  "care": "Machine wash cold, do not tumble dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 2,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA009.jpg",
+  "image_credit": {
+   "photographer": "Peter Kambey",
+   "url": "https://www.pexels.com/photo/man-jogging-along-street-17637896/"
+  }
+ },
+ {
+  "id": "VA010",
+  "sku": "VYM-T-S-010",
+  "name": "Oversized Street Tee",
+  "title": "Vyom Active Men's White Oversized Street Tee - Everyday, Gym",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "T-Shirts",
+  "subcategory": "T-Shirts",
+  "fabric": "Heavyweight cotton",
+  "color": "White",
+  "pattern": "Small chest print",
+  "occasion": [
+   "Everyday",
+   "Gym",
+   "Streetwear"
+  ],
+  "fit": "Oversized",
+  "sleeve": "Drop-shoulder short sleeve",
+  "neck": "Crew neck",
+  "price": 998,
+  "mrp": 1399,
+  "discount_percent": 29,
+  "currency": "INR",
+  "rating": 4.2,
+  "rating_count": 1563,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 18,
+   "M": 3,
+   "L": 3,
+   "XL": 18,
+   "XXL": 9
+  },
+  "in_stock": true,
+  "highlights": [
+   "A white oversized tee with dropped shoulders and a small chest print",
+   "Dropped shoulders and a boxy body for an easy, relaxed drape",
+   "220 GSM cotton that feels substantial",
+   "Ribbed neck that keeps its shape"
+  ],
+  "description": "A white oversized tee with dropped shoulders and a small chest print.",
+  "care": "Machine wash cold, dry inside out",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA010.jpg",
+  "image_credit": {
+   "photographer": "parsa aref",
+   "url": "https://www.pexels.com/photo/young-man-in-a-casual-outfit-standing-outside-of-a-modern-building-18856590/"
+  }
+ },
+ {
+  "id": "VA011",
+  "sku": "VYM-T-S-011",
+  "name": "Oversized Heavy Tee",
+  "title": "Vyom Active Men's Sand Oversized Heavy Tee - Everyday, Gym",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "T-Shirts",
+  "subcategory": "T-Shirts",
+  "fabric": "Heavyweight cotton",
+  "color": "Sand",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Gym",
+   "Streetwear"
+  ],
+  "fit": "Oversized",
+  "sleeve": "Drop-shoulder short sleeve",
+  "neck": "Crew neck",
+  "price": 998,
+  "mrp": 1399,
+  "discount_percent": 29,
+  "currency": "INR",
+  "rating": 4.4,
+  "rating_count": 1815,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 18,
+   "M": 9,
+   "L": 12,
+   "XL": 6,
+   "XXL": 9
+  },
+  "in_stock": true,
+  "highlights": [
+   "A sand-beige heavyweight oversized tee with a boxy, relaxed drape",
+   "Dropped shoulders and a boxy body for an easy, relaxed drape",
+   "220 GSM cotton that feels substantial",
+   "Ribbed neck that keeps its shape"
+  ],
+  "description": "A sand-beige heavyweight oversized tee with a boxy, relaxed drape.",
+  "care": "Machine wash cold, dry inside out",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA011.jpg",
+  "image_credit": {
+   "photographer": "Teddy Yang",
+   "url": "https://www.pexels.com/photo/standing-man-on-stone-15952332/"
+  }
+ },
+ {
+  "id": "VA012",
+  "sku": "VYM-T-S-012",
+  "name": "Washed Oversized Tee",
+  "title": "Vyom Active Men's Washed black Washed Oversized Tee - Everyday, Gym",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "T-Shirts",
+  "subcategory": "T-Shirts",
+  "fabric": "Heavyweight cotton",
+  "color": "Washed black",
+  "pattern": "Garment washed",
+  "occasion": [
+   "Everyday",
+   "Gym",
+   "Streetwear"
+  ],
+  "fit": "Oversized",
+  "sleeve": "Drop-shoulder short sleeve",
+  "neck": "Crew neck",
+  "price": 1398,
+  "mrp": 2099,
+  "discount_percent": 33,
+  "currency": "INR",
+  "rating": 4.7,
+  "rating_count": 236,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 9,
+   "M": 9,
+   "L": 9,
+   "XL": 0,
+   "XXL": 18
+  },
+  "in_stock": true,
+  "highlights": [
+   "A washed black oversized tee with a soft, faded finish",
+   "Dropped shoulders and a boxy body for an easy, relaxed drape",
+   "220 GSM cotton that feels substantial",
+   "Ribbed neck that keeps its shape"
+  ],
+  "description": "A washed black oversized tee with a soft, faded finish.",
+  "care": "Machine wash cold, dry inside out",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA012.jpg",
+  "image_credit": {
+   "photographer": "Ralph Rabago",
+   "url": "https://www.pexels.com/photo/man-in-black-t-shirt-3290886/"
+  }
+ },
+ {
+  "id": "VA013",
+  "sku": "VYM-T-S-013",
+  "name": "Boxy Oversized Tee",
+  "title": "Vyom Active Men's Black Boxy Oversized Tee - Everyday, Gym",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "T-Shirts",
+  "subcategory": "T-Shirts",
+  "fabric": "Heavyweight cotton",
+  "color": "Black",
+  "pattern": "Small chest print",
+  "occasion": [
+   "Everyday",
+   "Gym",
+   "Streetwear"
+  ],
+  "fit": "Oversized",
+  "sleeve": "Drop-shoulder short sleeve",
+  "neck": "Crew neck",
+  "price": 1398,
+  "mrp": 2199,
+  "discount_percent": 36,
+  "currency": "INR",
+  "rating": 4.7,
+  "rating_count": 1305,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 0,
+   "M": 12,
+   "L": 0,
+   "XL": 9,
+   "XXL": 18
+  },
+  "in_stock": true,
+  "highlights": [
+   "A black boxy oversized tee with a small square chest print",
+   "Dropped shoulders and a boxy body for an easy, relaxed drape",
+   "220 GSM cotton that feels substantial",
+   "Ribbed neck that keeps its shape"
+  ],
+  "description": "A black boxy oversized tee with a small square chest print.",
+  "care": "Machine wash cold, dry inside out",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA013.jpg",
+  "image_credit": {
+   "photographer": "foad shariyati",
+   "url": "https://www.pexels.com/photo/photo-of-a-man-wearing-jeans-27348257/"
+  }
+ },
+ {
+  "id": "VA014",
+  "sku": "VYM-T-S-014",
+  "name": "Drop Shoulder Tee",
+  "title": "Vyom Active Men's Khaki Drop Shoulder Tee - Everyday, Gym",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "T-Shirts",
+  "subcategory": "T-Shirts",
+  "fabric": "Heavyweight cotton",
+  "color": "Khaki",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Gym",
+   "Streetwear"
+  ],
+  "fit": "Oversized",
+  "sleeve": "Drop-shoulder short sleeve",
+  "neck": "Crew neck",
+  "price": 1398,
+  "mrp": 1799,
+  "discount_percent": 22,
+  "currency": "INR",
+  "rating": 4.0,
+  "rating_count": 763,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 18,
+   "M": 9,
+   "L": 18,
+   "XL": 3,
+   "XXL": 0
+  },
+  "in_stock": true,
+  "highlights": [
+   "A khaki drop-shoulder oversized tee that falls loose past the hips",
+   "Dropped shoulders and a boxy body for an easy, relaxed drape",
+   "220 GSM cotton that feels substantial",
+   "Ribbed neck that keeps its shape"
+  ],
+  "description": "A khaki drop-shoulder oversized tee that falls loose past the hips.",
+  "care": "Machine wash cold, dry inside out",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA014.jpg",
+  "image_credit": {
+   "photographer": "Washington  Acosta",
+   "url": "https://www.pexels.com/photo/young-man-in-sunglasses-smiling-outdoors-36810866/"
+  }
+ },
+ {
+  "id": "VA015",
+  "sku": "VYM-TAN-015",
+  "name": "Breathe Training Tank",
+  "title": "Vyom Active Men's Sage Breathe Training Tank - Gym, Training",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Tank Tops",
+  "subcategory": "Tank Tops",
+  "fabric": "Quick-dry polyester mesh",
+  "color": "Sage",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Training",
+   "Running"
+  ],
+  "fit": "Regular",
+  "sleeve": "Sleeveless",
+  "neck": "Scoop neck",
+  "price": 498,
+  "mrp": 699,
+  "discount_percent": 29,
+  "currency": "INR",
+  "rating": 4.3,
+  "rating_count": 1493,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 12,
+   "M": 6,
+   "L": 12,
+   "XL": 18,
+   "XXL": 18
+  },
+  "in_stock": true,
+  "highlights": [
+   "A pale sage training tank with wide armholes",
+   "Open mesh back panel for airflow",
+   "Deep armholes for full range of motion",
+   "Lightweight and quick-drying"
+  ],
+  "description": "A pale sage training tank with wide armholes.",
+  "care": "Machine wash cold",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA015.jpg",
+  "image_credit": {
+   "photographer": "Liliana Drew",
+   "url": "https://www.pexels.com/photo/man-wearing-tank-top-carrying-a-sports-bag-8555305/"
+  }
+ },
+ {
+  "id": "VA016",
+  "sku": "VYM-TAN-016",
+  "name": "Stringer Gym Tank",
+  "title": "Vyom Active Men's Black Stringer Gym Tank - Gym, Training",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Tank Tops",
+  "subcategory": "Tank Tops",
+  "fabric": "Quick-dry polyester mesh",
+  "color": "Black",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Training",
+   "Running"
+  ],
+  "fit": "Stringer",
+  "sleeve": "Sleeveless",
+  "neck": "Scoop neck",
+  "price": 798,
+  "mrp": 1099,
+  "discount_percent": 27,
+  "currency": "INR",
+  "rating": 4.4,
+  "rating_count": 2126,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 18,
+   "M": 18,
+   "L": 6,
+   "XL": 9,
+   "XXL": 0
+  },
+  "in_stock": true,
+  "highlights": [
+   "A black stringer tank with a deep-cut back for lifting",
+   "Open mesh back panel for airflow",
+   "Deep armholes for full range of motion",
+   "Lightweight and quick-drying"
+  ],
+  "description": "A black stringer tank with a deep-cut back for lifting.",
+  "care": "Machine wash cold",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA016.jpg",
+  "image_credit": {
+   "photographer": "Duren Williams",
+   "url": "https://www.pexels.com/photo/a-tattooed-man-in-black-tank-top-with-beard-on-his-face-12931755/"
+  }
+ },
+ {
+  "id": "VA017",
+  "sku": "VYM-TAN-017",
+  "name": "Classic Rib Tank",
+  "title": "Vyom Active Men's White Classic Rib Tank - Gym, Training",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Tank Tops",
+  "subcategory": "Tank Tops",
+  "fabric": "Ribbed cotton",
+  "color": "White",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Training",
+   "Running"
+  ],
+  "fit": "Regular",
+  "sleeve": "Sleeveless",
+  "neck": "Scoop neck",
+  "price": 998,
+  "mrp": 1299,
+  "discount_percent": 23,
+  "currency": "INR",
+  "rating": 4.2,
+  "rating_count": 1315,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 12,
+   "M": 18,
+   "L": 9,
+   "XL": 12,
+   "XXL": 6
+  },
+  "in_stock": true,
+  "highlights": [
+   "A white ribbed cotton tank in a classic close fit",
+   "Open mesh back panel for airflow",
+   "Deep armholes for full range of motion",
+   "Lightweight and quick-drying"
+  ],
+  "description": "A white ribbed cotton tank in a classic close fit.",
+  "care": "Machine wash cold",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA017.jpg",
+  "image_credit": {
+   "photographer": "Ron Lach",
+   "url": "https://www.pexels.com/photo/man-in-headband-holding-dumbbells-10483704/"
+  }
+ },
+ {
+  "id": "VA018",
+  "sku": "VYM-TAN-018",
+  "name": "Muscle Tank",
+  "title": "Vyom Active Men's Olive Muscle Tank - Gym, Training",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Tank Tops",
+  "subcategory": "Tank Tops",
+  "fabric": "Quick-dry polyester mesh",
+  "color": "Olive",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Training",
+   "Running"
+  ],
+  "fit": "Regular",
+  "sleeve": "Sleeveless",
+  "neck": "Scoop neck",
+  "price": 498,
+  "mrp": 699,
+  "discount_percent": 29,
+  "currency": "INR",
+  "rating": 4.4,
+  "rating_count": 858,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 3,
+   "M": 18,
+   "L": 6,
+   "XL": 3,
+   "XXL": 18
+  },
+  "in_stock": true,
+  "highlights": [
+   "An olive green muscle tank with dropped armholes",
+   "Open mesh back panel for airflow",
+   "Deep armholes for full range of motion",
+   "Lightweight and quick-drying"
+  ],
+  "description": "An olive green muscle tank with dropped armholes.",
+  "care": "Machine wash cold",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 2,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA018.jpg",
+  "image_credit": {
+   "photographer": "RDNE Stock project",
+   "url": "https://www.pexels.com/photo/man-practising-with-weights-5837246/"
+  }
+ },
+ {
+  "id": "VA019",
+  "sku": "VYM-TAN-019",
+  "name": "Lightweight Lifting Tank",
+  "title": "Vyom Active Men's Stone Lightweight Lifting Tank - Gym, Training",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Tank Tops",
+  "subcategory": "Tank Tops",
+  "fabric": "Quick-dry polyester mesh",
+  "color": "Stone",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Training",
+   "Running"
+  ],
+  "fit": "Regular",
+  "sleeve": "Sleeveless",
+  "neck": "Scoop neck",
+  "price": 798,
+  "mrp": 999,
+  "discount_percent": 20,
+  "currency": "INR",
+  "rating": 4.2,
+  "rating_count": 1436,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 9,
+   "M": 18,
+   "L": 18,
+   "XL": 6,
+   "XXL": 0
+  },
+  "in_stock": true,
+  "highlights": [
+   "A stone-beige lifting tank in a light, quick-dry knit",
+   "Open mesh back panel for airflow",
+   "Deep armholes for full range of motion",
+   "Lightweight and quick-drying"
+  ],
+  "description": "A stone-beige lifting tank in a light, quick-dry knit.",
+  "care": "Machine wash cold",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA019.jpg",
+  "image_credit": {
+   "photographer": "@marcuschanmedia | IG",
+   "url": "https://www.pexels.com/photo/muscular-man-lifting-dumbbells-in-gym-29825218/"
+  }
+ },
+ {
+  "id": "VA020",
+  "sku": "VYM-JOG-020",
+  "name": "Fleece Joggers",
+  "title": "Vyom Active Men's Lilac Fleece Joggers - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Joggers",
+  "subcategory": "Joggers",
+  "fabric": "Brushed cotton fleece",
+  "color": "Lilac",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Gym"
+  ],
+  "fit": "Tapered",
+  "sleeve": "",
+  "neck": "",
+  "price": 2098,
+  "mrp": 2899,
+  "discount_percent": 28,
+  "currency": "INR",
+  "rating": 4.6,
+  "rating_count": 722,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 9,
+   "M": 0,
+   "L": 0,
+   "XL": 0,
+   "XXL": 12
+  },
+  "in_stock": true,
+  "highlights": [
+   "Lilac fleece joggers with a relaxed leg and an elastic waist",
+   "Elastic waist with an inner drawcord",
+   "Zip pockets that keep a phone in place",
+   "Ribbed cuffs that sit neatly above trainers"
+  ],
+  "description": "Lilac fleece joggers with a relaxed leg and an elastic waist.",
+  "care": "Machine wash cold, do not iron the print",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA020.jpg",
+  "image_credit": {
+   "photographer": "Nazar Aslan",
+   "url": "https://www.pexels.com/photo/fitness-enthusiast-in-modern-gym-setting-39179873/"
+  }
+ },
+ {
+  "id": "VA021",
+  "sku": "VYM-JOG-021",
+  "name": "Classic Sweat Joggers",
+  "title": "Vyom Active Men's Heather grey Classic Sweat Joggers - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Joggers",
+  "subcategory": "Joggers",
+  "fabric": "Brushed cotton fleece",
+  "color": "Heather grey",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Gym"
+  ],
+  "fit": "Tapered",
+  "sleeve": "",
+  "neck": "",
+  "price": 1398,
+  "mrp": 2099,
+  "discount_percent": 33,
+  "currency": "INR",
+  "rating": 4.3,
+  "rating_count": 1484,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 12,
+   "M": 12,
+   "L": 6,
+   "XL": 6,
+   "XXL": 18
+  },
+  "in_stock": true,
+  "highlights": [
+   "Heather grey sweat joggers with ribbed cuffs, part of a matching set",
+   "Elastic waist with an inner drawcord",
+   "Zip pockets that keep a phone in place",
+   "Ribbed cuffs that sit neatly above trainers"
+  ],
+  "description": "Heather grey sweat joggers with ribbed cuffs, part of a matching set.",
+  "care": "Machine wash cold, do not iron the print",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA021.jpg",
+  "image_credit": {
+   "photographer": "Marius  Gabriel",
+   "url": "https://www.pexels.com/photo/urban-male-fashion-in-gray-hoodie-37056544/"
+  }
+ },
+ {
+  "id": "VA022",
+  "sku": "VYM-JOG-022",
+  "name": "Rust Track Joggers",
+  "title": "Vyom Active Men's Rust Rust Track Joggers - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Joggers",
+  "subcategory": "Joggers",
+  "fabric": "Brushed cotton fleece",
+  "color": "Rust",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Gym"
+  ],
+  "fit": "Tapered",
+  "sleeve": "",
+  "neck": "",
+  "price": 1898,
+  "mrp": 2799,
+  "discount_percent": 32,
+  "currency": "INR",
+  "rating": 4.5,
+  "rating_count": 1733,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 12,
+   "M": 3,
+   "L": 9,
+   "XL": 9,
+   "XXL": 18
+  },
+  "in_stock": true,
+  "highlights": [
+   "Rust brown fleece joggers with a tapered leg",
+   "Elastic waist with an inner drawcord",
+   "Zip pockets that keep a phone in place",
+   "Ribbed cuffs that sit neatly above trainers"
+  ],
+  "description": "Rust brown fleece joggers with a tapered leg.",
+  "care": "Machine wash cold, do not iron the print",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA022.jpg",
+  "image_credit": {
+   "photographer": "@akb.ph",
+   "url": "https://www.pexels.com/photo/brunette-man-posing-in-maroon-hooded-sweatshirt-and-sweatpants-18285128/"
+  }
+ },
+ {
+  "id": "VA023",
+  "sku": "VYM-JOG-023",
+  "name": "Tech Fleece Joggers",
+  "title": "Vyom Active Men's Black Tech Fleece Joggers - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Joggers",
+  "subcategory": "Joggers",
+  "fabric": "Brushed cotton fleece",
+  "color": "Black",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Gym"
+  ],
+  "fit": "Tapered",
+  "sleeve": "",
+  "neck": "",
+  "price": 1298,
+  "mrp": 1899,
+  "discount_percent": 32,
+  "currency": "INR",
+  "rating": 4.3,
+  "rating_count": 549,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 9,
+   "M": 0,
+   "L": 6,
+   "XL": 3,
+   "XXL": 9
+  },
+  "in_stock": true,
+  "highlights": [
+   "Black tech-fleece joggers with a slim tapered leg",
+   "Elastic waist with an inner drawcord",
+   "Zip pockets that keep a phone in place",
+   "Ribbed cuffs that sit neatly above trainers"
+  ],
+  "description": "Black tech-fleece joggers with a slim tapered leg.",
+  "care": "Machine wash cold, do not iron the print",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA023.jpg",
+  "image_credit": {
+   "photographer": "@felipepelaquim -",
+   "url": "https://www.pexels.com/photo/man-in-black-clothes-looking-down-10024021/"
+  }
+ },
+ {
+  "id": "VA024",
+  "sku": "VYM-JOG-024",
+  "name": "Washed Joggers",
+  "title": "Vyom Active Men's Mint Washed Joggers - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Joggers",
+  "subcategory": "Joggers",
+  "fabric": "Brushed cotton fleece",
+  "color": "Mint",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Gym"
+  ],
+  "fit": "Tapered",
+  "sleeve": "",
+  "neck": "",
+  "price": 1998,
+  "mrp": 2899,
+  "discount_percent": 31,
+  "currency": "INR",
+  "rating": 4.4,
+  "rating_count": 1398,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 9,
+   "M": 3,
+   "L": 3,
+   "XL": 0,
+   "XXL": 9
+  },
+  "in_stock": true,
+  "highlights": [
+   "Pale mint joggers in a soft washed fleece",
+   "Elastic waist with an inner drawcord",
+   "Zip pockets that keep a phone in place",
+   "Ribbed cuffs that sit neatly above trainers"
+  ],
+  "description": "Pale mint joggers in a soft washed fleece.",
+  "care": "Machine wash cold, do not iron the print",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 2,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA024.jpg",
+  "image_credit": {
+   "photographer": "Murat IŞIK",
+   "url": "https://www.pexels.com/photo/a-man-wearing-sunglasses-26835127/"
+  }
+ },
+ {
+  "id": "VA025",
+  "sku": "VYM-JOG-025",
+  "name": "Stripe Cuff Joggers",
+  "title": "Vyom Active Men's Black Stripe Cuff Joggers - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Joggers",
+  "subcategory": "Joggers",
+  "fabric": "Brushed cotton fleece",
+  "color": "Black",
+  "pattern": "Gold cuff stripes",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Gym"
+  ],
+  "fit": "Slim",
+  "sleeve": "",
+  "neck": "",
+  "price": 1198,
+  "mrp": 1799,
+  "discount_percent": 33,
+  "currency": "INR",
+  "rating": 4.2,
+  "rating_count": 814,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 18,
+   "M": 18,
+   "L": 6,
+   "XL": 6,
+   "XXL": 12
+  },
+  "in_stock": true,
+  "highlights": [
+   "Slim black joggers with gold stripes at the cuffs",
+   "Elastic waist with an inner drawcord",
+   "Zip pockets that keep a phone in place",
+   "Ribbed cuffs that sit neatly above trainers"
+  ],
+  "description": "Slim black joggers with gold stripes at the cuffs.",
+  "care": "Machine wash cold, do not iron the print",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA025.jpg",
+  "image_credit": {
+   "photographer": "Raša St",
+   "url": "https://www.pexels.com/photo/backview-of-man-in-black-clothing-12738124/"
+  }
+ },
+ {
+  "id": "VA026",
+  "sku": "VYM-SHO-026",
+  "name": "5-inch Run Shorts",
+  "title": "Vyom Active Men's Black 5-inch Run Shorts - Running, Gym",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Shorts",
+  "subcategory": "Shorts",
+  "fabric": "Four-way stretch nylon",
+  "color": "Black",
+  "pattern": "Solid",
+  "occasion": [
+   "Running",
+   "Gym",
+   "Training"
+  ],
+  "fit": "Regular",
+  "sleeve": "",
+  "neck": "",
+  "price": 898,
+  "mrp": 1299,
+  "discount_percent": 31,
+  "currency": "INR",
+  "rating": 4.7,
+  "rating_count": 1423,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 12,
+   "M": 3,
+   "L": 18,
+   "XL": 3,
+   "XXL": 18
+  },
+  "in_stock": true,
+  "highlights": [
+   "Black 5-inch running shorts with a built-in liner",
+   "Built-in liner and a back zip pocket",
+   "Split hem for a longer stride",
+   "Reflective logo for early runs"
+  ],
+  "description": "Black 5-inch running shorts with a built-in liner.",
+  "care": "Machine wash cold, hang dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA026.jpg",
+  "image_credit": {
+   "photographer": "Wesley Davi",
+   "url": "https://www.pexels.com/photo/athlete-stands-confidently-on-outdoor-track-33417701/"
+  }
+ },
+ {
+  "id": "VA027",
+  "sku": "VYM-SHO-027",
+  "name": "Phone Pocket Shorts",
+  "title": "Vyom Active Men's Charcoal Phone Pocket Shorts - Running, Gym",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Shorts",
+  "subcategory": "Shorts",
+  "fabric": "Four-way stretch nylon",
+  "color": "Charcoal",
+  "pattern": "Solid",
+  "occasion": [
+   "Running",
+   "Gym",
+   "Training"
+  ],
+  "fit": "Regular",
+  "sleeve": "",
+  "neck": "",
+  "price": 1198,
+  "mrp": 1799,
+  "discount_percent": 33,
+  "currency": "INR",
+  "rating": 4.2,
+  "rating_count": 423,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 18,
+   "M": 3,
+   "L": 0,
+   "XL": 3,
+   "XXL": 12
+  },
+  "in_stock": true,
+  "highlights": [
+   "Charcoal training shorts with a side pocket that holds a phone",
+   "Built-in liner and a back zip pocket",
+   "Split hem for a longer stride",
+   "Reflective logo for early runs"
+  ],
+  "description": "Charcoal training shorts with a side pocket that holds a phone.",
+  "care": "Machine wash cold, hang dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 2,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA027.jpg",
+  "image_credit": {
+   "photographer": "Wesley Davi",
+   "url": "https://www.pexels.com/photo/man-in-sportswear-holding-smartphone-on-track-33417698/"
+  }
+ },
+ {
+  "id": "VA028",
+  "sku": "VYM-SHO-028",
+  "name": "Neon Split Shorts",
+  "title": "Vyom Active Men's Neon lime Neon Split Shorts - Running, Gym",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Shorts",
+  "subcategory": "Shorts",
+  "fabric": "Four-way stretch nylon",
+  "color": "Neon lime",
+  "pattern": "Solid",
+  "occasion": [
+   "Running",
+   "Gym",
+   "Training"
+  ],
+  "fit": "Regular",
+  "sleeve": "",
+  "neck": "",
+  "price": 698,
+  "mrp": 1099,
+  "discount_percent": 36,
+  "currency": "INR",
+  "rating": 4.4,
+  "rating_count": 1449,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 9,
+   "M": 18,
+   "L": 18,
+   "XL": 3,
+   "XXL": 9
+  },
+  "in_stock": true,
+  "highlights": [
+   "Neon lime split-hem running shorts that stand out on early runs",
+   "Built-in liner and a back zip pocket",
+   "Split hem for a longer stride",
+   "Reflective logo for early runs"
+  ],
+  "description": "Neon lime split-hem running shorts that stand out on early runs.",
+  "care": "Machine wash cold, hang dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA028.jpg",
+  "image_credit": {
+   "photographer": "Grecia Carbajal",
+   "url": "https://www.pexels.com/photo/young-man-enjoying-outdoor-exercise-in-nature-38284272/"
+  }
+ },
+ {
+  "id": "VA029",
+  "sku": "VYM-SHO-029",
+  "name": "7-inch Training Shorts",
+  "title": "Vyom Active Men's Olive 7-inch Training Shorts - Running, Gym",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Shorts",
+  "subcategory": "Shorts",
+  "fabric": "Four-way stretch nylon",
+  "color": "Olive",
+  "pattern": "Solid",
+  "occasion": [
+   "Running",
+   "Gym",
+   "Training"
+  ],
+  "fit": "Regular",
+  "sleeve": "",
+  "neck": "",
+  "price": 1198,
+  "mrp": 1499,
+  "discount_percent": 20,
+  "currency": "INR",
+  "rating": 4.2,
+  "rating_count": 1730,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 3,
+   "M": 0,
+   "L": 9,
+   "XL": 18,
+   "XXL": 18
+  },
+  "in_stock": true,
+  "highlights": [
+   "Olive 7-inch training shorts with a slightly longer leg",
+   "Built-in liner and a back zip pocket",
+   "Split hem for a longer stride",
+   "Reflective logo for early runs"
+  ],
+  "description": "Olive 7-inch training shorts with a slightly longer leg.",
+  "care": "Machine wash cold, hang dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 2,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA029.jpg",
+  "image_credit": {
+   "photographer": "Miguel Guerra",
+   "url": "https://www.pexels.com/photo/man-running-in-park-holding-smartphone-38648463/"
+  }
+ },
+ {
+  "id": "VA030",
+  "sku": "VYM-SHO-030",
+  "name": "Printed Run Shorts",
+  "title": "Vyom Active Men's Blue print Printed Run Shorts - Running, Gym",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Shorts",
+  "subcategory": "Shorts",
+  "fabric": "Four-way stretch nylon",
+  "color": "Blue print",
+  "pattern": "All-over print",
+  "occasion": [
+   "Running",
+   "Gym",
+   "Training"
+  ],
+  "fit": "Regular",
+  "sleeve": "",
+  "neck": "",
+  "price": 798,
+  "mrp": 1299,
+  "discount_percent": 39,
+  "currency": "INR",
+  "rating": 4.4,
+  "rating_count": 1684,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 3,
+   "M": 3,
+   "L": 0,
+   "XL": 0,
+   "XXL": 9
+  },
+  "in_stock": true,
+  "highlights": [
+   "Blue printed running shorts with a bright all-over pattern",
+   "Built-in liner and a back zip pocket",
+   "Split hem for a longer stride",
+   "Reflective logo for early runs"
+  ],
+  "description": "Blue printed running shorts with a bright all-over pattern.",
+  "care": "Machine wash cold, hang dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 2,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA030.jpg",
+  "image_credit": {
+   "photographer": "Franklin Santillan A.",
+   "url": "https://www.pexels.com/photo/runner-preparing-for-race-on-outdoor-track-31381386/"
+  }
+ },
+ {
+  "id": "VA031",
+  "sku": "VYM-SHO-031",
+  "name": "Sprint Shorts",
+  "title": "Vyom Active Men's Royal blue Sprint Shorts - Running, Gym",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Shorts",
+  "subcategory": "Shorts",
+  "fabric": "Four-way stretch nylon",
+  "color": "Royal blue",
+  "pattern": "Solid",
+  "occasion": [
+   "Running",
+   "Gym",
+   "Training"
+  ],
+  "fit": "Regular",
+  "sleeve": "",
+  "neck": "",
+  "price": 1198,
+  "mrp": 1799,
+  "discount_percent": 33,
+  "currency": "INR",
+  "rating": 4.6,
+  "rating_count": 171,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 9,
+   "M": 12,
+   "L": 9,
+   "XL": 0,
+   "XXL": 12
+  },
+  "in_stock": true,
+  "highlights": [
+   "Royal blue sprint shorts cut short for full stride",
+   "Built-in liner and a back zip pocket",
+   "Split hem for a longer stride",
+   "Reflective logo for early runs"
+  ],
+  "description": "Royal blue sprint shorts cut short for full stride.",
+  "care": "Machine wash cold, hang dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA031.jpg",
+  "image_credit": {
+   "photographer": "Safari  Consoler",
+   "url": "https://www.pexels.com/photo/man-in-white-crew-neck-t-shirt-and-blue-shorts-11001003/"
+  }
+ },
+ {
+  "id": "VA032",
+  "sku": "VYM-HOO-032",
+  "name": "Everyday Pullover Hoodie",
+  "title": "Vyom Active Men's Black Everyday Pullover Hoodie - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Hoodies",
+  "subcategory": "Hoodies",
+  "fabric": "Cotton-rich fleece",
+  "color": "Black",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Winter"
+  ],
+  "fit": "Relaxed",
+  "sleeve": "Full sleeve",
+  "neck": "Hooded",
+  "price": 1898,
+  "mrp": 2999,
+  "discount_percent": 37,
+  "currency": "INR",
+  "rating": 4.6,
+  "rating_count": 2024,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 3,
+   "M": 3,
+   "L": 6,
+   "XL": 9,
+   "XXL": 3
+  },
+  "in_stock": true,
+  "highlights": [
+   "A black pullover hoodie with white flat drawcords",
+   "Double-layer hood with flat drawcords",
+   "Kangaroo pocket",
+   "Soft brushed inside"
+  ],
+  "description": "A black pullover hoodie with white flat drawcords.",
+  "care": "Machine wash cold, dry flat",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA032.jpg",
+  "image_credit": {
+   "photographer": "Ana Maria Arroyave",
+   "url": "https://www.pexels.com/photo/casual-teen-in-black-hoodie-and-jeans-28701950/"
+  }
+ },
+ {
+  "id": "VA033",
+  "sku": "VYM-HOO-033",
+  "name": "Forest Pullover Hoodie",
+  "title": "Vyom Active Men's Forest green Forest Pullover Hoodie - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Hoodies",
+  "subcategory": "Hoodies",
+  "fabric": "Cotton-rich fleece",
+  "color": "Forest green",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Winter"
+  ],
+  "fit": "Relaxed",
+  "sleeve": "Full sleeve",
+  "neck": "Hooded",
+  "price": 1498,
+  "mrp": 1899,
+  "discount_percent": 21,
+  "currency": "INR",
+  "rating": 4.4,
+  "rating_count": 923,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 9,
+   "M": 12,
+   "L": 3,
+   "XL": 9,
+   "XXL": 3
+  },
+  "in_stock": true,
+  "highlights": [
+   "A forest green pullover hoodie in a soft brushed fleece",
+   "Double-layer hood with flat drawcords",
+   "Kangaroo pocket",
+   "Soft brushed inside"
+  ],
+  "description": "A forest green pullover hoodie in a soft brushed fleece.",
+  "care": "Machine wash cold, dry flat",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 2,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA033.jpg",
+  "image_credit": {
+   "photographer": "Rahib Hamidov",
+   "url": "https://www.pexels.com/photo/smiling-man-in-hoodie-20036215/"
+  }
+ },
+ {
+  "id": "VA034",
+  "sku": "VYM-HOO-034",
+  "name": "Dot Print Hoodie",
+  "title": "Vyom Active Men's Red Dot Print Hoodie - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Hoodies",
+  "subcategory": "Hoodies",
+  "fabric": "Cotton-rich fleece",
+  "color": "Red",
+  "pattern": "Tonal dot print",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Winter"
+  ],
+  "fit": "Relaxed",
+  "sleeve": "Full sleeve",
+  "neck": "Hooded",
+  "price": 1898,
+  "mrp": 2999,
+  "discount_percent": 37,
+  "currency": "INR",
+  "rating": 4.2,
+  "rating_count": 970,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 3,
+   "M": 12,
+   "L": 12,
+   "XL": 9,
+   "XXL": 12
+  },
+  "in_stock": true,
+  "highlights": [
+   "A red hoodie with a fine tonal dot print",
+   "Double-layer hood with flat drawcords",
+   "Kangaroo pocket",
+   "Soft brushed inside"
+  ],
+  "description": "A red hoodie with a fine tonal dot print.",
+  "care": "Machine wash cold, dry flat",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 2,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA034.jpg",
+  "image_credit": {
+   "photographer": "Boko Shots",
+   "url": "https://www.pexels.com/photo/casual-fashion-portrait-in-studio-setting-29652516/"
+  }
+ },
+ {
+  "id": "VA035",
+  "sku": "VYM-HOO-035",
+  "name": "Cocoa Fleece Hoodie",
+  "title": "Vyom Active Men's Chocolate brown Cocoa Fleece Hoodie - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Hoodies",
+  "subcategory": "Hoodies",
+  "fabric": "Cotton-rich fleece",
+  "color": "Chocolate brown",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Winter"
+  ],
+  "fit": "Relaxed",
+  "sleeve": "Full sleeve",
+  "neck": "Hooded",
+  "price": 2098,
+  "mrp": 3199,
+  "discount_percent": 34,
+  "currency": "INR",
+  "rating": 4.2,
+  "rating_count": 1917,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 12,
+   "M": 3,
+   "L": 6,
+   "XL": 12,
+   "XXL": 9
+  },
+  "in_stock": true,
+  "highlights": [
+   "A chocolate brown fleece hoodie with a roomy hood",
+   "Double-layer hood with flat drawcords",
+   "Kangaroo pocket",
+   "Soft brushed inside"
+  ],
+  "description": "A chocolate brown fleece hoodie with a roomy hood.",
+  "care": "Machine wash cold, dry flat",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA035.jpg",
+  "image_credit": {
+   "photographer": "Anh Nguyen",
+   "url": "https://www.pexels.com/photo/young-man-in-hoodie-with-contrasting-background-31670079/"
+  }
+ },
+ {
+  "id": "VA036",
+  "sku": "VYM-HOO-036",
+  "name": "Mustard Pullover Hoodie",
+  "title": "Vyom Active Men's Mustard Mustard Pullover Hoodie - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Hoodies",
+  "subcategory": "Hoodies",
+  "fabric": "Cotton-rich fleece",
+  "color": "Mustard",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Winter"
+  ],
+  "fit": "Relaxed",
+  "sleeve": "Full sleeve",
+  "neck": "Hooded",
+  "price": 2598,
+  "mrp": 3499,
+  "discount_percent": 26,
+  "currency": "INR",
+  "rating": 4.1,
+  "rating_count": 993,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 6,
+   "M": 0,
+   "L": 18,
+   "XL": 18,
+   "XXL": 0
+  },
+  "in_stock": true,
+  "highlights": [
+   "A mustard yellow pullover hoodie that brightens a winter outfit",
+   "Double-layer hood with flat drawcords",
+   "Kangaroo pocket",
+   "Soft brushed inside"
+  ],
+  "description": "A mustard yellow pullover hoodie that brightens a winter outfit.",
+  "care": "Machine wash cold, dry flat",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 2,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA036.jpg",
+  "image_credit": {
+   "photographer": "cottonbro studio",
+   "url": "https://www.pexels.com/photo/man-in-hoodie-making-shapes-with-hands-6322586/"
+  }
+ },
+ {
+  "id": "VA037",
+  "sku": "VYM-HOO-037",
+  "name": "Sky Pullover Hoodie",
+  "title": "Vyom Active Men's Sky blue Sky Pullover Hoodie - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Hoodies",
+  "subcategory": "Hoodies",
+  "fabric": "Cotton-rich fleece",
+  "color": "Sky blue",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Winter"
+  ],
+  "fit": "Relaxed",
+  "sleeve": "Full sleeve",
+  "neck": "Hooded",
+  "price": 2798,
+  "mrp": 3999,
+  "discount_percent": 30,
+  "currency": "INR",
+  "rating": 4.6,
+  "rating_count": 2253,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 9,
+   "M": 12,
+   "L": 18,
+   "XL": 9,
+   "XXL": 6
+  },
+  "in_stock": true,
+  "highlights": [
+   "A sky blue pullover hoodie in a light fleece",
+   "Double-layer hood with flat drawcords",
+   "Kangaroo pocket",
+   "Soft brushed inside"
+  ],
+  "description": "A sky blue pullover hoodie in a light fleece.",
+  "care": "Machine wash cold, dry flat",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA037.jpg",
+  "image_credit": {
+   "photographer": "Nicolás Rueda",
+   "url": "https://www.pexels.com/photo/a-man-in-white-hoodie-jacket-12638897/"
+  }
+ },
+ {
+  "id": "VA038",
+  "sku": "VYM-HOO-038",
+  "name": "Coral Pullover Hoodie",
+  "title": "Vyom Active Men's Coral pink Coral Pullover Hoodie - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Hoodies",
+  "subcategory": "Hoodies",
+  "fabric": "Cotton-rich fleece",
+  "color": "Coral pink",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Winter"
+  ],
+  "fit": "Relaxed",
+  "sleeve": "Full sleeve",
+  "neck": "Hooded",
+  "price": 1698,
+  "mrp": 2499,
+  "discount_percent": 32,
+  "currency": "INR",
+  "rating": 4.2,
+  "rating_count": 464,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 18,
+   "M": 9,
+   "L": 3,
+   "XL": 6,
+   "XXL": 3
+  },
+  "in_stock": true,
+  "highlights": [
+   "A coral pink pullover hoodie, a softer shade for everyday wear",
+   "Double-layer hood with flat drawcords",
+   "Kangaroo pocket",
+   "Soft brushed inside"
+  ],
+  "description": "A coral pink pullover hoodie, a softer shade for everyday wear.",
+  "care": "Machine wash cold, dry flat",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 2,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA038.jpg",
+  "image_credit": {
+   "photographer": "Mizuno K",
+   "url": "https://www.pexels.com/photo/man-in-cap-with-bag-13431729/"
+  }
+ },
+ {
+  "id": "VA039",
+  "sku": "VYM-JAC-039",
+  "name": "Windcheater Jacket",
+  "title": "Vyom Active Men's Amber Windcheater Jacket - Running, Travel",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Jackets",
+  "subcategory": "Jackets",
+  "fabric": "Water-resistant polyester",
+  "color": "Amber",
+  "pattern": "Solid",
+  "occasion": [
+   "Running",
+   "Travel",
+   "Winter"
+  ],
+  "fit": "Regular",
+  "sleeve": "Full sleeve",
+  "neck": "Stand collar",
+  "price": 2998,
+  "mrp": 3999,
+  "discount_percent": 25,
+  "currency": "INR",
+  "rating": 4.6,
+  "rating_count": 1213,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 9,
+   "M": 18,
+   "L": 18,
+   "XL": 3,
+   "XXL": 6
+  },
+  "in_stock": true,
+  "highlights": [
+   "An amber windcheater with a stand collar and full zip",
+   "Full zip with a chin guard",
+   "Light water-resistant finish for drizzle",
+   "Zip hand pockets"
+  ],
+  "description": "An amber windcheater with a stand collar and full zip.",
+  "care": "Machine wash cold, do not bleach",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA039.jpg",
+  "image_credit": {
+   "photographer": "Aynur Latfullin",
+   "url": "https://www.pexels.com/photo/a-handsome-man-sitting-on-the-railway-9527423/"
+  }
+ },
+ {
+  "id": "VA040",
+  "sku": "VYM-JAC-040",
+  "name": "Colour-block Track Jacket",
+  "title": "Vyom Active Men's Navy and white Colour-block Track Jacket - Running, Travel",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Jackets",
+  "subcategory": "Jackets",
+  "fabric": "Water-resistant polyester",
+  "color": "Navy and white",
+  "pattern": "Colour block",
+  "occasion": [
+   "Running",
+   "Travel",
+   "Winter"
+  ],
+  "fit": "Regular",
+  "sleeve": "Full sleeve",
+  "neck": "Stand collar",
+  "price": 2398,
+  "mrp": 3299,
+  "discount_percent": 27,
+  "currency": "INR",
+  "rating": 3.9,
+  "rating_count": 804,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 0,
+   "M": 12,
+   "L": 12,
+   "XL": 3,
+   "XXL": 0
+  },
+  "in_stock": true,
+  "highlights": [
+   "A navy and white colour-block track jacket, sold with matching track pants",
+   "Full zip with a chin guard",
+   "Light water-resistant finish for drizzle",
+   "Zip hand pockets"
+  ],
+  "description": "A navy and white colour-block track jacket, sold with matching track pants.",
+  "care": "Machine wash cold, do not bleach",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA040.jpg",
+  "image_credit": {
+   "photographer": "Aj Collins  Artistry",
+   "url": "https://www.pexels.com/photo/stylish-portrait-of-man-in-track-suit-on-red-backdrop-35641385/"
+  }
+ },
+ {
+  "id": "VA041",
+  "sku": "VYM-JAC-041",
+  "name": "Retro Track Jacket",
+  "title": "Vyom Active Men's Ivory and navy Retro Track Jacket - Running, Travel",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Jackets",
+  "subcategory": "Jackets",
+  "fabric": "Water-resistant polyester",
+  "color": "Ivory and navy",
+  "pattern": "Colour block",
+  "occasion": [
+   "Running",
+   "Travel",
+   "Winter"
+  ],
+  "fit": "Regular",
+  "sleeve": "Full sleeve",
+  "neck": "Stand collar",
+  "price": 2298,
+  "mrp": 2999,
+  "discount_percent": 23,
+  "currency": "INR",
+  "rating": 4.7,
+  "rating_count": 2202,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 12,
+   "M": 3,
+   "L": 6,
+   "XL": 18,
+   "XXL": 18
+  },
+  "in_stock": true,
+  "highlights": [
+   "An ivory track jacket with navy sleeves and a retro collar",
+   "Full zip with a chin guard",
+   "Light water-resistant finish for drizzle",
+   "Zip hand pockets"
+  ],
+  "description": "An ivory track jacket with navy sleeves and a retro collar.",
+  "care": "Machine wash cold, do not bleach",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA041.jpg",
+  "image_credit": {
+   "photographer": "Gift  Omoh",
+   "url": "https://www.pexels.com/photo/man-gesturing-outdoors-in-athletic-jacket-36107624/"
+  }
+ },
+ {
+  "id": "VA042",
+  "sku": "VYM-JAC-042",
+  "name": "Quilted Puffer Jacket",
+  "title": "Vyom Active Men's Navy Quilted Puffer Jacket - Winter, Travel",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Jackets",
+  "subcategory": "Jackets",
+  "fabric": "Quilted nylon with synthetic fill",
+  "color": "Navy",
+  "pattern": "Solid",
+  "occasion": [
+   "Winter",
+   "Travel",
+   "Outdoor"
+  ],
+  "fit": "Regular",
+  "sleeve": "Full sleeve",
+  "neck": "Stand collar",
+  "price": 3298,
+  "mrp": 5199,
+  "discount_percent": 37,
+  "currency": "INR",
+  "rating": 4.0,
+  "rating_count": 1429,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 18,
+   "M": 18,
+   "L": 9,
+   "XL": 12,
+   "XXL": 0
+  },
+  "in_stock": true,
+  "highlights": [
+   "A navy quilted puffer jacket for cold mornings and travel",
+   "Full zip with a chin guard",
+   "Light water-resistant finish for drizzle",
+   "Zip hand pockets"
+  ],
+  "description": "A navy quilted puffer jacket for cold mornings and travel.",
+  "care": "Machine wash cold, do not bleach",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA042.jpg",
+  "image_credit": {
+   "photographer": "Vɩsʜʌɭ Sʌɩŋɩ",
+   "url": "https://www.pexels.com/photo/man-posing-on-railway-15348454/"
+  }
+ },
+ {
+  "id": "VA043",
+  "sku": "VYM-JAC-043",
+  "name": "Run Shell Jacket",
+  "title": "Vyom Active Men's Black Run Shell Jacket - Running, Travel",
+  "brand": "Vyom Active",
+  "gender": "Men",
+  "category": "Jackets",
+  "subcategory": "Jackets",
+  "fabric": "Water-resistant polyester",
+  "color": "Black",
+  "pattern": "Solid",
+  "occasion": [
+   "Running",
+   "Travel",
+   "Winter"
+  ],
+  "fit": "Regular",
+  "sleeve": "Full sleeve",
+  "neck": "Stand collar",
+  "price": 2198,
+  "mrp": 2899,
+  "discount_percent": 24,
+  "currency": "INR",
+  "rating": 4.0,
+  "rating_count": 595,
+  "sizes_available": [
+   "S",
+   "M",
+   "L",
+   "XL",
+   "XXL"
+  ],
+  "stock": {
+   "S": 9,
+   "M": 9,
+   "L": 3,
+   "XL": 18,
+   "XXL": 12
+  },
+  "in_stock": true,
+  "highlights": [
+   "A black lightweight shell jacket for runs in wind and drizzle",
+   "Full zip with a chin guard",
+   "Light water-resistant finish for drizzle",
+   "Zip hand pockets"
+  ],
+  "description": "A black lightweight shell jacket for runs in wind and drizzle.",
+  "care": "Machine wash cold, do not bleach",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA043.jpg",
+  "image_credit": {
+   "photographer": "Liliana Drew",
+   "url": "https://www.pexels.com/photo/man-holding-on-a-railing-beside-a-riverbank-8497700/"
+  }
+ },
+ {
+  "id": "VA044",
+  "sku": "VYM-SPO-044",
+  "name": "Everyday Sports Bra",
+  "title": "Vyom Active Women's Lilac Everyday Sports Bra - Gym, Yoga",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Sports Bras",
+  "subcategory": "Sports Bras",
+  "fabric": "Nylon-spandex with removable pads",
+  "color": "Lilac",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Yoga",
+   "Running"
+  ],
+  "fit": "Medium support",
+  "sleeve": "Sleeveless",
+  "neck": "Scoop neck",
+  "price": 798,
+  "mrp": 1199,
+  "discount_percent": 33,
+  "currency": "INR",
+  "rating": 4.6,
+  "rating_count": 880,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 0,
+   "S": 12,
+   "M": 9,
+   "L": 18,
+   "XL": 9
+  },
+  "in_stock": true,
+  "highlights": [
+   "A lilac scoop-neck sports bra with medium support",
+   "Medium support for gym, yoga and runs",
+   "Removable pads",
+   "Wide band that does not roll"
+  ],
+  "description": "A lilac scoop-neck sports bra with medium support.",
+  "care": "Hand wash or gentle cycle in a laundry bag",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA044.jpg",
+  "image_credit": {
+   "photographer": "Murat IŞIK",
+   "url": "https://www.pexels.com/photo/confident-woman-in-gym-attire-ready-to-workout-39635391/"
+  }
+ },
+ {
+  "id": "VA045",
+  "sku": "VYM-SPO-045",
+  "name": "Racerback Sports Bra",
+  "title": "Vyom Active Women's Black Racerback Sports Bra - Gym, Yoga",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Sports Bras",
+  "subcategory": "Sports Bras",
+  "fabric": "Nylon-spandex with removable pads",
+  "color": "Black",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Yoga",
+   "Running"
+  ],
+  "fit": "Medium support",
+  "sleeve": "Sleeveless",
+  "neck": "Scoop neck",
+  "price": 898,
+  "mrp": 1299,
+  "discount_percent": 31,
+  "currency": "INR",
+  "rating": 4.7,
+  "rating_count": 1981,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 12,
+   "S": 0,
+   "M": 9,
+   "L": 3,
+   "XL": 12
+  },
+  "in_stock": true,
+  "highlights": [
+   "A black racerback sports bra with a wide under-band",
+   "Medium support for gym, yoga and runs",
+   "Removable pads",
+   "Wide band that does not roll"
+  ],
+  "description": "A black racerback sports bra with a wide under-band.",
+  "care": "Hand wash or gentle cycle in a laundry bag",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA045.jpg",
+  "image_credit": {
+   "photographer": "Anna Shvets",
+   "url": "https://www.pexels.com/photo/a-woman-wearing-an-activewear-6250870/"
+  }
+ },
+ {
+  "id": "VA046",
+  "sku": "VYM-SPO-046",
+  "name": "Seamless Sports Bra",
+  "title": "Vyom Active Women's Charcoal Seamless Sports Bra - Gym, Yoga",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Sports Bras",
+  "subcategory": "Sports Bras",
+  "fabric": "Seamless knit",
+  "color": "Charcoal",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Yoga",
+   "Running"
+  ],
+  "fit": "Medium support",
+  "sleeve": "Sleeveless",
+  "neck": "Scoop neck",
+  "price": 1498,
+  "mrp": 2399,
+  "discount_percent": 38,
+  "currency": "INR",
+  "rating": 4.2,
+  "rating_count": 1961,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 12,
+   "S": 12,
+   "M": 3,
+   "L": 3,
+   "XL": 18
+  },
+  "in_stock": true,
+  "highlights": [
+   "A charcoal seamless sports bra with a soft ribbed band",
+   "Medium support for gym, yoga and runs",
+   "Removable pads",
+   "Wide band that does not roll"
+  ],
+  "description": "A charcoal seamless sports bra with a soft ribbed band.",
+  "care": "Hand wash or gentle cycle in a laundry bag",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA046.jpg",
+  "image_credit": {
+   "photographer": "Smooth Models",
+   "url": "https://www.pexels.com/photo/confident-woman-posing-in-athletic-wear-40027335/"
+  }
+ },
+ {
+  "id": "VA047",
+  "sku": "VYM-SPO-047",
+  "name": "Longline Sports Bra",
+  "title": "Vyom Active Women's Burnt orange Longline Sports Bra - Gym, Yoga",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Sports Bras",
+  "subcategory": "Sports Bras",
+  "fabric": "Nylon-spandex with removable pads",
+  "color": "Burnt orange",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Yoga",
+   "Running"
+  ],
+  "fit": "Medium support",
+  "sleeve": "Sleeveless",
+  "neck": "Scoop neck",
+  "price": 1098,
+  "mrp": 1499,
+  "discount_percent": 27,
+  "currency": "INR",
+  "rating": 4.6,
+  "rating_count": 2375,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 3,
+   "S": 12,
+   "M": 6,
+   "L": 3,
+   "XL": 3
+  },
+  "in_stock": true,
+  "highlights": [
+   "A burnt orange longline sports bra that sits lower on the ribs",
+   "Medium support for gym, yoga and runs",
+   "Removable pads",
+   "Wide band that does not roll"
+  ],
+  "description": "A burnt orange longline sports bra that sits lower on the ribs.",
+  "care": "Hand wash or gentle cycle in a laundry bag",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA047.jpg",
+  "image_credit": {
+   "photographer": "cottonbro studio",
+   "url": "https://www.pexels.com/photo/a-woman-in-orange-sports-bra-with-her-hands-on-her-waist-5310916/"
+  }
+ },
+ {
+  "id": "VA048",
+  "sku": "VYM-SPO-048",
+  "name": "Training Sports Bra",
+  "title": "Vyom Active Women's White Training Sports Bra - Gym, Yoga",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Sports Bras",
+  "subcategory": "Sports Bras",
+  "fabric": "Nylon-spandex with removable pads",
+  "color": "White",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Yoga",
+   "Running"
+  ],
+  "fit": "Medium support",
+  "sleeve": "Sleeveless",
+  "neck": "Scoop neck",
+  "price": 1398,
+  "mrp": 1799,
+  "discount_percent": 22,
+  "currency": "INR",
+  "rating": 4.4,
+  "rating_count": 1203,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 3,
+   "S": 9,
+   "M": 0,
+   "L": 18,
+   "XL": 0
+  },
+  "in_stock": true,
+  "highlights": [
+   "A white training sports bra with a clean, simple line",
+   "Medium support for gym, yoga and runs",
+   "Removable pads",
+   "Wide band that does not roll"
+  ],
+  "description": "A white training sports bra with a clean, simple line.",
+  "care": "Hand wash or gentle cycle in a laundry bag",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA048.jpg",
+  "image_credit": {
+   "photographer": "Antoni Shkraba",
+   "url": "https://www.pexels.com/photo/a-female-boxer-wearing-medals-6827086/"
+  }
+ },
+ {
+  "id": "VA049",
+  "sku": "VYM-SPO-049",
+  "name": "Contrast Strap Bra",
+  "title": "Vyom Active Women's Heather grey Contrast Strap Bra - Gym, Yoga",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Sports Bras",
+  "subcategory": "Sports Bras",
+  "fabric": "Nylon-spandex with removable pads",
+  "color": "Heather grey",
+  "pattern": "Contrast straps",
+  "occasion": [
+   "Gym",
+   "Yoga",
+   "Running"
+  ],
+  "fit": "Medium support",
+  "sleeve": "Sleeveless",
+  "neck": "Scoop neck",
+  "price": 998,
+  "mrp": 1499,
+  "discount_percent": 33,
+  "currency": "INR",
+  "rating": 4.3,
+  "rating_count": 1265,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 3,
+   "S": 3,
+   "M": 9,
+   "L": 0,
+   "XL": 0
+  },
+  "in_stock": true,
+  "highlights": [
+   "A heather grey sports bra with sky blue contrast straps",
+   "Medium support for gym, yoga and runs",
+   "Removable pads",
+   "Wide band that does not roll"
+  ],
+  "description": "A heather grey sports bra with sky blue contrast straps.",
+  "care": "Hand wash or gentle cycle in a laundry bag",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA049.jpg",
+  "image_credit": {
+   "photographer": "MART  PRODUCTION",
+   "url": "https://www.pexels.com/photo/woman-in-sports-bra-looking-at-the-camera-8846209/"
+  }
+ },
+ {
+  "id": "VA050",
+  "sku": "VYM-SPO-050",
+  "name": "Strappy Back Bra",
+  "title": "Vyom Active Women's Navy Strappy Back Bra - Yoga, Gym",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Sports Bras",
+  "subcategory": "Sports Bras",
+  "fabric": "Nylon-spandex with removable pads",
+  "color": "Navy",
+  "pattern": "Solid",
+  "occasion": [
+   "Yoga",
+   "Gym",
+   "Everyday"
+  ],
+  "fit": "Light support",
+  "sleeve": "Sleeveless",
+  "neck": "Scoop neck",
+  "price": 1598,
+  "mrp": 2399,
+  "discount_percent": 33,
+  "currency": "INR",
+  "rating": 4.0,
+  "rating_count": 1974,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 9,
+   "S": 18,
+   "M": 18,
+   "L": 18,
+   "XL": 18
+  },
+  "in_stock": true,
+  "highlights": [
+   "A navy strappy-back sports bra for yoga and studio classes",
+   "Medium support for gym, yoga and runs",
+   "Removable pads",
+   "Wide band that does not roll"
+  ],
+  "description": "A navy strappy-back sports bra for yoga and studio classes.",
+  "care": "Hand wash or gentle cycle in a laundry bag",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA050.jpg",
+  "image_credit": {
+   "photographer": "David Geib",
+   "url": "https://www.pexels.com/photo/a-woman-in-black-sports-bra-posing-3268527/"
+  }
+ },
+ {
+  "id": "VA051",
+  "sku": "VYM-SPO-051",
+  "name": "Sculpt Sports Bra",
+  "title": "Vyom Active Women's Mocha Sculpt Sports Bra - Gym, Yoga",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Sports Bras",
+  "subcategory": "Sports Bras",
+  "fabric": "Nylon-spandex with removable pads",
+  "color": "Mocha",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Yoga",
+   "Running"
+  ],
+  "fit": "Medium support",
+  "sleeve": "Sleeveless",
+  "neck": "Scoop neck",
+  "price": 1198,
+  "mrp": 1899,
+  "discount_percent": 37,
+  "currency": "INR",
+  "rating": 4.4,
+  "rating_count": 1826,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 0,
+   "S": 3,
+   "M": 12,
+   "L": 3,
+   "XL": 9
+  },
+  "in_stock": true,
+  "highlights": [
+   "A mocha brown sculpting sports bra, part of a matching set",
+   "Medium support for gym, yoga and runs",
+   "Removable pads",
+   "Wide band that does not roll"
+  ],
+  "description": "A mocha brown sculpting sports bra, part of a matching set.",
+  "care": "Hand wash or gentle cycle in a laundry bag",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA051.jpg",
+  "image_credit": {
+   "photographer": "Murat IŞIK",
+   "url": "https://www.pexels.com/photo/smiling-woman-in-activewear-at-gym-39635347/"
+  }
+ },
+ {
+  "id": "VA052",
+  "sku": "VYM-SPO-052",
+  "name": "Marl Sports Bra",
+  "title": "Vyom Active Women's Taupe Marl Sports Bra - Gym, Yoga",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Sports Bras",
+  "subcategory": "Sports Bras",
+  "fabric": "Nylon-spandex with removable pads",
+  "color": "Taupe",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Yoga",
+   "Running"
+  ],
+  "fit": "Medium support",
+  "sleeve": "Sleeveless",
+  "neck": "Scoop neck",
+  "price": 798,
+  "mrp": 1199,
+  "discount_percent": 33,
+  "currency": "INR",
+  "rating": 4.6,
+  "rating_count": 612,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 0,
+   "S": 3,
+   "M": 9,
+   "L": 3,
+   "XL": 0
+  },
+  "in_stock": true,
+  "highlights": [
+   "A taupe marl sports bra with thin straps",
+   "Medium support for gym, yoga and runs",
+   "Removable pads",
+   "Wide band that does not roll"
+  ],
+  "description": "A taupe marl sports bra with thin straps.",
+  "care": "Hand wash or gentle cycle in a laundry bag",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 2,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA052.jpg",
+  "image_credit": {
+   "photographer": "morpheus",
+   "url": "https://www.pexels.com/photo/woman-wearing-gray-sports-bra-and-leggings-11319094/"
+  }
+ },
+ {
+  "id": "VA053",
+  "sku": "VYM-LEG-053",
+  "name": "Side Stripe Leggings",
+  "title": "Vyom Active Women's Berry Side Stripe Leggings - Yoga, Gym",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Leggings",
+  "subcategory": "Leggings",
+  "fabric": "Squat-proof nylon-spandex",
+  "color": "Berry",
+  "pattern": "Side stripe",
+  "occasion": [
+   "Yoga",
+   "Gym",
+   "Running"
+  ],
+  "fit": "High-waisted",
+  "sleeve": "",
+  "neck": "",
+  "price": 1598,
+  "mrp": 2299,
+  "discount_percent": 30,
+  "currency": "INR",
+  "rating": 4.0,
+  "rating_count": 1689,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 9,
+   "S": 9,
+   "M": 9,
+   "L": 18,
+   "XL": 0
+  },
+  "in_stock": true,
+  "highlights": [
+   "Berry pink leggings with a black stripe down each side",
+   "High waistband that stays put through squats",
+   "Squat-proof, non-sheer fabric",
+   "Side pocket that fits a phone"
+  ],
+  "description": "Berry pink leggings with a black stripe down each side.",
+  "care": "Machine wash cold, no fabric softener",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA053.jpg",
+  "image_credit": {
+   "photographer": "Camviu Studio",
+   "url": "https://www.pexels.com/photo/womens-legs-in-pink-leggins-16701769/"
+  }
+ },
+ {
+  "id": "VA054",
+  "sku": "VYM-LEG-054",
+  "name": "High-rise Power Leggings",
+  "title": "Vyom Active Women's Hot pink High-rise Power Leggings - Yoga, Gym",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Leggings",
+  "subcategory": "Leggings",
+  "fabric": "Squat-proof nylon-spandex",
+  "color": "Hot pink",
+  "pattern": "Solid",
+  "occasion": [
+   "Yoga",
+   "Gym",
+   "Running"
+  ],
+  "fit": "High-waisted",
+  "sleeve": "",
+  "neck": "",
+  "price": 998,
+  "mrp": 1299,
+  "discount_percent": 23,
+  "currency": "INR",
+  "rating": 4.4,
+  "rating_count": 1532,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 3,
+   "S": 12,
+   "M": 6,
+   "L": 6,
+   "XL": 0
+  },
+  "in_stock": true,
+  "highlights": [
+   "Hot pink high-rise leggings that hold through heavy lifts",
+   "High waistband that stays put through squats",
+   "Squat-proof, non-sheer fabric",
+   "Side pocket that fits a phone"
+  ],
+  "description": "Hot pink high-rise leggings that hold through heavy lifts.",
+  "care": "Machine wash cold, no fabric softener",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA054.jpg",
+  "image_credit": {
+   "photographer": "Nano Erdozain",
+   "url": "https://www.pexels.com/photo/woman-weightlifting-at-the-gym-19526007/"
+  }
+ },
+ {
+  "id": "VA055",
+  "sku": "VYM-LEG-055",
+  "name": "Sculpt Leggings",
+  "title": "Vyom Active Women's Cocoa Sculpt Leggings - Yoga, Gym",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Leggings",
+  "subcategory": "Leggings",
+  "fabric": "Squat-proof nylon-spandex",
+  "color": "Cocoa",
+  "pattern": "Solid",
+  "occasion": [
+   "Yoga",
+   "Gym",
+   "Running"
+  ],
+  "fit": "High-waisted",
+  "sleeve": "",
+  "neck": "",
+  "price": 998,
+  "mrp": 1399,
+  "discount_percent": 29,
+  "currency": "INR",
+  "rating": 4.0,
+  "rating_count": 2039,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 18,
+   "S": 6,
+   "M": 9,
+   "L": 3,
+   "XL": 12
+  },
+  "in_stock": true,
+  "highlights": [
+   "Cocoa brown sculpt leggings, part of a matching set",
+   "High waistband that stays put through squats",
+   "Squat-proof, non-sheer fabric",
+   "Side pocket that fits a phone"
+  ],
+  "description": "Cocoa brown sculpt leggings, part of a matching set.",
+  "care": "Machine wash cold, no fabric softener",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA055.jpg",
+  "image_credit": {
+   "photographer": "Murat IŞIK",
+   "url": "https://www.pexels.com/photo/woman-doing-lunges-with-dumbbells-at-the-gym-39635350/"
+  }
+ },
+ {
+  "id": "VA056",
+  "sku": "VYM-LEG-056",
+  "name": "Camo Print Leggings",
+  "title": "Vyom Active Women's Blue camo Camo Print Leggings - Yoga, Gym",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Leggings",
+  "subcategory": "Leggings",
+  "fabric": "Squat-proof nylon-spandex",
+  "color": "Blue camo",
+  "pattern": "Camouflage print",
+  "occasion": [
+   "Yoga",
+   "Gym",
+   "Running"
+  ],
+  "fit": "High-waisted",
+  "sleeve": "",
+  "neck": "",
+  "price": 998,
+  "mrp": 1399,
+  "discount_percent": 29,
+  "currency": "INR",
+  "rating": 3.9,
+  "rating_count": 913,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 12,
+   "S": 3,
+   "M": 18,
+   "L": 0,
+   "XL": 9
+  },
+  "in_stock": true,
+  "highlights": [
+   "Blue camouflage-print leggings for cardio days",
+   "High waistband that stays put through squats",
+   "Squat-proof, non-sheer fabric",
+   "Side pocket that fits a phone"
+  ],
+  "description": "Blue camouflage-print leggings for cardio days.",
+  "care": "Machine wash cold, no fabric softener",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA056.jpg",
+  "image_credit": {
+   "photographer": "Vika Glitter",
+   "url": "https://www.pexels.com/photo/woman-exercising-on-treadmill-in-modern-gym-28731791/"
+  }
+ },
+ {
+  "id": "VA057",
+  "sku": "VYM-LEG-057",
+  "name": "Everyday Black Leggings",
+  "title": "Vyom Active Women's Black Everyday Black Leggings - Yoga, Gym",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Leggings",
+  "subcategory": "Leggings",
+  "fabric": "Squat-proof nylon-spandex",
+  "color": "Black",
+  "pattern": "Solid",
+  "occasion": [
+   "Yoga",
+   "Gym",
+   "Running"
+  ],
+  "fit": "High-waisted",
+  "sleeve": "",
+  "neck": "",
+  "price": 1498,
+  "mrp": 2099,
+  "discount_percent": 29,
+  "currency": "INR",
+  "rating": 4.6,
+  "rating_count": 2051,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 9,
+   "S": 18,
+   "M": 18,
+   "L": 18,
+   "XL": 12
+  },
+  "in_stock": true,
+  "highlights": [
+   "Black high-waisted leggings, the everyday pair",
+   "High waistband that stays put through squats",
+   "Squat-proof, non-sheer fabric",
+   "Side pocket that fits a phone"
+  ],
+  "description": "Black high-waisted leggings, the everyday pair.",
+  "care": "Machine wash cold, no fabric softener",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA057.jpg",
+  "image_credit": {
+   "photographer": "Polina Tankilevitch",
+   "url": "https://www.pexels.com/photo/woman-in-black-leggings-and-white-sneakers-with-white-crop-top-shirt-7746223/"
+  }
+ },
+ {
+  "id": "VA058",
+  "sku": "VYM-LEG-058",
+  "name": "Studio Leggings",
+  "title": "Vyom Active Women's Ivory Studio Leggings - Yoga, Everyday",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Leggings",
+  "subcategory": "Leggings",
+  "fabric": "Squat-proof nylon-spandex",
+  "color": "Ivory",
+  "pattern": "Solid",
+  "occasion": [
+   "Yoga",
+   "Everyday",
+   "Gym"
+  ],
+  "fit": "High-waisted",
+  "sleeve": "",
+  "neck": "",
+  "price": 1298,
+  "mrp": 2099,
+  "discount_percent": 38,
+  "currency": "INR",
+  "rating": 3.9,
+  "rating_count": 2265,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 0,
+   "S": 6,
+   "M": 18,
+   "L": 0,
+   "XL": 12
+  },
+  "in_stock": true,
+  "highlights": [
+   "Ivory studio leggings, opaque and soft",
+   "High waistband that stays put through squats",
+   "Squat-proof, non-sheer fabric",
+   "Side pocket that fits a phone"
+  ],
+  "description": "Ivory studio leggings, opaque and soft.",
+  "care": "Machine wash cold, no fabric softener",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA058.jpg",
+  "image_credit": {
+   "photographer": "pedro furtado",
+   "url": "https://www.pexels.com/photo/fit-woman-exercising-with-dumbbells-indoors-30500808/"
+  }
+ },
+ {
+  "id": "VA059",
+  "sku": "VYM-LEG-059",
+  "name": "Bright Run Leggings",
+  "title": "Vyom Active Women's Tangerine Bright Run Leggings - Yoga, Gym",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Leggings",
+  "subcategory": "Leggings",
+  "fabric": "Squat-proof nylon-spandex",
+  "color": "Tangerine",
+  "pattern": "Solid",
+  "occasion": [
+   "Yoga",
+   "Gym",
+   "Running"
+  ],
+  "fit": "High-waisted",
+  "sleeve": "",
+  "neck": "",
+  "price": 1598,
+  "mrp": 2199,
+  "discount_percent": 27,
+  "currency": "INR",
+  "rating": 4.1,
+  "rating_count": 656,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 12,
+   "S": 12,
+   "M": 18,
+   "L": 6,
+   "XL": 6
+  },
+  "in_stock": true,
+  "highlights": [
+   "Tangerine orange leggings that are easy to spot on a run",
+   "High waistband that stays put through squats",
+   "Squat-proof, non-sheer fabric",
+   "Side pocket that fits a phone"
+  ],
+  "description": "Tangerine orange leggings that are easy to spot on a run.",
+  "care": "Machine wash cold, no fabric softener",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA059.jpg",
+  "image_credit": {
+   "photographer": "Gustavo Gimenez",
+   "url": "https://www.pexels.com/photo/a-woman-using-a-gym-equipment-9853440/"
+  }
+ },
+ {
+  "id": "VA060",
+  "sku": "VYM-LEG-060",
+  "name": "Soft Touch Leggings",
+  "title": "Vyom Active Women's Lavender Soft Touch Leggings - Yoga, Gym",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Leggings",
+  "subcategory": "Leggings",
+  "fabric": "Squat-proof nylon-spandex",
+  "color": "Lavender",
+  "pattern": "Solid",
+  "occasion": [
+   "Yoga",
+   "Gym",
+   "Running"
+  ],
+  "fit": "High-waisted",
+  "sleeve": "",
+  "neck": "",
+  "price": 1798,
+  "mrp": 2799,
+  "discount_percent": 36,
+  "currency": "INR",
+  "rating": 4.6,
+  "rating_count": 2244,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 12,
+   "S": 18,
+   "M": 3,
+   "L": 0,
+   "XL": 6
+  },
+  "in_stock": true,
+  "highlights": [
+   "Lavender soft-touch leggings with a buttery feel",
+   "High waistband that stays put through squats",
+   "Squat-proof, non-sheer fabric",
+   "Side pocket that fits a phone"
+  ],
+  "description": "Lavender soft-touch leggings with a buttery feel.",
+  "care": "Machine wash cold, no fabric softener",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA060.jpg",
+  "image_credit": {
+   "photographer": "Murat IŞIK",
+   "url": "https://www.pexels.com/photo/fitness-enthusiast-posing-in-modern-gym-39635377/"
+  }
+ },
+ {
+  "id": "VA061",
+  "sku": "VYM-LEG-061",
+  "name": "Zebra Print Leggings",
+  "title": "Vyom Active Women's Zebra print Zebra Print Leggings - Yoga, Gym",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Leggings",
+  "subcategory": "Leggings",
+  "fabric": "Squat-proof nylon-spandex",
+  "color": "Zebra print",
+  "pattern": "Zebra print",
+  "occasion": [
+   "Yoga",
+   "Gym",
+   "Running"
+  ],
+  "fit": "High-waisted",
+  "sleeve": "",
+  "neck": "",
+  "price": 1798,
+  "mrp": 2699,
+  "discount_percent": 33,
+  "currency": "INR",
+  "rating": 4.4,
+  "rating_count": 1963,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 0,
+   "S": 6,
+   "M": 3,
+   "L": 9,
+   "XL": 3
+  },
+  "in_stock": true,
+  "highlights": [
+   "Black and white zebra-print leggings",
+   "High waistband that stays put through squats",
+   "Squat-proof, non-sheer fabric",
+   "Side pocket that fits a phone"
+  ],
+  "description": "Black and white zebra-print leggings.",
+  "care": "Machine wash cold, no fabric softener",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 2,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA061.jpg",
+  "image_credit": {
+   "photographer": "Jonathan Borba",
+   "url": "https://www.pexels.com/photo/attractive-sportswoman-exercising-on-elliptical-trainer-4842737/"
+  }
+ },
+ {
+  "id": "VA062",
+  "sku": "VYM-LEG-062",
+  "name": "Squat-proof Leggings",
+  "title": "Vyom Active Women's Charcoal Squat-proof Leggings - Yoga, Gym",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Leggings",
+  "subcategory": "Leggings",
+  "fabric": "Squat-proof nylon-spandex",
+  "color": "Charcoal",
+  "pattern": "Solid",
+  "occasion": [
+   "Yoga",
+   "Gym",
+   "Running"
+  ],
+  "fit": "High-waisted",
+  "sleeve": "",
+  "neck": "",
+  "price": 1698,
+  "mrp": 2599,
+  "discount_percent": 35,
+  "currency": "INR",
+  "rating": 4.7,
+  "rating_count": 1881,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 12,
+   "S": 0,
+   "M": 6,
+   "L": 9,
+   "XL": 18
+  },
+  "in_stock": true,
+  "highlights": [
+   "Charcoal squat-proof leggings with a wide waistband",
+   "High waistband that stays put through squats",
+   "Squat-proof, non-sheer fabric",
+   "Side pocket that fits a phone"
+  ],
+  "description": "Charcoal squat-proof leggings with a wide waistband.",
+  "care": "Machine wash cold, no fabric softener",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA062.jpg",
+  "image_credit": {
+   "photographer": "Gursher  Gill",
+   "url": "https://www.pexels.com/photo/fit-woman-in-modern-gym-workout-session-38771194/"
+  }
+ },
+ {
+  "id": "VA063",
+  "sku": "VYM-CRO-063",
+  "name": "Cropped Cotton Tee",
+  "title": "Vyom Active Women's White Cropped Cotton Tee - Gym, Yoga",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Crop Tops",
+  "subcategory": "Crop Tops",
+  "fabric": "Cotton-spandex",
+  "color": "White",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Yoga",
+   "Everyday"
+  ],
+  "fit": "Cropped",
+  "sleeve": "Short sleeve",
+  "neck": "Crew neck",
+  "price": 598,
+  "mrp": 899,
+  "discount_percent": 33,
+  "currency": "INR",
+  "rating": 4.1,
+  "rating_count": 695,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 6,
+   "S": 9,
+   "M": 0,
+   "L": 0,
+   "XL": 9
+  },
+  "in_stock": true,
+  "highlights": [
+   "A white cropped tee that sits just above high-waisted leggings",
+   "Cropped to sit just above high-waisted leggings",
+   "Stretchy and breathable",
+   "Soft, tag-free neck"
+  ],
+  "description": "A white cropped tee that sits just above high-waisted leggings.",
+  "care": "Machine wash cold",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 2,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA063.jpg",
+  "image_credit": {
+   "photographer": "Polina Tankilevitch",
+   "url": "https://www.pexels.com/photo/a-woman-exercising-outdoors-7746268/"
+  }
+ },
+ {
+  "id": "VA064",
+  "sku": "VYM-CRO-064",
+  "name": "Crop Training Top",
+  "title": "Vyom Active Women's Dusty rose Crop Training Top - Gym, Yoga",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Crop Tops",
+  "subcategory": "Crop Tops",
+  "fabric": "Breathable polyester-spandex",
+  "color": "Dusty rose",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Yoga",
+   "Everyday"
+  ],
+  "fit": "Cropped",
+  "sleeve": "Sleeveless",
+  "neck": "Crew neck",
+  "price": 698,
+  "mrp": 899,
+  "discount_percent": 22,
+  "currency": "INR",
+  "rating": 4.4,
+  "rating_count": 631,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 9,
+   "S": 0,
+   "M": 3,
+   "L": 6,
+   "XL": 0
+  },
+  "in_stock": true,
+  "highlights": [
+   "A dusty rose sleeveless crop top for training",
+   "Cropped to sit just above high-waisted leggings",
+   "Stretchy and breathable",
+   "Soft, tag-free neck"
+  ],
+  "description": "A dusty rose sleeveless crop top for training.",
+  "care": "Machine wash cold",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA064.jpg",
+  "image_credit": {
+   "photographer": "CRISTIAN CAMILO  ESTRADA",
+   "url": "https://www.pexels.com/photo/happy-woman-celebrating-after-outdoor-fitness-event-33096786/"
+  }
+ },
+ {
+  "id": "VA065",
+  "sku": "VYM-CRO-065",
+  "name": "Crop Tank",
+  "title": "Vyom Active Women's Pebble grey Crop Tank - Gym, Yoga",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Crop Tops",
+  "subcategory": "Crop Tops",
+  "fabric": "Breathable polyester-spandex",
+  "color": "Pebble grey",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Yoga",
+   "Everyday"
+  ],
+  "fit": "Cropped",
+  "sleeve": "Short sleeve",
+  "neck": "Crew neck",
+  "price": 898,
+  "mrp": 1299,
+  "discount_percent": 31,
+  "currency": "INR",
+  "rating": 4.2,
+  "rating_count": 736,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 12,
+   "S": 9,
+   "M": 6,
+   "L": 9,
+   "XL": 0
+  },
+  "in_stock": true,
+  "highlights": [
+   "A pebble grey crop tank, worn here with matching shorts",
+   "Cropped to sit just above high-waisted leggings",
+   "Stretchy and breathable",
+   "Soft, tag-free neck"
+  ],
+  "description": "A pebble grey crop tank, worn here with matching shorts.",
+  "care": "Machine wash cold",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA065.jpg",
+  "image_credit": {
+   "photographer": "YI REN",
+   "url": "https://www.pexels.com/photo/stylish-fitness-woman-with-headphones-outdoors-34702877/"
+  }
+ },
+ {
+  "id": "VA066",
+  "sku": "VYM-CRO-066",
+  "name": "Bandeau Crop Top",
+  "title": "Vyom Active Women's Black Bandeau Crop Top - Gym, Yoga",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Crop Tops",
+  "subcategory": "Crop Tops",
+  "fabric": "Breathable polyester-spandex",
+  "color": "Black",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Yoga",
+   "Everyday"
+  ],
+  "fit": "Cropped",
+  "sleeve": "Short sleeve",
+  "neck": "Crew neck",
+  "price": 898,
+  "mrp": 1299,
+  "discount_percent": 31,
+  "currency": "INR",
+  "rating": 3.9,
+  "rating_count": 1508,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 18,
+   "S": 0,
+   "M": 6,
+   "L": 6,
+   "XL": 3
+  },
+  "in_stock": true,
+  "highlights": [
+   "A black bandeau-style crop top with wide straps",
+   "Cropped to sit just above high-waisted leggings",
+   "Stretchy and breathable",
+   "Soft, tag-free neck"
+  ],
+  "description": "A black bandeau-style crop top with wide straps.",
+  "care": "Machine wash cold",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA066.jpg",
+  "image_credit": {
+   "photographer": "César  Pérez",
+   "url": "https://www.pexels.com/photo/a-woman-wearing-a-black-crop-top-14307192/"
+  }
+ },
+ {
+  "id": "VA067",
+  "sku": "VYM-T-S-067",
+  "name": "Relaxed Gym Tee",
+  "title": "Vyom Active Women's Olive Relaxed Gym Tee - Gym, Training",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "T-Shirts",
+  "subcategory": "T-Shirts",
+  "fabric": "Cotton-poly jersey",
+  "color": "Olive",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Training",
+   "Everyday"
+  ],
+  "fit": "Relaxed",
+  "sleeve": "Short sleeve",
+  "neck": "Crew neck",
+  "price": 1098,
+  "mrp": 1399,
+  "discount_percent": 22,
+  "currency": "INR",
+  "rating": 4.5,
+  "rating_count": 1249,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 0,
+   "S": 3,
+   "M": 18,
+   "L": 3,
+   "XL": 6
+  },
+  "in_stock": true,
+  "highlights": [
+   "An olive relaxed-fit gym tee with a soft drape",
+   "Sweat-wicking jersey that dries fast between sets",
+   "Flatlock seams that do not rub under a bag strap",
+   "Holds its shape wash after wash"
+  ],
+  "description": "An olive relaxed-fit gym tee with a soft drape.",
+  "care": "Machine wash cold, do not tumble dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA067.jpg",
+  "image_credit": {
+   "photographer": "ibrahim hafedh",
+   "url": "https://www.pexels.com/photo/woman-in-tshirt-and-leggings-16412051/"
+  }
+ },
+ {
+  "id": "VA068",
+  "sku": "VYM-T-S-068",
+  "name": "Oversized Studio Tee",
+  "title": "Vyom Active Women's Navy Oversized Studio Tee - Everyday, Gym",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "T-Shirts",
+  "subcategory": "T-Shirts",
+  "fabric": "Heavyweight cotton",
+  "color": "Navy",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Gym",
+   "Streetwear"
+  ],
+  "fit": "Oversized",
+  "sleeve": "Drop-shoulder short sleeve",
+  "neck": "Crew neck",
+  "price": 898,
+  "mrp": 1199,
+  "discount_percent": 25,
+  "currency": "INR",
+  "rating": 4.1,
+  "rating_count": 1091,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 3,
+   "S": 9,
+   "M": 6,
+   "L": 6,
+   "XL": 9
+  },
+  "in_stock": true,
+  "highlights": [
+   "A navy oversized tee for warm-ups and rest days",
+   "Dropped shoulders and a boxy body for an easy, relaxed drape",
+   "220 GSM cotton that feels substantial",
+   "Ribbed neck that keeps its shape"
+  ],
+  "description": "A navy oversized tee for warm-ups and rest days.",
+  "care": "Machine wash cold, dry inside out",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA068.jpg",
+  "image_credit": {
+   "photographer": "ibrahim hafedh",
+   "url": "https://www.pexels.com/photo/woman-sitting-on-bench-at-gym-16216683/"
+  }
+ },
+ {
+  "id": "VA069",
+  "sku": "VYM-T-S-069",
+  "name": "Court Tee",
+  "title": "Vyom Active Women's White Court Tee - Gym, Sports",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "T-Shirts",
+  "subcategory": "T-Shirts",
+  "fabric": "Cotton-poly jersey",
+  "color": "White",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Sports",
+   "Everyday"
+  ],
+  "fit": "Regular",
+  "sleeve": "Short sleeve",
+  "neck": "Crew neck",
+  "price": 1098,
+  "mrp": 1699,
+  "discount_percent": 35,
+  "currency": "INR",
+  "rating": 4.2,
+  "rating_count": 200,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 12,
+   "S": 0,
+   "M": 18,
+   "L": 9,
+   "XL": 0
+  },
+  "in_stock": true,
+  "highlights": [
+   "A white fitted tee for court and gym sessions",
+   "Sweat-wicking jersey that dries fast between sets",
+   "Flatlock seams that do not rub under a bag strap",
+   "Holds its shape wash after wash"
+  ],
+  "description": "A white fitted tee for court and gym sessions.",
+  "care": "Machine wash cold, do not tumble dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA069.jpg",
+  "image_credit": {
+   "photographer": "cottonbro studio",
+   "url": "https://www.pexels.com/photo/a-woman-posing-while-holding-a-volleyball-10350233/"
+  }
+ },
+ {
+  "id": "VA070",
+  "sku": "VYM-T-S-070",
+  "name": "Fitted Active Tee",
+  "title": "Vyom Active Women's Sage Fitted Active Tee - Gym, Training",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "T-Shirts",
+  "subcategory": "T-Shirts",
+  "fabric": "Cotton-poly jersey",
+  "color": "Sage",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Training",
+   "Everyday"
+  ],
+  "fit": "Slim",
+  "sleeve": "Short sleeve",
+  "neck": "Crew neck",
+  "price": 1298,
+  "mrp": 1899,
+  "discount_percent": 32,
+  "currency": "INR",
+  "rating": 4.4,
+  "rating_count": 2062,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 9,
+   "S": 0,
+   "M": 6,
+   "L": 12,
+   "XL": 12
+  },
+  "in_stock": true,
+  "highlights": [
+   "A sage green fitted active tee",
+   "Sweat-wicking jersey that dries fast between sets",
+   "Flatlock seams that do not rub under a bag strap",
+   "Holds its shape wash after wash"
+  ],
+  "description": "A sage green fitted active tee.",
+  "care": "Machine wash cold, do not tumble dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA070.jpg",
+  "image_credit": {
+   "photographer": "Tuti Isnawati",
+   "url": "https://www.pexels.com/photo/young-woman-with-tennis-racket-indoors-40536458/"
+  }
+ },
+ {
+  "id": "VA071",
+  "sku": "VYM-T-S-071",
+  "name": "Loose Yoga Tee",
+  "title": "Vyom Active Women's Taupe Loose Yoga Tee - Yoga, Everyday",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "T-Shirts",
+  "subcategory": "T-Shirts",
+  "fabric": "Cotton-poly jersey",
+  "color": "Taupe",
+  "pattern": "Solid",
+  "occasion": [
+   "Yoga",
+   "Everyday",
+   "Gym"
+  ],
+  "fit": "Relaxed",
+  "sleeve": "Short sleeve",
+  "neck": "Crew neck",
+  "price": 1098,
+  "mrp": 1699,
+  "discount_percent": 35,
+  "currency": "INR",
+  "rating": 4.3,
+  "rating_count": 2224,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 3,
+   "S": 0,
+   "M": 12,
+   "L": 9,
+   "XL": 0
+  },
+  "in_stock": true,
+  "highlights": [
+   "A taupe loose tee for yoga and stretching",
+   "Sweat-wicking jersey that dries fast between sets",
+   "Flatlock seams that do not rub under a bag strap",
+   "Holds its shape wash after wash"
+  ],
+  "description": "A taupe loose tee for yoga and stretching.",
+  "care": "Machine wash cold, do not tumble dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA071.jpg",
+  "image_credit": {
+   "photographer": "Mikhail Nilov",
+   "url": "https://www.pexels.com/photo/woman-sitting-on-a-yoga-ball-with-arms-raised-6740745/"
+  }
+ },
+ {
+  "id": "VA072",
+  "sku": "VYM-T-S-072",
+  "name": "Soft Workout Tee",
+  "title": "Vyom Active Women's Dusty blue Soft Workout Tee - Gym, Training",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "T-Shirts",
+  "subcategory": "T-Shirts",
+  "fabric": "Cotton-poly jersey",
+  "color": "Dusty blue",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Training",
+   "Everyday"
+  ],
+  "fit": "Regular",
+  "sleeve": "Short sleeve",
+  "neck": "Crew neck",
+  "price": 598,
+  "mrp": 799,
+  "discount_percent": 25,
+  "currency": "INR",
+  "rating": 4.6,
+  "rating_count": 2330,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 6,
+   "S": 0,
+   "M": 18,
+   "L": 3,
+   "XL": 18
+  },
+  "in_stock": true,
+  "highlights": [
+   "A dusty blue workout tee in a soft jersey",
+   "Sweat-wicking jersey that dries fast between sets",
+   "Flatlock seams that do not rub under a bag strap",
+   "Holds its shape wash after wash"
+  ],
+  "description": "A dusty blue workout tee in a soft jersey.",
+  "care": "Machine wash cold, do not tumble dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA072.jpg",
+  "image_credit": {
+   "photographer": "Eren Li",
+   "url": "https://www.pexels.com/photo/flexible-boy-closing-eyes-while-stretching-out-arms-7241486/"
+  }
+ },
+ {
+  "id": "VA073",
+  "sku": "VYM-JOG-073",
+  "name": "Cuffed Joggers",
+  "title": "Vyom Active Women's Mauve Cuffed Joggers - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Joggers",
+  "subcategory": "Joggers",
+  "fabric": "Brushed cotton fleece",
+  "color": "Mauve",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Gym"
+  ],
+  "fit": "Tapered",
+  "sleeve": "",
+  "neck": "",
+  "price": 1598,
+  "mrp": 2499,
+  "discount_percent": 36,
+  "currency": "INR",
+  "rating": 4.1,
+  "rating_count": 2302,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 9,
+   "S": 0,
+   "M": 3,
+   "L": 6,
+   "XL": 18
+  },
+  "in_stock": true,
+  "highlights": [
+   "Mauve cuffed joggers with a relaxed seat",
+   "Elastic waist with an inner drawcord",
+   "Zip pockets that keep a phone in place",
+   "Ribbed cuffs that sit neatly above trainers"
+  ],
+  "description": "Mauve cuffed joggers with a relaxed seat.",
+  "care": "Machine wash cold, do not iron the print",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 2,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA073.jpg",
+  "image_credit": {
+   "photographer": "Dovydas Pranka",
+   "url": "https://www.pexels.com/photo/woman-walking-by-car-16775798/"
+  }
+ },
+ {
+  "id": "VA074",
+  "sku": "VYM-JOG-074",
+  "name": "Lounge Joggers",
+  "title": "Vyom Active Women's Oatmeal Lounge Joggers - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Joggers",
+  "subcategory": "Joggers",
+  "fabric": "Brushed cotton fleece",
+  "color": "Oatmeal",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Lounge"
+  ],
+  "fit": "Tapered",
+  "sleeve": "",
+  "neck": "",
+  "price": 1998,
+  "mrp": 2999,
+  "discount_percent": 33,
+  "currency": "INR",
+  "rating": 4.1,
+  "rating_count": 1503,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 9,
+   "S": 18,
+   "M": 12,
+   "L": 6,
+   "XL": 3
+  },
+  "in_stock": true,
+  "highlights": [
+   "Oatmeal lounge joggers, part of a matching hoodie set",
+   "Elastic waist with an inner drawcord",
+   "Zip pockets that keep a phone in place",
+   "Ribbed cuffs that sit neatly above trainers"
+  ],
+  "description": "Oatmeal lounge joggers, part of a matching hoodie set.",
+  "care": "Machine wash cold, do not iron the print",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 2,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA074.jpg",
+  "image_credit": {
+   "photographer": "HamZa NOUASRIA",
+   "url": "https://www.pexels.com/photo/woman-wearing-jacket-sitting-on-the-concrete-pavement-6185117/"
+  }
+ },
+ {
+  "id": "VA075",
+  "sku": "VYM-JOG-075",
+  "name": "Straight Leg Joggers",
+  "title": "Vyom Active Women's Red Straight Leg Joggers - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Joggers",
+  "subcategory": "Joggers",
+  "fabric": "Brushed cotton fleece",
+  "color": "Red",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Gym"
+  ],
+  "fit": "Straight",
+  "sleeve": "",
+  "neck": "",
+  "price": 2198,
+  "mrp": 3299,
+  "discount_percent": 33,
+  "currency": "INR",
+  "rating": 4.1,
+  "rating_count": 41,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 12,
+   "S": 12,
+   "M": 0,
+   "L": 3,
+   "XL": 9
+  },
+  "in_stock": true,
+  "highlights": [
+   "Red straight-leg joggers with a drawcord waist",
+   "Elastic waist with an inner drawcord",
+   "Zip pockets that keep a phone in place",
+   "Ribbed cuffs that sit neatly above trainers"
+  ],
+  "description": "Red straight-leg joggers with a drawcord waist.",
+  "care": "Machine wash cold, do not iron the print",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA075.jpg",
+  "image_credit": {
+   "photographer": "tejinder ladi photography",
+   "url": "https://www.pexels.com/photo/a-sexy-woman-in-red-jogging-pants-and-black-rubber-shoes-9901666/"
+  }
+ },
+ {
+  "id": "VA076",
+  "sku": "VYM-JOG-076",
+  "name": "Weekend Joggers",
+  "title": "Vyom Active Women's White Weekend Joggers - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Joggers",
+  "subcategory": "Joggers",
+  "fabric": "Brushed cotton fleece",
+  "color": "White",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Gym"
+  ],
+  "fit": "Tapered",
+  "sleeve": "",
+  "neck": "",
+  "price": 1398,
+  "mrp": 1999,
+  "discount_percent": 30,
+  "currency": "INR",
+  "rating": 4.2,
+  "rating_count": 2163,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 9,
+   "S": 9,
+   "M": 6,
+   "L": 12,
+   "XL": 6
+  },
+  "in_stock": true,
+  "highlights": [
+   "White joggers in a soft fleece, part of a matching set",
+   "Elastic waist with an inner drawcord",
+   "Zip pockets that keep a phone in place",
+   "Ribbed cuffs that sit neatly above trainers"
+  ],
+  "description": "White joggers in a soft fleece, part of a matching set.",
+  "care": "Machine wash cold, do not iron the print",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA076.jpg",
+  "image_credit": {
+   "photographer": "Jesutobiloba Precious",
+   "url": "https://www.pexels.com/photo/a-woman-in-white-pants-and-sneakers-squatting-27542893/"
+  }
+ },
+ {
+  "id": "VA077",
+  "sku": "VYM-JOG-077",
+  "name": "Classic Sweatpants",
+  "title": "Vyom Active Women's Heather grey Classic Sweatpants - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Joggers",
+  "subcategory": "Joggers",
+  "fabric": "Brushed cotton fleece",
+  "color": "Heather grey",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Gym"
+  ],
+  "fit": "Tapered",
+  "sleeve": "",
+  "neck": "",
+  "price": 1898,
+  "mrp": 2699,
+  "discount_percent": 30,
+  "currency": "INR",
+  "rating": 4.6,
+  "rating_count": 1725,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 9,
+   "S": 3,
+   "M": 12,
+   "L": 6,
+   "XL": 9
+  },
+  "in_stock": true,
+  "highlights": [
+   "Heather grey sweatpants with a black drawcord and cuffed ankles",
+   "Elastic waist with an inner drawcord",
+   "Zip pockets that keep a phone in place",
+   "Ribbed cuffs that sit neatly above trainers"
+  ],
+  "description": "Heather grey sweatpants with a black drawcord and cuffed ankles.",
+  "care": "Machine wash cold, do not iron the print",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 2,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA077.jpg",
+  "image_credit": {
+   "photographer": "Engin Akyurt",
+   "url": "https://www.pexels.com/photo/stylish-gray-women-s-joggers-on-white-background-39457735/"
+  }
+ },
+ {
+  "id": "VA078",
+  "sku": "VYM-JOG-078",
+  "name": "Lavender Set Joggers",
+  "title": "Vyom Active Women's Lavender Lavender Set Joggers - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Joggers",
+  "subcategory": "Joggers",
+  "fabric": "Brushed cotton fleece",
+  "color": "Lavender",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Gym"
+  ],
+  "fit": "Tapered",
+  "sleeve": "",
+  "neck": "",
+  "price": 1698,
+  "mrp": 2199,
+  "discount_percent": 23,
+  "currency": "INR",
+  "rating": 4.5,
+  "rating_count": 1040,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 0,
+   "S": 3,
+   "M": 12,
+   "L": 9,
+   "XL": 12
+  },
+  "in_stock": true,
+  "highlights": [
+   "Lavender joggers sold with a matching hoodie",
+   "Elastic waist with an inner drawcord",
+   "Zip pockets that keep a phone in place",
+   "Ribbed cuffs that sit neatly above trainers"
+  ],
+  "description": "Lavender joggers sold with a matching hoodie.",
+  "care": "Machine wash cold, do not iron the print",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 2,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA078.jpg",
+  "image_credit": {
+   "photographer": "Monstera Production",
+   "url": "https://www.pexels.com/photo/black-woman-with-afro-in-hoodie-6311676/"
+  }
+ },
+ {
+  "id": "VA079",
+  "sku": "VYM-JAC-079",
+  "name": "Run Windcheater",
+  "title": "Vyom Active Women's Coral Run Windcheater - Running, Travel",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Jackets",
+  "subcategory": "Jackets",
+  "fabric": "Water-resistant polyester",
+  "color": "Coral",
+  "pattern": "Solid",
+  "occasion": [
+   "Running",
+   "Travel",
+   "Winter"
+  ],
+  "fit": "Regular",
+  "sleeve": "Full sleeve",
+  "neck": "Stand collar",
+  "price": 2098,
+  "mrp": 2899,
+  "discount_percent": 28,
+  "currency": "INR",
+  "rating": 4.5,
+  "rating_count": 313,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 0,
+   "S": 0,
+   "M": 6,
+   "L": 9,
+   "XL": 0
+  },
+  "in_stock": true,
+  "highlights": [
+   "A coral running windcheater with a high collar",
+   "Full zip with a chin guard",
+   "Light water-resistant finish for drizzle",
+   "Zip hand pockets"
+  ],
+  "description": "A coral running windcheater with a high collar.",
+  "care": "Machine wash cold, do not bleach",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA079.jpg",
+  "image_credit": {
+   "photographer": "Maurice Engelen",
+   "url": "https://www.pexels.com/photo/back-view-of-a-woman-jogging-14104072/"
+  }
+ },
+ {
+  "id": "VA080",
+  "sku": "VYM-SHO-080",
+  "name": "Run Shorts",
+  "title": "Vyom Active Women's Flamingo pink Run Shorts - Running, Gym",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Shorts",
+  "subcategory": "Shorts",
+  "fabric": "Four-way stretch nylon",
+  "color": "Flamingo pink",
+  "pattern": "Solid",
+  "occasion": [
+   "Running",
+   "Gym",
+   "Training"
+  ],
+  "fit": "Regular",
+  "sleeve": "",
+  "neck": "",
+  "price": 798,
+  "mrp": 1199,
+  "discount_percent": 33,
+  "currency": "INR",
+  "rating": 4.2,
+  "rating_count": 322,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 3,
+   "S": 0,
+   "M": 9,
+   "L": 3,
+   "XL": 18
+  },
+  "in_stock": true,
+  "highlights": [
+   "Flamingo pink running shorts with a built-in brief",
+   "Built-in liner and a back zip pocket",
+   "Split hem for a longer stride",
+   "Reflective logo for early runs"
+  ],
+  "description": "Flamingo pink running shorts with a built-in brief.",
+  "care": "Machine wash cold, hang dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 2,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA080.jpg",
+  "image_credit": {
+   "photographer": "Willians Huerta",
+   "url": "https://www.pexels.com/photo/fit-woman-taking-a-break-during-outdoor-run-34663456/"
+  }
+ },
+ {
+  "id": "VA081",
+  "sku": "VYM-SHO-081",
+  "name": "Race Shorts",
+  "title": "Vyom Active Women's Red Race Shorts - Running, Gym",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Shorts",
+  "subcategory": "Shorts",
+  "fabric": "Four-way stretch nylon",
+  "color": "Red",
+  "pattern": "Solid",
+  "occasion": [
+   "Running",
+   "Gym",
+   "Training"
+  ],
+  "fit": "Regular",
+  "sleeve": "",
+  "neck": "",
+  "price": 1098,
+  "mrp": 1499,
+  "discount_percent": 27,
+  "currency": "INR",
+  "rating": 4.5,
+  "rating_count": 1131,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 6,
+   "S": 0,
+   "M": 18,
+   "L": 18,
+   "XL": 6
+  },
+  "in_stock": true,
+  "highlights": [
+   "Red race-day shorts cut light and short",
+   "Built-in liner and a back zip pocket",
+   "Split hem for a longer stride",
+   "Reflective logo for early runs"
+  ],
+  "description": "Red race-day shorts cut light and short.",
+  "care": "Machine wash cold, hang dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA081.jpg",
+  "image_credit": {
+   "photographer": "CRISTIAN CAMILO  ESTRADA",
+   "url": "https://www.pexels.com/photo/woman-jogging-in-lush-green-forest-path-35844183/"
+  }
+ },
+ {
+  "id": "VA082",
+  "sku": "VYM-SHO-082",
+  "name": "Trail Shorts",
+  "title": "Vyom Active Women's Cobalt blue Trail Shorts - Running, Gym",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Shorts",
+  "subcategory": "Shorts",
+  "fabric": "Four-way stretch nylon",
+  "color": "Cobalt blue",
+  "pattern": "Solid",
+  "occasion": [
+   "Running",
+   "Gym",
+   "Training"
+  ],
+  "fit": "Regular",
+  "sleeve": "",
+  "neck": "",
+  "price": 1298,
+  "mrp": 1899,
+  "discount_percent": 32,
+  "currency": "INR",
+  "rating": 3.9,
+  "rating_count": 215,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 0,
+   "S": 0,
+   "M": 12,
+   "L": 12,
+   "XL": 6
+  },
+  "in_stock": true,
+  "highlights": [
+   "Cobalt blue trail shorts with a longer inseam",
+   "Built-in liner and a back zip pocket",
+   "Split hem for a longer stride",
+   "Reflective logo for early runs"
+  ],
+  "description": "Cobalt blue trail shorts with a longer inseam.",
+  "care": "Machine wash cold, hang dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 2,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA082.jpg",
+  "image_credit": {
+   "photographer": "Steward Masweneng",
+   "url": "https://www.pexels.com/photo/a-woman-in-orange-shirt-running-11187443/"
+  }
+ },
+ {
+  "id": "VA083",
+  "sku": "VYM-SHO-083",
+  "name": "Bike Shorts",
+  "title": "Vyom Active Women's Mustard Bike Shorts - Running, Gym",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Shorts",
+  "subcategory": "Shorts",
+  "fabric": "Four-way stretch nylon",
+  "color": "Mustard",
+  "pattern": "Solid",
+  "occasion": [
+   "Running",
+   "Gym",
+   "Training"
+  ],
+  "fit": "Compression",
+  "sleeve": "",
+  "neck": "",
+  "price": 1198,
+  "mrp": 1599,
+  "discount_percent": 25,
+  "currency": "INR",
+  "rating": 4.7,
+  "rating_count": 275,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 3,
+   "S": 18,
+   "M": 3,
+   "L": 12,
+   "XL": 6
+  },
+  "in_stock": true,
+  "highlights": [
+   "Mustard yellow bike shorts in a compressive knit",
+   "Built-in liner and a back zip pocket",
+   "Split hem for a longer stride",
+   "Reflective logo for early runs"
+  ],
+  "description": "Mustard yellow bike shorts in a compressive knit.",
+  "care": "Machine wash cold, hang dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 2,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA083.jpg",
+  "image_credit": {
+   "photographer": "VANNGO Ng",
+   "url": "https://www.pexels.com/photo/joyful-runner-participating-in-outdoor-marathon-39343487/"
+  }
+ },
+ {
+  "id": "VA084",
+  "sku": "VYM-SHO-084",
+  "name": "Sprint Shorts",
+  "title": "Vyom Active Women's Black Sprint Shorts - Running, Gym",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Shorts",
+  "subcategory": "Shorts",
+  "fabric": "Four-way stretch nylon",
+  "color": "Black",
+  "pattern": "Solid",
+  "occasion": [
+   "Running",
+   "Gym",
+   "Training"
+  ],
+  "fit": "Regular",
+  "sleeve": "",
+  "neck": "",
+  "price": 998,
+  "mrp": 1299,
+  "discount_percent": 23,
+  "currency": "INR",
+  "rating": 4.2,
+  "rating_count": 942,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 18,
+   "S": 18,
+   "M": 18,
+   "L": 6,
+   "XL": 18
+  },
+  "in_stock": true,
+  "highlights": [
+   "Black sprint shorts with a wide waistband",
+   "Built-in liner and a back zip pocket",
+   "Split hem for a longer stride",
+   "Reflective logo for early runs"
+  ],
+  "description": "Black sprint shorts with a wide waistband.",
+  "care": "Machine wash cold, hang dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA084.jpg",
+  "image_credit": {
+   "photographer": "Marina Grechko",
+   "url": "https://www.pexels.com/photo/young-woman-sprinting-with-dumbbells-on-track-37925639/"
+  }
+ },
+ {
+  "id": "VA085",
+  "sku": "VYM-SHO-085",
+  "name": "High-rise Bike Shorts",
+  "title": "Vyom Active Women's Teal High-rise Bike Shorts - Running, Gym",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Shorts",
+  "subcategory": "Shorts",
+  "fabric": "Four-way stretch nylon",
+  "color": "Teal",
+  "pattern": "Solid",
+  "occasion": [
+   "Running",
+   "Gym",
+   "Training"
+  ],
+  "fit": "Compression",
+  "sleeve": "",
+  "neck": "",
+  "price": 898,
+  "mrp": 1299,
+  "discount_percent": 31,
+  "currency": "INR",
+  "rating": 4.1,
+  "rating_count": 1740,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 0,
+   "S": 6,
+   "M": 6,
+   "L": 18,
+   "XL": 0
+  },
+  "in_stock": true,
+  "highlights": [
+   "Teal high-rise bike shorts",
+   "Built-in liner and a back zip pocket",
+   "Split hem for a longer stride",
+   "Reflective logo for early runs"
+  ],
+  "description": "Teal high-rise bike shorts.",
+  "care": "Machine wash cold, hang dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA085.jpg",
+  "image_credit": {
+   "photographer": "Ambre Vaudry",
+   "url": "https://www.pexels.com/photo/active-woman-exercising-outdoors-on-sunny-day-33661046/"
+  }
+ },
+ {
+  "id": "VA086",
+  "sku": "VYM-SHO-086",
+  "name": "Loose Run Shorts",
+  "title": "Vyom Active Women's Burgundy Loose Run Shorts - Running, Gym",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Shorts",
+  "subcategory": "Shorts",
+  "fabric": "Four-way stretch nylon",
+  "color": "Burgundy",
+  "pattern": "Solid",
+  "occasion": [
+   "Running",
+   "Gym",
+   "Training"
+  ],
+  "fit": "Relaxed",
+  "sleeve": "",
+  "neck": "",
+  "price": 698,
+  "mrp": 1099,
+  "discount_percent": 36,
+  "currency": "INR",
+  "rating": 4.1,
+  "rating_count": 1676,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 3,
+   "S": 9,
+   "M": 9,
+   "L": 12,
+   "XL": 18
+  },
+  "in_stock": true,
+  "highlights": [
+   "Burgundy loose-fit running shorts",
+   "Built-in liner and a back zip pocket",
+   "Split hem for a longer stride",
+   "Reflective logo for early runs"
+  ],
+  "description": "Burgundy loose-fit running shorts.",
+  "care": "Machine wash cold, hang dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA086.jpg",
+  "image_credit": {
+   "photographer": "PIC MATTI",
+   "url": "https://www.pexels.com/photo/female-runner-in-marathon-on-sunny-day-40192878/"
+  }
+ },
+ {
+  "id": "VA087",
+  "sku": "VYM-HOO-087",
+  "name": "Oversized Hoodie",
+  "title": "Vyom Active Women's Heather grey Oversized Hoodie - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Hoodies",
+  "subcategory": "Hoodies",
+  "fabric": "Cotton-rich fleece",
+  "color": "Heather grey",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Winter"
+  ],
+  "fit": "Oversized",
+  "sleeve": "Full sleeve",
+  "neck": "Hooded",
+  "price": 2498,
+  "mrp": 3899,
+  "discount_percent": 36,
+  "currency": "INR",
+  "rating": 4.6,
+  "rating_count": 1340,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 3,
+   "S": 9,
+   "M": 0,
+   "L": 18,
+   "XL": 3
+  },
+  "in_stock": true,
+  "highlights": [
+   "A heather grey oversized hoodie with a kangaroo pocket",
+   "Double-layer hood with flat drawcords",
+   "Kangaroo pocket",
+   "Soft brushed inside"
+  ],
+  "description": "A heather grey oversized hoodie with a kangaroo pocket.",
+  "care": "Machine wash cold, dry flat",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA087.jpg",
+  "image_credit": {
+   "photographer": "Monstera Production",
+   "url": "https://www.pexels.com/photo/young-stylish-woman-in-gray-hoodie-6311613/"
+  }
+ },
+ {
+  "id": "VA088",
+  "sku": "VYM-HOO-088",
+  "name": "Washed Hoodie",
+  "title": "Vyom Active Women's Dusty rose Washed Hoodie - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Hoodies",
+  "subcategory": "Hoodies",
+  "fabric": "Cotton-rich fleece",
+  "color": "Dusty rose",
+  "pattern": "Garment washed",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Winter"
+  ],
+  "fit": "Relaxed",
+  "sleeve": "Full sleeve",
+  "neck": "Hooded",
+  "price": 2298,
+  "mrp": 3499,
+  "discount_percent": 34,
+  "currency": "INR",
+  "rating": 4.0,
+  "rating_count": 552,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 12,
+   "S": 18,
+   "M": 18,
+   "L": 3,
+   "XL": 18
+  },
+  "in_stock": true,
+  "highlights": [
+   "A dusty rose washed hoodie with a lived-in feel",
+   "Double-layer hood with flat drawcords",
+   "Kangaroo pocket",
+   "Soft brushed inside"
+  ],
+  "description": "A dusty rose washed hoodie with a lived-in feel.",
+  "care": "Machine wash cold, dry flat",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA088.jpg",
+  "image_credit": {
+   "photographer": "KoolShooters",
+   "url": "https://www.pexels.com/photo/girl-in-red-hoodie-holding-basketball-6076451/"
+  }
+ },
+ {
+  "id": "VA089",
+  "sku": "VYM-HOO-089",
+  "name": "Cropped Hoodie",
+  "title": "Vyom Active Women's Lilac Cropped Hoodie - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Hoodies",
+  "subcategory": "Hoodies",
+  "fabric": "Cotton-rich fleece",
+  "color": "Lilac",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Winter"
+  ],
+  "fit": "Cropped",
+  "sleeve": "Full sleeve",
+  "neck": "Hooded",
+  "price": 2298,
+  "mrp": 3299,
+  "discount_percent": 30,
+  "currency": "INR",
+  "rating": 4.2,
+  "rating_count": 1648,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 3,
+   "S": 12,
+   "M": 18,
+   "L": 6,
+   "XL": 12
+  },
+  "in_stock": true,
+  "highlights": [
+   "A lilac cropped hoodie that sits at the waist",
+   "Double-layer hood with flat drawcords",
+   "Kangaroo pocket",
+   "Soft brushed inside"
+  ],
+  "description": "A lilac cropped hoodie that sits at the waist.",
+  "care": "Machine wash cold, dry flat",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA089.jpg",
+  "image_credit": {
+   "photographer": "Mikhail Nilov",
+   "url": "https://www.pexels.com/photo/woman-in-white-long-sleeve-shirt-and-black-leggings-6739124/"
+  }
+ },
+ {
+  "id": "VA090",
+  "sku": "VYM-HOO-090",
+  "name": "Classic Hoodie",
+  "title": "Vyom Active Women's Navy Classic Hoodie - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Hoodies",
+  "subcategory": "Hoodies",
+  "fabric": "Cotton-rich fleece",
+  "color": "Navy",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Winter"
+  ],
+  "fit": "Relaxed",
+  "sleeve": "Full sleeve",
+  "neck": "Hooded",
+  "price": 2098,
+  "mrp": 2799,
+  "discount_percent": 25,
+  "currency": "INR",
+  "rating": 4.1,
+  "rating_count": 979,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 12,
+   "S": 18,
+   "M": 0,
+   "L": 0,
+   "XL": 18
+  },
+  "in_stock": true,
+  "highlights": [
+   "A navy classic hoodie with a lined hood",
+   "Double-layer hood with flat drawcords",
+   "Kangaroo pocket",
+   "Soft brushed inside"
+  ],
+  "description": "A navy classic hoodie with a lined hood.",
+  "care": "Machine wash cold, dry flat",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA090.jpg",
+  "image_credit": {
+   "photographer": "The Oluseyi",
+   "url": "https://www.pexels.com/photo/woman-sitting-in-hoodie-18011961/"
+  }
+ },
+ {
+  "id": "VA091",
+  "sku": "VYM-HOO-091",
+  "name": "Cropped Black Hoodie",
+  "title": "Vyom Active Women's Black Cropped Black Hoodie - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Hoodies",
+  "subcategory": "Hoodies",
+  "fabric": "Cotton-rich fleece",
+  "color": "Black",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Winter"
+  ],
+  "fit": "Cropped",
+  "sleeve": "Full sleeve",
+  "neck": "Hooded",
+  "price": 2698,
+  "mrp": 3899,
+  "discount_percent": 31,
+  "currency": "INR",
+  "rating": 4.3,
+  "rating_count": 1568,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 3,
+   "S": 18,
+   "M": 0,
+   "L": 9,
+   "XL": 6
+  },
+  "in_stock": true,
+  "highlights": [
+   "A black cropped hoodie with a boxy body",
+   "Double-layer hood with flat drawcords",
+   "Kangaroo pocket",
+   "Soft brushed inside"
+  ],
+  "description": "A black cropped hoodie with a boxy body.",
+  "care": "Machine wash cold, dry flat",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 2,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA091.jpg",
+  "image_credit": {
+   "photographer": "cottonbro studio",
+   "url": "https://www.pexels.com/photo/a-low-angle-shot-of-a-woman-in-black-hoodie-and-skirt-7321030/"
+  }
+ },
+ {
+  "id": "VA092",
+  "sku": "VYM-HOO-092",
+  "name": "Contrast Hood Hoodie",
+  "title": "Vyom Active Women's Raspberry Contrast Hood Hoodie - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Hoodies",
+  "subcategory": "Hoodies",
+  "fabric": "Cotton-rich fleece",
+  "color": "Raspberry",
+  "pattern": "Contrast hood",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Winter"
+  ],
+  "fit": "Relaxed",
+  "sleeve": "Full sleeve",
+  "neck": "Hooded",
+  "price": 1598,
+  "mrp": 2399,
+  "discount_percent": 33,
+  "currency": "INR",
+  "rating": 4.3,
+  "rating_count": 550,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 9,
+   "S": 18,
+   "M": 6,
+   "L": 18,
+   "XL": 9
+  },
+  "in_stock": true,
+  "highlights": [
+   "A raspberry hoodie with a grey contrast hood",
+   "Double-layer hood with flat drawcords",
+   "Kangaroo pocket",
+   "Soft brushed inside"
+  ],
+  "description": "A raspberry hoodie with a grey contrast hood.",
+  "care": "Machine wash cold, dry flat",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA092.jpg",
+  "image_credit": {
+   "photographer": "Ron Lach",
+   "url": "https://www.pexels.com/photo/a-woman-in-a-hijab-sitting-on-her-skateboard-8733938/"
+  }
+ },
+ {
+  "id": "VA093",
+  "sku": "VYM-HOO-093",
+  "name": "Mint Fleece Hoodie",
+  "title": "Vyom Active Women's Mint Mint Fleece Hoodie - Everyday, Travel",
+  "brand": "Vyom Active",
+  "gender": "Women",
+  "category": "Hoodies",
+  "subcategory": "Hoodies",
+  "fabric": "Cotton-rich fleece",
+  "color": "Mint",
+  "pattern": "Solid",
+  "occasion": [
+   "Everyday",
+   "Travel",
+   "Winter"
+  ],
+  "fit": "Relaxed",
+  "sleeve": "Full sleeve",
+  "neck": "Hooded",
+  "price": 1498,
+  "mrp": 1999,
+  "discount_percent": 25,
+  "currency": "INR",
+  "rating": 4.0,
+  "rating_count": 472,
+  "sizes_available": [
+   "XS",
+   "S",
+   "M",
+   "L",
+   "XL"
+  ],
+  "stock": {
+   "XS": 9,
+   "S": 18,
+   "M": 0,
+   "L": 12,
+   "XL": 6
+  },
+  "in_stock": true,
+  "highlights": [
+   "A mint fleece hoodie for cool morning runs",
+   "Double-layer hood with flat drawcords",
+   "Kangaroo pocket",
+   "Soft brushed inside"
+  ],
+  "description": "A mint fleece hoodie for cool morning runs.",
+  "care": "Machine wash cold, dry flat",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA093.jpg",
+  "image_credit": {
+   "photographer": "Andres  Ayrton",
+   "url": "https://www.pexels.com/photo/a-woman-in-sportswear-training-in-park-6551293/"
+  }
+ },
+ {
+  "id": "VA094",
+  "sku": "VYM-BAG-094",
+  "name": "Shoe Pocket Duffel",
+  "title": "Vyom Active Unisex Graphite Shoe Pocket Duffel - Gym, Travel",
+  "brand": "Vyom Active",
+  "gender": "Unisex",
+  "category": "Bags",
+  "subcategory": "Bags",
+  "fabric": "Ripstop polyester",
+  "color": "Graphite",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Travel"
+  ],
+  "fit": "",
+  "sleeve": "",
+  "neck": "",
+  "price": 2498,
+  "mrp": 3799,
+  "discount_percent": 34,
+  "currency": "INR",
+  "rating": 4.4,
+  "rating_count": 943,
+  "sizes_available": [
+   "Free Size"
+  ],
+  "stock": {
+   "Free Size": 22
+  },
+  "in_stock": true,
+  "highlights": [
+   "A graphite and black gym duffel with tan straps and a shoe pocket",
+   "Separate shoe compartment",
+   "Water-resistant base",
+   "Padded adjustable shoulder strap"
+  ],
+  "description": "A graphite and black gym duffel with tan straps and a shoe pocket.",
+  "care": "Wipe clean with a damp cloth",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA094.jpg",
+  "image_credit": {
+   "photographer": "Erik Mclean",
+   "url": "https://www.pexels.com/photo/gray-and-brown-backpack-on-brown-wooden-table-9391902/"
+  }
+ },
+ {
+  "id": "VA095",
+  "sku": "VYM-BAG-095",
+  "name": "Weekender Duffel",
+  "title": "Vyom Active Unisex Black Weekender Duffel - Travel, Gym",
+  "brand": "Vyom Active",
+  "gender": "Unisex",
+  "category": "Bags",
+  "subcategory": "Bags",
+  "fabric": "Canvas with leather-look handles",
+  "color": "Black",
+  "pattern": "Solid",
+  "occasion": [
+   "Travel",
+   "Gym"
+  ],
+  "fit": "",
+  "sleeve": "",
+  "neck": "",
+  "price": 1298,
+  "mrp": 1799,
+  "discount_percent": 28,
+  "currency": "INR",
+  "rating": 4.4,
+  "rating_count": 2149,
+  "sizes_available": [
+   "Free Size"
+  ],
+  "stock": {
+   "Free Size": 22
+  },
+  "in_stock": true,
+  "highlights": [
+   "A black weekender duffel with tan carry handles",
+   "Separate shoe compartment",
+   "Water-resistant base",
+   "Padded adjustable shoulder strap"
+  ],
+  "description": "A black weekender duffel with tan carry handles.",
+  "care": "Wipe clean with a damp cloth",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA095.jpg",
+  "image_credit": {
+   "photographer": "Erik Mclean",
+   "url": "https://www.pexels.com/photo/a-black-bag-on-a-printed-armchair-9582656/"
+  }
+ },
+ {
+  "id": "VA096",
+  "sku": "VYM-BAG-096",
+  "name": "Shoulder Gym Bag",
+  "title": "Vyom Active Unisex Black Shoulder Gym Bag - Gym, Travel",
+  "brand": "Vyom Active",
+  "gender": "Unisex",
+  "category": "Bags",
+  "subcategory": "Bags",
+  "fabric": "Ripstop polyester",
+  "color": "Black",
+  "pattern": "Solid",
+  "occasion": [
+   "Gym",
+   "Travel"
+  ],
+  "fit": "",
+  "sleeve": "",
+  "neck": "",
+  "price": 2398,
+  "mrp": 3099,
+  "discount_percent": 23,
+  "currency": "INR",
+  "rating": 4.6,
+  "rating_count": 1996,
+  "sizes_available": [
+   "Free Size"
+  ],
+  "stock": {
+   "Free Size": 8
+  },
+  "in_stock": true,
+  "highlights": [
+   "A black shoulder gym bag with a single wide strap",
+   "Separate shoe compartment",
+   "Water-resistant base",
+   "Padded adjustable shoulder strap"
+  ],
+  "description": "A black shoulder gym bag with a single wide strap.",
+  "care": "Wipe clean with a damp cloth",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA096.jpg",
+  "image_credit": {
+   "photographer": "Tree of Life Seeds",
+   "url": "https://www.pexels.com/photo/woman-in-white-tank-top-and-black-pants-carrying-black-sling-bag-3577288/"
+  }
+ },
+ {
+  "id": "VA097",
+  "sku": "VYM-CAP-097",
+  "name": "Classic Sports Cap",
+  "title": "Vyom Active Unisex Black Classic Sports Cap - Running, Everyday",
+  "brand": "Vyom Active",
+  "gender": "Unisex",
+  "category": "Caps",
+  "subcategory": "Caps",
+  "fabric": "Cotton twill",
+  "color": "Black",
+  "pattern": "Solid",
+  "occasion": [
+   "Running",
+   "Everyday",
+   "Outdoor"
+  ],
+  "fit": "",
+  "sleeve": "",
+  "neck": "",
+  "price": 598,
+  "mrp": 899,
+  "discount_percent": 33,
+  "currency": "INR",
+  "rating": 4.6,
+  "rating_count": 635,
+  "sizes_available": [
+   "Free Size"
+  ],
+  "stock": {
+   "Free Size": 15
+  },
+  "in_stock": true,
+  "highlights": [
+   "A black six-panel sports cap",
+   "Adjustable back strap",
+   "Curved peak against the sun",
+   "Sweatband inside"
+  ],
+  "description": "A black six-panel sports cap.",
+  "care": "Hand wash, air dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 2,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA097.jpg",
+  "image_credit": {
+   "photographer": "Lloyd  James",
+   "url": "https://www.pexels.com/photo/woman-in-sports-clothing-sitting-on-a-leather-chair-11945298/"
+  }
+ },
+ {
+  "id": "VA098",
+  "sku": "VYM-CAP-098",
+  "name": "Soft Crown Cap",
+  "title": "Vyom Active Unisex Pebble grey Soft Crown Cap - Running, Everyday",
+  "brand": "Vyom Active",
+  "gender": "Unisex",
+  "category": "Caps",
+  "subcategory": "Caps",
+  "fabric": "Cotton twill",
+  "color": "Pebble grey",
+  "pattern": "Solid",
+  "occasion": [
+   "Running",
+   "Everyday",
+   "Outdoor"
+  ],
+  "fit": "",
+  "sleeve": "",
+  "neck": "",
+  "price": 698,
+  "mrp": 999,
+  "discount_percent": 30,
+  "currency": "INR",
+  "rating": 4.5,
+  "rating_count": 2146,
+  "sizes_available": [
+   "Free Size"
+  ],
+  "stock": {
+   "Free Size": 8
+  },
+  "in_stock": true,
+  "highlights": [
+   "A pebble grey soft-crown cap",
+   "Adjustable back strap",
+   "Curved peak against the sun",
+   "Sweatband inside"
+  ],
+  "description": "A pebble grey soft-crown cap.",
+  "care": "Hand wash, air dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA098.jpg",
+  "image_credit": {
+   "photographer": "Ali  Alcántara",
+   "url": "https://www.pexels.com/photo/a-woman-holding-a-football-13620870/"
+  }
+ },
+ {
+  "id": "VA099",
+  "sku": "VYM-CAP-099",
+  "name": "Run Cap",
+  "title": "Vyom Active Unisex White Run Cap - Running, Everyday",
+  "brand": "Vyom Active",
+  "gender": "Unisex",
+  "category": "Caps",
+  "subcategory": "Caps",
+  "fabric": "Quick-dry polyester",
+  "color": "White",
+  "pattern": "Solid",
+  "occasion": [
+   "Running",
+   "Everyday",
+   "Outdoor"
+  ],
+  "fit": "",
+  "sleeve": "",
+  "neck": "",
+  "price": 498,
+  "mrp": 699,
+  "discount_percent": 29,
+  "currency": "INR",
+  "rating": 4.1,
+  "rating_count": 1317,
+  "sizes_available": [
+   "Free Size"
+  ],
+  "stock": {
+   "Free Size": 15
+  },
+  "in_stock": true,
+  "highlights": [
+   "A white quick-dry running cap",
+   "Adjustable back strap",
+   "Curved peak against the sun",
+   "Sweatband inside"
+  ],
+  "description": "A white quick-dry running cap.",
+  "care": "Hand wash, air dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 4,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA099.jpg",
+  "image_credit": {
+   "photographer": "Emre  Simsek",
+   "url": "https://www.pexels.com/photo/woman-in-sports-clothing-sunglasses-and-baseball-cap-23058042/"
+  }
+ },
+ {
+  "id": "VA100",
+  "sku": "VYM-CAP-100",
+  "name": "Twill Baseball Cap",
+  "title": "Vyom Active Unisex Red Twill Baseball Cap - Running, Everyday",
+  "brand": "Vyom Active",
+  "gender": "Unisex",
+  "category": "Caps",
+  "subcategory": "Caps",
+  "fabric": "Cotton twill",
+  "color": "Red",
+  "pattern": "Solid",
+  "occasion": [
+   "Running",
+   "Everyday",
+   "Outdoor"
+  ],
+  "fit": "",
+  "sleeve": "",
+  "neck": "",
+  "price": 898,
+  "mrp": 1299,
+  "discount_percent": 31,
+  "currency": "INR",
+  "rating": 4.5,
+  "rating_count": 526,
+  "sizes_available": [
+   "Free Size"
+  ],
+  "stock": {
+   "Free Size": 22
+  },
+  "in_stock": true,
+  "highlights": [
+   "A red cotton-twill baseball cap",
+   "Adjustable back strap",
+   "Curved peak against the sun",
+   "Sweatband inside"
+  ],
+  "description": "A red cotton-twill baseball cap.",
+  "care": "Hand wash, air dry",
+  "country_of_origin": "India",
+  "seller": "Vyom Active Retail LLP",
+  "delivery_days": 3,
+  "return_days": 15,
+  "image_url": "/static/brands/vyom/VA100.jpg",
+  "image_credit": {
+   "photographer": "cottonbro studio",
+   "url": "https://www.pexels.com/photo/man-in-red-cap-with-whistle-7207347/"
+  }
+ }
+]
