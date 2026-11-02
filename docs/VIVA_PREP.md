@@ -1,16 +1,20 @@
 # Viva Preparation — Munim: Context-Aware WhatsApp Shopping Assistant
 
-**Minor Project, 7th Semester · Read this before the presentation.**
+**Minor Project, 7th Semester · Second defense, 3 November 2026 · Read this before the presentation.**
 
-Every number, threshold and file name below was read out of the code on 23 September 2026.
-Where a document in the repo disagrees with the code, the code wins and the difference is
-flagged, so you are never caught defending a wrong number.
+First written from the code on 23 September 2026 for the first defense; **updated on
+2 November 2026** for the second. Since September the project moved from ChromaDB to
+pgvector, from MiniLM to EmbeddingGemma, gained Alembic migrations, multiple stores, a trace
+of every message and an automatic conversation grader. Every number in Section 0 was re-read
+from the code or printed by a test run on 2 November. Section 13 covers what changed since
+the first defense and the questions it invites. Where an older section still describes the
+September design, it says so.
 
 **How to use this document.** Each topic has three parts: *How it works* (the mechanics),
 *Why it is built this way* (the alternative that was rejected), and *Five questions the
 panel may ask*. Inside each set of five, the easy question is first and the uncomfortable
-one is last. If you have only twenty minutes, read Section 0 and the last question of every
-topic.
+one is last. If you have only twenty minutes, read Section 0, Section 13 and the last
+question of every topic.
 
 ---
 
@@ -19,43 +23,60 @@ topic.
 ### The project in one minute
 
 "A customer messages our WhatsApp number in plain language — *something for my sister's
-mehendi, nothing too heavy, under 3000*. The message hits a FastAPI webhook. We embed the
-request, rank all 84 products in ChromaDB by meaning, then apply the hard constraints —
-gender, garment type, budget, stock — in Python, because embeddings rank but they do not
-constrain. The customer gets three photos with prices, picks one by typing *2*, adds it to
-the cart with a size, and pays through a Razorpay link inside the chat. The same cart and
-the same order history are on our website, because both channels read one `users` table,
-and the two identities are bound by a single-use code the customer sends from their own
-phone. The language model chooses what to do, but every product, price and total on the
-screen is rendered by code — a bot that invents a price is worse than no bot."
+mehendi, nothing too heavy, under 3000*. Meta posts it to our FastAPI webhook, which checks
+the signature and works out which store it is for. We embed the request with EmbeddingGemma,
+rank that store's products by meaning with one pgvector query in Postgres, then apply the
+hard constraints — gender, garment, budget, colour, stock — in Python, because embeddings
+rank but they do not constrain. The customer gets photos with prices, picks one by typing
+*2*, adds it with a size, says *i wanna pay*, and pays on a Razorpay page. The same cart and
+order history are on our website, because both channels read one `users` table, bound by a
+single-use code the customer sends from their own phone. The language model chooses what to
+do, but every product, price and total on the screen is rendered by code. Since the first
+defense the same deployment serves several brands, and an automatic grader plays 63 real
+conversations through the bot: 60 pass."
 
 ### Numbers to quote
 
 | Fact | Value |
 |---|---|
-| Catalogue | 84 products, 33 fields each, 23 categories (45 women's, 39 men's), ₹699–₹24,999 |
-| Occasion vocabulary | 33 distinct tags, 274 tag assignments, ≈3.3 per product |
-| Embeddings | all-MiniLM-L6-v2, **384 dimensions**, local CPU, free (OpenAI 1536-dim optional) |
-| Language model | Groq `openai/gpt-oss-20b`, fallbacks `gpt-oss-120b`, `qwen3.8-27b` |
-| Retrieval evaluation | **46 / 46 cases pass**, and 10/10 owner ratings hold (every product returned must satisfy the query) |
-| Automated checks | **434, all green on 23 Sep**: cart 126, assistant 74, payments 61, store 36, training 28, live 20, linking 18, live.js 15, plus 46 retrieval cases and 10 owner-rating regressions |
-| Code size | ~10,465 lines of Python, 16 Jinja templates, 41 commits over 18–23 Sep |
-| Distance cut-off | `MAX_DISTANCE = 1.55` (squared L2, range 0–4) |
-| Question-similarity threshold for training | cosine ≥ **0.75** |
-| Conversation memory | last 12 messages stored, **8** sent to the model, 350 chars each |
-| Payment reconciler | every **5 s**, orders from the last **60 min**, batch of 10 |
-| Live sync | poll `/api/live` every **2 s**, SHA-1 fingerprint truncated to 16 hex chars |
+| Catalogue (demo store) | 84 products, 23 categories (45 women's, 39 men's), ₹699–₹24,999; a second, invented activewear brand is used in tests |
+| Embeddings | **EmbeddingGemma-300M, 768 dimensions**, int8 ONNX on CPU, multilingual (MiniLM 384-dim kept as an option) |
+| Vector search | **pgvector** inside PostgreSQL 15, exact scan (no approximate index); ChromaDB removed on 1 Oct |
+| Why EmbeddingGemma | Same 46/46 as MiniLM on English; Hinglish requests on target **60% vs 22%**; nonsense cleanly separated |
+| Distance cut-off | `MAX_DISTANCE = 0.74` cosine distance (every real request ≤ 0.708, all nonsense ≥ 0.777) |
+| Owner-training similarity | cosine ≥ **0.87** for EmbeddingGemma (0.75 under MiniLM) |
+| Language model | Groq `openai/gpt-oss-20b` (low reasoning), fallbacks `gpt-oss-120b`, `qwen3.8-27b` |
+| Schema | **Alembic migrations**, 6 revisions, applied on every start; 13 tables |
+| Automated checks | **552, all green on 2 Nov** (13 suites, 166 s): cart 126, assistant 96, tenancy 62, payments 61, eval harness 44, brands 40, store 36, training 28, live 20, linking 18, live.js 15, tracing 6 |
+| Retrieval evaluation | **56 / 56 phrasings** (every returned product must fit), owner ratings hold **10 / 10** |
+| Conversation evals | **60 / 63 cases, 913 / 917 checks** (gpt-oss-20b, 14 Oct; was 47/63 before P2 step 2) |
+| Per model turn | median 2.6 s (p95 4.9 s), ~2,835 tokens in, ₹1.36 per 100 conversations, 1.62 WhatsApp messages per answer |
+| Code size | ~17,900 lines of Python (backend, common, scripts), 21 Jinja templates, 70 commits |
+| Conversation memory | last 12 messages stored, **8** sent to the model |
+| Payment reconciler | every **5 s**, orders from the last **60 min** |
+| Live sync | poll `/api/live` every **2 s** |
 
 ### Demo script (60 seconds, in this order)
 
-1. `sherwani for my wedding under 10000` → three photo cards with prices.
+1. `sherwani for my wedding under 10000` → photo cards with prices, all under ₹10,000.
 2. `2` → that product is selected and described.
 3. `ADD 42` → cart with the real total.
 4. Show the website in a browser: **the same cart appears within two seconds**, no refresh.
-5. `CHECKOUT` → Pay Now button → pay with test card `4111 1111 1111 1111`.
-6. Payment confirmation arrives in the chat; the order page on the website flips to *paid*.
+5. `black kurta for office` → only black kurtas (new: colour is a filter).
+6. `i wanna pay` → checkout in plain words; it asks for the address, then Pay Now → test card
+   `4111 1111 1111 1111`. Confirmation arrives in the chat; the order page flips to *paid*.
+7. `can u write a python code for 2+2` → refuses: it is a shop assistant.
+8. `/admin/training`, then `scripts/test_brands.py` or the eval baseline (second brand, 60/63).
 
-If Wi-Fi fails, say so and play the recording. Do not debug live.
+**Morning of the defense:** generate a new WhatsApp token (Meta dashboard → WhatsApp → API
+Setup) into `WHATSAPP_ACCESS_TOKEN` in `backend/.env`; check the demo phone is in the "To"
+list and message the bot from it first (24-hour window). Then Docker Desktop →
+`docker compose up -d` → from `backend/`: `.venv/Scripts/uvicorn main:app --port 8000` →
+`ngrok http --url=caramel-gloater-kosher.ngrok-free.dev 8000`. Rehearse once on the phone.
+
+If Wi-Fi or Meta fails, say so and switch to
+`backend/.venv/Scripts/python scripts/simulate_webhook.py --message "..."`, which runs the real
+bot against the same server and prints the reply. Do not debug live.
 
 ### The ten hardest questions, with the one-line answer
 
@@ -66,10 +87,11 @@ If Wi-Fi fails, say so and play the recording. Do not debug live.
    (every rupee it writes must exist in the catalogue or a tool result), and bridging a
    browser identity to a phone number that carries no session.
 3. **"Why not just use SQL/keyword search?"** — Because *"nothing too heavy for a mehendi"*
-   has no keyword. We evaluate this: 46 phrasings, and the old keyword filters scored 8/10
+   has no keyword. We evaluate this: 56 phrasings, and the old keyword filters scored 8/10
    on an easier 10-case set, returning **nothing at all** for two of them.
 4. **"How do you know the retrieval is good?"** — `scripts/eval_retrieval.py`: a case passes
-   only when **every** returned product satisfies the constraint. Currently 46/46.
+   only when **every** returned product satisfies the constraint. Currently 56/56. Whole
+   conversations are graded too: 60 of 63 pass.
 5. **"What stops the bot inventing a discount?"** — Amount verification: any ₹ figure in the
    model's own words must appear in the catalogue, the customer's message, or a tool result;
    otherwise the model is told to retry once and then the sentence is deleted.
@@ -85,9 +107,10 @@ If Wi-Fi fails, say so and play the recording. Do not debug live.
 9. **"What happens when the LLM is down or rate-limited?"** — It degrades in three steps:
    next model, short wait, then a plain retrieval reply with no model at all. The shop keeps
    selling.
-10. **"What is the weakest part of this project?"** — Deployment. It runs behind ngrok on a
-    Meta test number with a 24-hour messaging window and no schema migrations. The logic is
-    tested; the operations are not production-grade, and we can list exactly what that needs.
+10. **"What is the weakest part of this project?"** — Deployment. It runs on a laptop behind
+    ngrok on a Meta test number with a 24-hour token and messaging window. The logic is tested
+    (552 checks) and the schema now has migrations, but the operations are not
+    production-grade yet. That is the next phase, P3: a VPS, the Shopify connector and the pilot.
 
 ---
 
@@ -185,12 +208,13 @@ language model. This ordering is the reason "2" never becomes a search and "hi" 
 returns three random kurtas.
 
 **6. The assistant** (`bot/assistant.py`) gets the last 8 messages, the customer's real cart,
-their name and purchase history, and 8 tools. It asks a clarifying question when the request
+their name and purchase history, and 9 tools (`checkout` was added in P2). It asks a clarifying question when the request
 is vague and calls `search_products` when it is not.
 
-**7. Retrieval** (`bot/retrieval.py`) embeds the query, ranks the whole catalogue in
-ChromaDB, then filters in Python: stock, personal hides, gender, category, budget. If
-nothing passes, it relaxes budget, then category, and says so in the reply.
+**7. Retrieval** (`bot/retrieval.py`) embeds the query, ranks the store's whole catalogue
+with one pgvector query in Postgres, then filters in Python: stock, personal hides, gender,
+category, budget, colour, fabric, fit. If nothing passes, it relaxes colour, then budget,
+then category, and says so in the reply.
 
 **8. The reply is assembled by code.** `send_reply` receives only product *ids*; the
 numbered list, the captions, the prices and the photos are built from the catalogue. Each
@@ -254,28 +278,34 @@ rehearse with a recording ready.
 
 ### How it works
 
-**Ingestion** (`scripts/ingest_catalog.py`). For each product we build one document by
+> **Updated for the second defense.** Since 1–2 Oct the vectors live in Postgres (pgvector)
+> and are made by EmbeddingGemma-300M (768 dims). The steps below are otherwise unchanged;
+> where September's numbers differ, the current value is given.
+
+**Ingestion** (`backend/catalog_sync.py`, run by `scripts/sync_catalog.py`). For each product we build one document by
 joining seven parts: the title; `Category: {gender} {category}, {subcategory}`; fabric,
 colour and pattern; fit, sleeve and neckline; `Suitable for: {occasions}`; the description;
 and the highlights. **Price and stock are deliberately not embedded** — they are filters,
 not meaning, and bare numbers add noise to the vector. The document is embedded with
-all-MiniLM-L6-v2 into a **384-dimensional** vector and upserted into the Chroma collection
-`products`, together with flat metadata (id, name, category, gender, fabric, price, mrp,
-occasion, sizes, in_stock, image_url).
+EmbeddingGemma-300M (document prompt) into a **768-dimensional** vector and stored in the
+`products` row itself (`embedding vector(768)`, plus `embedding_model`, so a vector from one
+model is never compared with another). Until 1 Oct this was MiniLM, 384 dims, in ChromaDB.
 
 **Query time** (`bot/retrieval.py`), in order:
 
 1. **Parse the sentence into filters** — gender, categories, budget, occasion. The occasion
    is *soft*: it is appended to the text we embed, not used as a filter.
-2. **Rank the whole catalogue.** One embedding, one Chroma query asking for as many results
-   as there are products. Chroma's HNSW index is approximate: asked for all 84 items it
-   still skipped EW080, so any catalogue id missing from the result is fetched by id and
-   scored exactly against its stored vector with the same metric. Nothing is unfindable.
+2. **Rank the whole catalogue.** One embedding, one SQL query:
+   `SELECT code, embedding <=> :vector AS distance FROM products WHERE store_id = :store ...
+   ORDER BY distance`. `<=>` is pgvector's cosine distance. It is an **exact scan**, with no
+   approximate index: Chroma's HNSW index had skipped EW080, and at a few hundred products
+   per store reading every vector is fast and never misses one.
 3. **Stock filter**, then remove anything this customer has personally hidden.
 4. **Hard filters in Python**: gender must match exactly; category must be in the requested
    set; price within budget; and if no category was asked for, accessories — Footwear, Bags,
    Headwear — are suppressed, so "haldi outfit" never returns juttis.
-5. **Distance cut-off**, `MAX_DISTANCE = 1.55` on squared L2 distance (range 0–4), applied
+5. **Distance cut-off**, `MAX_DISTANCE = 0.74` cosine distance for EmbeddingGemma (September:
+   1.55 squared L2 for MiniLM, which is 0.775 cosine), applied
    **only when the query produced no filters at all**. This is what makes `asdfgh qwerty`
    return nothing instead of three random kurtas, while a constrained query like "kurta under
    2000" still returns the best available matches.
@@ -283,7 +313,7 @@ occasion, sizes, in_stock, image_url).
    within each group the semantic order survives. Tag synonyms are expanded — mehndi→mehendi,
    garba/dandiya→garba+navratri, pheras→wedding+bridal, baraat→baraat+groom.
 7. **Owner training re-rank**: net ✓/✕ ratings for questions similar to this one (cosine
-   ≥ 0.75), clamped to ±1, applied as another stable sort.
+   ≥ 0.87 for EmbeddingGemma, 0.75 under MiniLM), clamped to ±1, applied as another stable sort.
 8. **Couple interleave** when the query means two people ("me and my wife", "couple",
    "matching outfits"): results are zipped women-first, men-second.
 
@@ -304,9 +334,12 @@ gender: "shoes to go with my sherwani" returns men's footwear.
 and 10000", "around ₹3000" (widened by 1.15×, so ₹3,450). Numbers below 100 are never read
 as budgets, so "size 42" is not a price.
 
-**When Chroma is down**, `rank()` clears its cached handle so the next call reconnects, and
-falls back to keyword overlap scoring with synthetic distances, so the shop and the website
-search box still answer.
+**Colour, fabric and fit** (P2 step 4, 15 Oct) are filters too: colours match by family
+(teal = blue + green, "pila" = yellow), and a colour that describes something else ("dupatta
+to go with my red lehenga") is ignored. With nothing in that colour, colour is relaxed first.
+
+**When vector search fails**, the website search falls back to keyword overlap scoring, so the
+shop and the search box still answer.
 
 ### Why it is built this way
 
@@ -331,20 +364,25 @@ embedding puts that sentence near products whose descriptions talk about light g
 daytime functions and mehendi. We keep SQL-style constraints too — they run *after* the
 ranking, in Python, where they are exact.
 
-**Q3. Why MiniLM and 384 dimensions rather than OpenAI's model?**
-Three reasons, in order: it costs nothing, it runs offline on CPU, and **it cannot be
-rate-limited during a demo**. OpenAI's text-embedding-3-small is supported by the same module
-and switches with one environment variable, but it is 1536-dimensional, so the catalogue must
-be re-ingested — a vector written by one model cannot be searched with another.
+**Q3. Why EmbeddingGemma and 768 dimensions, and not MiniLM or OpenAI's model?**
+We measured it (`scripts/eval_embeddings.py`, 2 Oct). Both local models scored 46/46 on the
+English retrieval cases, but EmbeddingGemma put **60% of Hinglish requests on target against
+MiniLM's 22%**, and it separates nonsense from real requests cleanly (every real request
+within 0.708, all nonsense at 0.777 or more), which MiniLM did not. It still costs nothing,
+runs offline on CPU (int8 ONNX, no PyTorch) and cannot be rate-limited during a demo.
+OpenAI's text-embedding-3-small is supported by the same module but was not measured (no key).
+Thresholds are kept per model: a threshold from one model means nothing for another, and on
+start every product embedded by another model is re-embedded (~2 s for 84).
 
 **Q4. How do you know a change to retrieval did not break something else?**
-`scripts/eval_retrieval.py` holds 46 real phrasings with the constraint each must satisfy, and
+`scripts/eval_retrieval.py` holds 56 real phrasings (10 of them colour, fabric and context
+cases) with the constraint each must satisfy, and
 **a case passes only if every returned product satisfies it** — "one of three was right"
 hides the miss the customer actually sees. It also replays every ✓/✕ the owner has given and
 asserts approved products are still in the top three and rejected ones are not. The run exits
-non-zero if a single case fails. It is currently 46/46, with no LLM involved at all.
+non-zero if a single case fails. It is currently 56/56, with no LLM involved at all.
 
-**Q5. Your accuracy claim is on 46 cases you wrote yourselves. Isn't that marking your own
+**Q5. Your accuracy claim is on 56 cases you wrote yourselves. Isn't that marking your own
 homework?**
 Yes, partly — it is a regression suite, not a user study, and we would not claim otherwise.
 Its value is that it is adversarial by construction: the first six cases are the failures we
@@ -628,7 +666,9 @@ owner, and alerting when the reconciler finds orders it cannot confirm.
 
 ### How it works
 
-Seven tables, all with timezone-aware timestamps:
+Thirteen tables since P1 (the September seven below, plus `stores`, `products`,
+`product_variants`, `processed_messages` and `turn_traces`), all with timezone-aware
+timestamps. Customers, carts, orders, replies, ratings and products all belong to a store:
 
 | Table | Holds | The constraint worth knowing |
 |---|---|---|
@@ -640,18 +680,20 @@ Seven tables, all with timezone-aware timestamps:
 | `link_tokens` | single-use linking codes | `used_at` stamped on first use |
 | `bot_replies`, `feedback` | every answer, and every rating on it | feedback cascades when a user is deleted |
 
-**Products are deliberately not in PostgreSQL.** The catalogue is a JSON file, embedded into
-Chroma and read through `catalog.py`. Orders copy the product name and price at purchase time,
-so the order record survives any catalogue edit.
+**Products moved into PostgreSQL on 1 Oct (P1).** In September the catalogue was a JSON file
+embedded into Chroma. Now `catalog_sync.py` is the only writer of `products` (one row per
+style per colour, with its vector) and `product_variants` (one per size, with stock and the
+Shopify variant id). Orders still copy the product name and price at purchase time, so the
+order record survives any catalogue edit.
 
 **Three different "schemas" exist and only two are validated**: PostgreSQL tables with real
-types and constraints; Pydantic models (`ProductMatch`) validated in memory; and Chroma
-metadata, which is untyped dicts. `ProductMatch.from_raw()` accepts both key styles and is the
+types and constraints; Pydantic models (`ProductMatch`) validated in memory; and the
+catalogue records (`products.data` JSONB), whose keys `catalog_sync.normalise()` guarantees. `ProductMatch.from_raw()` accepts both key styles and is the
 boundary where a renamed key becomes a visible error instead of a product priced at ₹0.
 
-Schema changes are handled by `create_all()` plus a short list of idempotent
-`ALTER TABLE ... ADD COLUMN IF NOT EXISTS` statements, because `create_all` creates missing
-tables but never missing columns and there is no Alembic.
+Schema changes are **Alembic revisions** (since 1 Oct): `0001_baseline` captured the
+September schema, then tenancy, the catalogue in Postgres, processed messages, turn traces
+and the demo brand's texts. `db.init_db()` runs `upgrade head` on every start.
 
 ### Why it is built this way
 
@@ -663,11 +705,11 @@ than float is the other non-negotiable — float money drifts, and the drift sho
 
 ### Five questions the panel may ask
 
-**Q1. Why are products not in the database?**
-They are catalogue data, not transactional data: never updated by users, always read whole,
-and needed in a vector store anyway. Keeping them in JSON means one source of truth for both
-the site and the embeddings. The transactional record does not depend on it, because orders
-snapshot the name and price they charged.
+**Q1. Why did products move into the database?**
+In September they were catalogue data in a JSON file, with vectors in Chroma: two stores of
+truth to keep in sync, which was acceptable for one shop. With many brands, one SQL query can
+now filter by store, price and stock *and* rank by meaning (pgvector), with one service to
+host and back up. Orders still snapshot the name and price they charged.
 
 **Q2. Why NUMERIC and not FLOAT for money?**
 Because binary floating point cannot represent 0.10 exactly, so sums drift. With NUMERIC(10,2)
@@ -680,15 +722,16 @@ shown and the selected item. Enforcing it with a partial unique index means the 
 cannot be violated by a bug in application code, only by a failed write we can see. It is also
 why the account merge has to close an orphan's session before re-pointing it.
 
-**Q4. How would you add a column today, without Alembic?**
-One idempotent `ADD COLUMN IF NOT EXISTS` in the startup list, which is how the five columns
-added during the sprint were handled. It is honest but not sufficient for production: it
-cannot rename, backfill or roll back. Alembic is first on the list once this holds real data.
+**Q4. How do you change the schema?**
+An Alembic revision: autogenerate a draft from the models, write any backfill by hand, and it
+applies on the next start. In September there was no Alembic, only idempotent
+`ADD COLUMN IF NOT EXISTS` statements; adding it was the first step of P1, with the existing
+schema as the baseline, so the switch changed no data.
 
-**Q5. Your `feedback` table stores embeddings as JSONB. Why not pgvector?**
-Volume. A few hundred ratings are compared in Python in microseconds, and adding pgvector
-would mean a different Postgres image for one feature. At tens of thousands of ratings the
-similarity scan becomes the bottleneck and pgvector — or reusing Chroma — is the right move.
+**Q5. Your `feedback` table still stores question embeddings as JSONB. Why not pgvector?**
+Volume. A few hundred ratings are compared in Python in microseconds. pgvector is now
+available (products use it), so moving ratings onto it is a small change once there are tens
+of thousands of them.
 
 ---
 
@@ -824,21 +867,21 @@ next step rather than a different design.
 | Layer | Choice | Why this, and what was rejected |
 |---|---|---|
 | Language | Python 3 | One language for the web app, the embeddings and the scripts |
-| Web framework | FastAPI + Uvicorn | Async suits a webhook that fans out to Chroma, PostgreSQL and the Graph API, and Meta retries anything slow. Flask would have meant threads per request or blocking the webhook |
+| Web framework | FastAPI + Uvicorn | Async suits a webhook that fans out to PostgreSQL, the LLM and the Graph API, and Meta retries anything slow. Flask would have meant threads per request or blocking the webhook |
 | HTTP client | `httpx` (async) | Non-blocking calls to WhatsApp, Razorpay and the LLM. `requests` is synchronous |
-| Database | PostgreSQL 15 + SQLModel | Real constraints, transactions, row locks and `NUMERIC` money. SQLite has no `SELECT ... FOR UPDATE` worth the name and one writer at a time |
-| Vector store | ChromaDB in Docker | Local, free, no account, persistent volume. Pinecone or Weaviate Cloud would add a signup, a key and an outage we cannot fix during a demo |
-| Embeddings | all-MiniLM-L6-v2, 384-dim, on CPU | Free, offline, **cannot be rate-limited during a demo**. OpenAI's 1536-dim model is a one-variable switch, but it needs a key and re-ingestion |
+| Database | PostgreSQL 15 + SQLModel + Alembic | Real constraints, transactions, row locks and `NUMERIC` money; migrations since 1 Oct. SQLite has no `SELECT ... FOR UPDATE` worth the name and one writer at a time |
+| Vector store | pgvector in the same Postgres (since 1 Oct) | One query filters by store, price and stock and ranks by meaning; one service to host. ChromaDB (September) meant two stores of truth. Pinecone or Weaviate Cloud would add a signup, a key and an outage we cannot fix during a demo |
+| Embeddings | EmbeddingGemma-300M, 768-dim, int8 ONNX on CPU | Chosen by measurement on 2 Oct: Hinglish 60% vs MiniLM's 22%. Free, offline, **cannot be rate-limited during a demo** |
 | Language model | Groq `gpt-oss-20b` + two fallbacks | OpenAI-compatible API, fast, free tier; per-model token budgets mean fallbacks triple throughput. GPT-4o-mini works through the same client if a key is present |
 | Messaging | WhatsApp Cloud API v21.0 | The official API: text, images, interactive buttons and media upload. Unofficial libraries risk the number being banned |
 | Payments | Razorpay (test mode), no SDK | UPI, cards and netbanking in India; hand-written `httpx` wrapper because the SDK is synchronous |
 | Front end | Jinja2 + compiled Tailwind + vanilla JS | Works offline at the venue, no build step to fail; every page has a JSON twin so a React front end can replace it later |
 | Security | bcrypt, signed session cookies, HMAC-SHA256 | Password hashing with a 72-byte guard, signed (not encrypted) cookies holding only a user id, constant-time signature checks |
-| Infrastructure | Docker Compose, ngrok | Identical PostgreSQL and Chroma on both machines; a public HTTPS URL for Meta's webhook |
+| Infrastructure | Docker Compose, ngrok | One Postgres image (`pgvector/pgvector:pg15`, pinned by digest) on every machine; a public HTTPS URL for Meta's webhook |
+| Secrets | Fernet (`cryptography`) | Each store's WhatsApp token and app secret are encrypted at rest, with key rotation |
 
-Thirteen Python dependencies in total. Notably absent: no `razorpay` SDK, and no
-`sentence-transformers` — the local embedding model comes through Chroma's default embedding
-function, which downloads about 80 MB once and caches it.
+Notably absent: no `razorpay` SDK, no PyTorch and no `sentence-transformers` — both local
+embedding models run on `onnxruntime` + `tokenizers`.
 
 ### Five questions the panel may ask
 
@@ -848,12 +891,13 @@ I/O across three external services. FastAPI is async-first, so those calls overl
 blocking, and it gives typed request models and automatic docs for free. Django's strengths —
 admin, ORM conventions, templates — are aimed at a different shape of application.
 
-**Q2. Why ChromaDB and not FAISS, pgvector or a hosted vector database?**
-FAISS is a library, not a service: we would have to manage persistence, metadata and the
-server ourselves. pgvector would have been a reasonable choice and keeps one datastore, but it
-means a custom Postgres image; Chroma runs as a container with a volume and speaks metadata
-filters out of the box. Hosted options add an account, a key, cost and an outage we cannot
-debug on stage.
+**Q2. You used ChromaDB at the first defense. Why switch to pgvector?**
+In September Chroma was the quickest way to a working vector search for one shop. Going
+multi-brand changed the trade-off: products had to move into Postgres anyway (per store, with
+variants and stock), and with pgvector one SQL query filters by store, price and stock and
+ranks by meaning. No second database to keep in sync, one service to host and back up. The
+move was done by dump and restore into the new image (Alpine and Debian sort text differently,
+so reused indexes would have been corrupt). FAISS was never a fit: a library, not a service.
 
 **Q3. Why not fine-tune a model on your catalogue?**
 Because the catalogue changes and fine-tuning does not: a new product would require retraining,
@@ -867,10 +911,11 @@ server, and the LLM — roughly 1,000 to 1,500 tokens per message, which on a pa
 fraction of a rupee per conversation.
 
 **Q5. If you started again tomorrow, what would you change?**
-Three things. Put Alembic in from the first commit. Design for multiple stores from the start —
-a `store_id` on every table costs nothing on day one and is painful to add later. And write the
-retrieval evaluation harness *before* the retrieval code, because it is what turned "the bot
-feels better now" into a number we could defend.
+Three things, and we have since done the first two the hard way. Put Alembic in from the first
+commit (added in P1, with the old schema as a baseline). Design for multiple stores from the
+start: a `store_id` on every table costs nothing on day one, and adding it in P1 took a
+migration, a ContextVar and 62 isolation checks. And write the evaluation harness *before* the
+code it grades, because it is what turned "the bot feels better now" into 47 → 60 of 63.
 
 ---
 
@@ -878,21 +923,29 @@ feels better now" into a number we could defend.
 
 ### How it works
 
-Nine suites, **434 checks**, all runnable on a laptop with Docker up and no paid API keys.
-The counts below are what each suite printed when it was run on the morning of 23 September;
-every one finished with zero failures:
+Thirteen suites, **552 checks** plus the retrieval evaluation, all runnable on a laptop with
+Docker up and no paid API keys, with one command: `scripts/run_all_tests.py`. The counts below
+are what each suite printed on 2 November (166 s in all); every one finished with zero
+failures. (On 23 September it was nine suites and 434 checks.)
 
 | Suite | Checks | What it proves |
 |---|---|---|
 | `scripts/test_cart.py` | 126 | Cart operations, **eight concurrent adds** against the atomic upsert, checkout, purchase-history contract, cart surviving account linking, and the same cart across both channels |
-| `scripts/test_assistant.py` | 74 | The assistant driven by a **scripted fake model** — no network, no quota: tool binding, memory, code-rendered lists, refusal to invent products, consent before adding, fallbacks, and "it is a shop assistant, not a chatbot" |
+| `scripts/test_assistant.py` | 96 | The assistant driven by a **scripted fake model** — no network, no quota: tool binding, memory, code-rendered lists, refusal to invent products, consent before adding, fallbacks, and "it is a shop assistant, not a chatbot" |
 | `scripts/test_payments.py` | 61 | Amounts and signatures, one order per checkout, raw-body HMAC, a **forged `status=paid` callback rejected**, simultaneous confirmations under the row lock, Razorpay down, and one real ₹1 call to the live test API that is skipped rather than failed if keys are absent |
 | `scripts/test_store.py` | 36 | Filters, listings, site search, similar products, safe sign-in redirects, address validation, and the product-code round trip from website to chat |
 | `scripts/test_training.py` | 28 | Owner ratings re-rank similar questions, Undo restores order, customer hides stay personal, non-admins get 403, and **no test rating is left behind** |
 | `scripts/test_linking.py` | 18 | The realistic ordering: chat first, then signup, then the merge; replayed and garbage codes refused |
 | `scripts/test_live.py` | 20 | `/api/live`, the fingerprint, which pages opt in, and a live HMAC-signed capture flipping an order |
 | `scripts/test_live_js.mjs` | 15 | The real `live.js` executed in Node against a fake DOM — including "do not clobber the customer mid-typing" and "stop polling after a 401" |
-| `scripts/eval_retrieval.py` | 46 cases + 10 rules | Retrieval quality with no LLM: every returned product must satisfy the query, plus every owner rating replayed as a regression. Today: **46/46 and 10/10** |
+| `scripts/test_tenancy.py` | 62 | Stores are isolated: customers, carts, orders, catalogue, vectors, search, codes, training, link codes, credentials; webhook routing and signatures; encrypted secrets; redelivery |
+| `scripts/test_eval_harness.py` | 44 | The conversation grader itself, with a canned model: case loading, placeholders, throwaway customers, every check |
+| `scripts/test_brands.py` | 40 | A second, invented activewear brand imported through the Shopify importer: its own prompt, vocabulary and filters (black oversized tee, navy sports bra), and the demo unchanged |
+| `scripts/test_trace_neutrality.py` | 6 | 60 turns through every exit with tracing failing on purpose: replies, model requests and database state identical |
+| `scripts/eval_retrieval.py` | 56 cases + 10 rules | Retrieval quality with no LLM: every returned product must satisfy the query, plus every owner rating replayed as a regression. Today: **56/56 and 10/10** |
+
+Separately, `scripts/eval_conversations.py` grades the real model on 63 conversations (it uses
+Groq quota, so it is not in the suite run): **60/63 cases, 913/917 checks** on 14 Oct.
 
 Tests never touch paid services: LLM keys are blanked or faked, Razorpay and WhatsApp are
 monkey-patched, and the reconciler is disabled so it cannot race the assertions. They do need
@@ -925,8 +978,9 @@ cart, linking, checkout, payment, confirmation, training, live sync — has a su
 counts are printed by each run. We do not claim a coverage percentage, and the thinnest areas
 are the templates and the admin UI, which are exercised only through their routes.
 
-**Q5. Your docs say 68 assistant checks but the file has 74. Which is right?**
-The file. The count in `CLAUDE.md` was written when the suite was smaller and was not updated —
+**Q5. Your September deck said 434 checks and now you say 552. Which is right?**
+Both, on their dates: suites were added (tenancy, tracing, eval harness, brands) and grown
+since. The count in a document goes stale —
 the same class of mistake the project report calls out, where a status document that lies is
 worse than none. The verifiable artefact is the run itself: each suite prints its own passed
 and failed counts, and we can run any of them on request.
@@ -939,10 +993,11 @@ and failed counts, and we can run any of them on request.
 
 1. **Stock is displayed, never decremented.** `in_stock` is true for all 84 products. Real
    inventory needs reservation with expiry and locking, not a boolean — deliberately deferred.
-2. **One store.** Credentials and the catalogue are configured for a single shop; serving many
-   needs a `store_id` on every table and per-store credentials.
-3. **No schema migrations.** Additive `ADD COLUMN IF NOT EXISTS` only; Alembic is required
-   before this holds real data.
+2. **Payments and the website serve the demo store only.** Multi-store is done for the bot,
+   catalogue and data (P1); Razorpay keys, the public URL and the storefront are still the
+   demo's. Shopify brands will pay in their own checkout (P3).
+3. **One model, free tier.** `gpt-oss-20b` at 8,000 tokens a minute per model; the model will
+   be chosen by an A/B test on our own 63 conversations (P2 step 5).
 4. **Meta test number.** Recipients must be allow-listed, and free-form replies only work
    within 24 hours of the customer's last message. Outside that window, production requires
    approved message templates.
@@ -950,19 +1005,22 @@ and failed counts, and we can run any of them on request.
    local development is plain HTTP.
 6. **A dev-only route exists.** `POST /dev/send-test` has no authentication and must be
    removed before any real deployment — it is marked as such in the code.
-7. **Retrieval rules are domain-specific.** Garment vocabulary and occasion words are written
-   for Indian ethnic wear; another catalogue needs its own mapping, ideally derived from the
-   catalogue rather than hand-written.
-8. **Language.** English and light Hinglish only; no voice notes, no image search.
-9. **Evaluation is a regression suite, not a user study.** 46 cases we wrote, not click-through
-   from real customers.
+7. **A few conversation rules still mention Indian weddings** (`_FUNCTIONS` in
+   `assistant.py`). The vocabulary itself is now built per store from its catalogue (P2 step 3).
+8. **Language.** English and Hinglish; voice notes and photos get a polite "not yet" (P6).
+9. **Evaluation is our own cases, not a user study.** 56 retrieval phrasings and 63
+   conversations taken from real logs, but not click-through from real customers; that comes
+   with the pilot (P7).
 
 ### Where it goes next
 
-- **Phase 2 engineering:** Alembic migrations, real stock reservation, refunds, fulfilment and
-  courier tracking, and production credentials on a verified number.
-- **Multi-store product:** the natural commercial path — `store_id` everywhere, Shopify and
-  WooCommerce catalogue sync, per-store WhatsApp numbers through Meta's embedded signup.
+- **P2 steps 5–6:** choose the model by A/B on our own conversations; fewer WhatsApp messages
+  per answer.
+- **P3:** a Shopify app connector (cart → the brand's own checkout), deployment on a VPS
+  (~₹560/month, Docker Compose behind Caddy), and the pilot on a friend's T-shirt and
+  workout-wear store.
+- **P4–P5:** a brand dashboard with revenue driven, hand-off to a person, order status,
+  exchanges and abandoned-checkout recovery.
 - **Revenue features for shops:** abandoned-cart reminders, and cash-on-delivery order
   confirmation, which measurably reduces refused deliveries in Indian e-commerce.
 - **Assistant:** voice notes transcribed to text, image search ("find me something like this
@@ -973,20 +1031,21 @@ and failed counts, and we can run any of them on request.
 ### Five questions the panel may ask
 
 **Q1. What does not work in this project?**
-Stock is not real, there are no migrations, it runs on a test number behind a tunnel, and it
-serves one store. Those are all listed with reasons, and none of them is a logic defect — they
+Stock is not reserved, it runs on a test number behind a tunnel, payments are the demo
+store's only, and 3 of 63 graded conversations still fail. Those are all listed with reasons, and none of them is a logic defect — they
 are the difference between a working prototype and an operated service.
 
 **Q2. What would it take to put this in a real shop next month?**
 Razorpay KYC and live keys, a verified WhatsApp business number with approved templates, a real
-host with HTTPS, Alembic for migrations, and stock reservation. About two weeks of engineering,
+host with HTTPS, and stock reservation (Alembic and multi-store are done). About two weeks of engineering,
 most of it operational rather than algorithmic.
 
 **Q3. Can this work for a shop that is not ethnic wear?**
-The architecture yes, the vocabulary no, not without work. The garment-to-category mapping and
-occasion words are hand-written for this domain. The generalisation is to derive that mapping
-from each store's own catalogue at ingestion time, which is the first thing we would build for
-a second store.
+Yes, and it is now tested. Since P2 step 3 the prompt, greeting, help text and search
+vocabulary are built per store from its catalogue (T-Shirts → tee, tshirt, t shirt...).
+`test_brands.py` imports an invented activewear brand through the Shopify importer and checks
+"black oversized tee" and "navy sports bra" find the right products; the ethnic-wear words
+became the demo store's vocabulary pack.
 
 **Q4. What is the commercial case?**
 Small sellers already sell over WhatsApp by hand, and the features that make money are
@@ -1001,6 +1060,81 @@ constraints fire on intermediate states, not just final ones; a webhook must ack
 when its own work failed; and an integration's free tier can have a permanent quota — test mode
 allows thirty payment links per account ever, and our own test runs spent them, which forced a
 redesign on the last day.
+
+---
+
+## 13. Since the first defense: multi-store and bot quality (P1, P2)
+
+### How it works
+
+After grading, Munim became a product plan (`plan.md`, phases P0–P7) with a real first client:
+a friend's Shopify store selling T-shirts and workout clothes. The project is solo from here.
+
+**P1, multi-store (done 2 Oct).** Every customer, cart, order, reply, rating and product now
+belongs to a store. The current store is a Python `ContextVar`; unset means the demo store, so
+the website, scripts and old tests needed no change. The webhook sets it from the phone number
+id Meta sends, and every change in a POST is checked against `X-Hub-Signature-256` (HMAC-SHA256
+of the raw body) with that store's app secret; a request where nothing verifies gets 403. Each
+store's WhatsApp token and secret are encrypted with Fernet. Products and their vectors moved
+into Postgres (pgvector), ChromaDB was removed, EmbeddingGemma replaced MiniLM after an
+evaluation, and Alembic took over the schema. A connector reads a Shopify shop's public
+`/products.json` (1 request/second) into products (one per style per colour) and variants (one
+per size). `test_tenancy.py` proves the isolation with 62 checks.
+
+**P2, bot quality (4 of 6 steps, 3–15 Oct).**
+1. **Tracing:** every inbound message records one `turn_traces` row: which exit answered it,
+   every LLM call (model, time, tokens, cost), every tool call and search, every guard that
+   stepped in, and the reply as sent. Recording can never change a reply:
+   `test_trace_neutrality.py` plays 60 turns with tracing failing on purpose and gets identical
+   replies and database state.
+2. **Conversation evals:** 54 real logged conversations were analysed and became 63 YAML cases
+   (`evals/cases/kurta/`). `scripts/eval_conversations.py` plays them through the real routing
+   with a throwaway customer each and grades every turn by code from its trace (11 checks on
+   every turn, plus each case's expectations). Baseline 47/63; the 16 failures became the fix
+   list.
+3. **Fixes (step 2):** checkout in plain words ("i wanna pay", "chedckout") through a `checkout`
+   tool that runs the real CHECKOUT; cart confirmations written by code from a ledger of what
+   the cart tools did; sizes checked like rupee amounts. Result **60/63, 913/917 checks**.
+4. **Any catalogue (step 3):** the prompt, greeting, help, off-topic line and search vocabulary
+   come from per-store settings and the store's own catalogue (`brand.py`, `vocab.py`).
+5. **Colour, fabric and fit (step 4):** enforced like budget; "black kurta" no longer shows a
+   white one.
+
+### Why it is built this way
+
+A real client needs several brands on one deployment and a way to know the bot is getting
+better, not just feels better. The ContextVar kept every old code path working while tenancy
+was added underneath it. Grading from traces, by code, makes the evaluation cheap (about ₹1.4
+per 100 conversations), repeatable and blind to phrasing, which is the part we do not control.
+
+### Five questions the panel may ask
+
+**Q1. What is new since the first defense?**
+Two phases. P1 made it multi-brand: stores, pgvector in Postgres, a better multilingual
+embedding model, Alembic and verified webhook signatures. P2 made quality measurable: every
+message is traced and 63 graded conversations run through the real bot, 60 passing.
+
+**Q2. How do you stop one brand seeing another brand's customers?**
+Every table that holds them has a `store_id`, the current store is set once per request from
+the phone number Meta says the message was sent to, and every query filters by it. 62 checks in
+`test_tenancy.py` try to cross the line: customers, carts, orders, catalogue, vectors, search,
+product codes, training, link codes and credentials.
+
+**Q3. Why should we trust a grader you wrote yourself?**
+Because it grades behaviour by code, not by opinion: a cart either changed or it did not, an
+amount either exists in the catalogue or it does not. It started by failing the bot on 16 of 63
+cases, which is how we found what to fix. An optional LLM judge from a different model family
+exists for tone, but the pass/fail numbers do not depend on it.
+
+**Q4. Why do 3 cases still fail?**
+They are written for the behaviour we want, so a failing case is a to-do: "only male options"
+asks who it is for again, accessories within a budget show the wrong things, and one colour
+case (colour became a filter in step 4, after that baseline, and has not been re-graded yet).
+
+**Q5. Why is the real Shopify pilot not live yet?**
+Because P3 is deployment, and we chose to make the bot measurable and brand-neutral first (P2):
+putting a bot that fails a quarter of conversations in front of real customers would have cost
+the pilot. The importer is built and tested; the pilot waits for P3's hosting and Shopify app.
 
 ---
 
@@ -1029,19 +1163,22 @@ came from a real failure during the sprint.
 
 ```bash
 # Start the infrastructure
-docker compose up -d                 # PostgreSQL 5432, ChromaDB 8001
+docker compose up -d                 # PostgreSQL 5432 (with pgvector)
 docker compose ps
 
 # Run the app (from backend/)
-uvicorn main:app --reload --port 8000
-ngrok http 8000                      # then point Meta's callback at <url>/webhook
+.venv/Scripts/uvicorn main:app --port 8000
+ngrok http --url=caramel-gloater-kosher.ngrok-free.dev 8000   # Meta's callback is <url>/webhook
 
-# Ingest the catalogue (after editing products.json or changing EMBEDDING_PROVIDER)
-backend/.venv/Scripts/python scripts/ingest_catalog.py
+# Sync the catalogue (after editing products.json; a slug for another store)
+backend/.venv/Scripts/python scripts/sync_catalog.py
 
 # Evidence to show a panel
-backend/.venv/Scripts/python scripts/eval_retrieval.py      # 46 cases + owner ratings
-backend/.venv/Scripts/python scripts/test_assistant.py      # 74 checks, fake model
+backend/.venv/Scripts/python scripts/run_all_tests.py       # all 13 suites, 552 checks (names pick a subset)
+backend/.venv/Scripts/python scripts/eval_retrieval.py      # 56 cases + owner ratings
+backend/.venv/Scripts/python scripts/test_brands.py         # 40 checks, second brand
+backend/.venv/Scripts/python scripts/test_tenancy.py        # 62 checks, store isolation
+backend/.venv/Scripts/python scripts/test_assistant.py      # 96 checks, fake model
 backend/.venv/Scripts/python scripts/test_cart.py           # 126 checks
 backend/.venv/Scripts/python scripts/test_payments.py       # 61 checks (62 with live keys)
 backend/.venv/Scripts/python scripts/test_linking.py        # 18 checks
@@ -1059,19 +1196,18 @@ npx -y tailwindcss@3.4.17 -c tailwind/tailwind.config.js -i tailwind/input.css -
 
 ## Appendix C — Corrections to the other documents
 
-If a panel member reads the synopsis or the deck alongside the code, these four differences
-will show up. Say the code is authoritative.
+If a panel member reads the synopsis alongside the code, these differences will show up. Say
+the code is authoritative.
 
-1. **Fields per product:** the file has **33**, not 32 as `CLAUDE.md` and the project report
-   say.
-2. **Assistant test count:** the suite has **74** checks; `CLAUDE.md` still says 68.
-3. **Suite counts drift too** — the numbers in this document are the ones the suites printed
-   on 23 September, not the ones quoted elsewhere. Re-run any suite to check.
-4. **`docs/PROJECT_REPORT.md` is a Phase-1 snapshot dated 18 September.** Its war stories are
-   accurate and valuable; its status is not — it describes 32 products and Razorpay as
-   remaining work. `CLAUDE.md` is the current document.
+1. **The synopsis (22 Sep) describes ChromaDB, MiniLM (384 dims) and one store.** Since 1–2 Oct
+   it is pgvector, EmbeddingGemma (768 dims), Alembic and multiple stores. The deck for the
+   second defense (`docs/Munim Deck.pptx`, rebuilt 2 Nov) has the current figures.
+2. **`docs/PROJECT_REPORT.md` is a Phase-1 snapshot dated 18 September.** Its war stories are
+   accurate; its status is not. `CLAUDE.md` and `plan.md` are the current documents.
+3. **Suite counts drift.** The numbers here are the ones the suites printed on 2 November.
+   Re-run any suite to check.
 
 ---
 
-*Prepared 23 September 2026 from the code as committed. Every claim above is either a constant
+*Prepared 23 September 2026 and updated 2 November 2026 from the code as committed. Every claim above is either a constant
 read from a source file or output printed by a test run.*
